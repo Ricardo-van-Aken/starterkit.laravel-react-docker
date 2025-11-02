@@ -55,7 +55,7 @@ jobs:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel-volume
           build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-app.latest
+            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.latest
           tags: |
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
