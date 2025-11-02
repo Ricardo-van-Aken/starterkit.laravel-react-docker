@@ -27,7 +27,8 @@ RUN npm run build
 ###   Laravel / back-end build stage.         ###
 ###                                           ###
 #################################################
-FROM laravel-base:latest
+ARG BASE_IMAGE=laravel-base:latest
+FROM ${BASE_IMAGE}
 
 # Switch to www user
 USER www-data
