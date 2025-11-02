@@ -39,6 +39,10 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest,mode=max
 
+      - name: Tag base image locally
+        run: |
+          docker tag ${{ env.IMAGE_REPO }}:laravel-base.latest laravel-base:latest
+
       - name: Build app image
         uses: docker/build-push-action@v5
         with:
@@ -97,25 +101,25 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build ${{ matrix.image.name }} image
+      - name: Build ${{ matrix.image.tag }} image
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
           tags: |
-            ${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest
+            ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}
           push: true
           load: true
-          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest,mode=max
+          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }},mode=max
 
-      - name: Save ${{ matrix.image.name }} image
+      - name: Save ${{ matrix.image.tag }} image
         run: |
           mkdir -p docker-images
           filename=$(echo "${{ matrix.image.name }}" | tr '/:' '_' | sed 's/__*/_/g' | sed 's/^_\|_$//g')
           docker save ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }} -o docker-images/${filename}.tar
 
-      - name: Upload ${{ matrix.image.name }} image
+      - name: Upload ${{ matrix.image.tag }} image
         uses: actions/upload-artifact@v4
         with:
           name: image-${{ matrix.image.name }}
