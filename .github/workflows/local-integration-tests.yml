@@ -68,16 +68,17 @@ jobs:
     name: Build Independent Compose Images
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         image:
           - name: nginx
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
             tag: website-nginx.latest
-          - name: mysql_db
+          - name: mysql-db
             context: website/docker/img_mysqldb
             file: website/docker/img_mysqldb/Dockerfile.mysql
-            tag: mysql_db.latest
+            tag: mysql-db.latest
           - name: cert-local
             context: website/docker/img_certlocal
             file: website/docker/img_certlocal/Dockerfile.cert-local
