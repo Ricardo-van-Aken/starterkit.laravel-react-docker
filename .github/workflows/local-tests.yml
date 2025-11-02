@@ -34,7 +34,15 @@ jobs:
         run: |
           docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan migrate'
 
-      - name: Run Laravel tests on clone of the main database
+      - name: Run Laravel tests on clone of the empty main database
+        run: |
+          docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
+
+      - name: Seed the main database with test data
+        run: |
+          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan db:seed'
+      
+      - name: Run Laravel tests on clone of the seeded main database
         run: |
           docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
 

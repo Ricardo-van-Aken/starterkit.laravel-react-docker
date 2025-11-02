@@ -1,0 +1,23 @@
+name: Restrict PR source branches
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - production
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block non-main to staging PRs
+        if: github.base_ref == 'staging' && github.head_ref != 'main'
+        run: |
+          echo "Only PRs from 'main' may go into 'staging'"
+          exit 1
+
+      - name: Block non-staging to production PRs
+        if: github.base_ref == 'production' && github.head_ref != 'staging'
+        run: |
+          echo "Only PRs from 'staging' may go into 'production'"
+          exit 1
