@@ -27,6 +27,11 @@ jobs:
           push: false
           load: true
 
+      - name: Verify base image exists
+        run: |
+          docker images | grep laravel-base
+          docker image inspect laravel-base:latest
+
       - name: Build Docker Compose images
         working-directory: website
         run: |
