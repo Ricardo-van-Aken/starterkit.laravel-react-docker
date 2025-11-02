@@ -13,11 +13,6 @@ jobs:
   build-laravel-image:
     name: Build Laravel Images
     runs-on: ubuntu-latest
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
 
     steps:
       - name: Checkout code
@@ -39,13 +34,9 @@ jobs:
           file: website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
             ${{ env.IMAGE_REPO }}:laravel-base.latest
-            localhost:5000/laravel-base.latest
           push: true
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest,mode=max
-
-      - name: Push base image to local registry
-        run: docker push localhost:5000/laravel-base.latest
 
       - name: Build app image
         uses: docker/build-push-action@v5
@@ -59,7 +50,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest,mode=max
           build-args: |
-            BASE_IMAGE=localhost:5000/laravel-base.latest
+            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.latest
 
       - name: Save images
         run: |
