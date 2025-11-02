@@ -50,5 +50,5 @@ jobs:
         if: always()
         working-directory: website
         run: |
-          docker-compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing down -v
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing down -v
 
