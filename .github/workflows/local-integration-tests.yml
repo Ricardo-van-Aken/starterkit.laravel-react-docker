@@ -35,10 +35,21 @@ jobs:
           tags: |
             ${{ env.IMAGE_REPO }}:laravel-base.latest
           push: true
+          load: true
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest,mode=max
 
-      - name: Build app image
+      - name: Verify Laravel base image is available locally
+        run: |
+          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.latest$"; then
+            echo "Laravel base image is available locally"
+            docker images | grep "laravel-base.latest"
+          else
+            echo "Laravel base image is NOT available locally"
+            exit 1
+          fi
+
+      - name: Build Laravel app image
         uses: docker/build-push-action@v5
         with:
           context: website
@@ -49,8 +60,6 @@ jobs:
           load: true
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest,mode=max
-          build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.latest
 
       - name: Save images
         run: |
