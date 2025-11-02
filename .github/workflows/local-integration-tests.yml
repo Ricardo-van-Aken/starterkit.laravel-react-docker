@@ -19,9 +19,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Laravel base image
-        working-directory: website
-        run: |
-          docker build -f docker/img_laravel/Dockerfile.laravel-base -t laravel-base:latest .
+        uses: docker/build-push-action@v5
+        with:
+          context: website
+          dockerfile: website/docker/img_laravel/Dockerfile.laravel-base
+          tags: laravel-base:latest
+          push: false
+          load: true
 
       - name: Build Docker Compose images
         working-directory: website
