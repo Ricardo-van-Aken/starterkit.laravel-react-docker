@@ -49,16 +49,13 @@ jobs:
             exit 1
           fi
 
-      - name: Tag Laravel base image with expected local tag
-        run: |
-          docker tag ${{ env.IMAGE_REPO }}:laravel-base.latest laravel-base:latest
-          echo "Tagged base image as laravel-base:latest for use in volume Dockerfile"
-
       - name: Build Laravel app image
         uses: docker/build-push-action@v5
         with:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel-volume
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-app.latest
           tags: |
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
