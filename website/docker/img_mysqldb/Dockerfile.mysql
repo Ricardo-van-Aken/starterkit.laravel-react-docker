@@ -1,0 +1,10 @@
+FROM mysql:8.0-debian
+
+RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
+
+# Copy the cloner init SQL script template
+COPY scripts/init-cloner.sql.template /tmp/init-cloner.sql.template
+
+COPY scripts/custom-entrypoint.sh /custom-entrypoint.sh
+COPY scripts/read-db-credentials.sh /read-db-credentials.sh
+RUN chmod u+x /custom-entrypoint.sh /read-db-credentials.sh

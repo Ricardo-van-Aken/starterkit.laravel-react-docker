@@ -1,0 +1,68 @@
+- name: Create minimal-privilege user for Docker rootless
+  hosts: all
+  become: true
+
+  vars:
+    docker_user: "docklessuser"
+    docker_shell: "/usr/sbin/nologin"     # or /bin/bash if interactive login is ok
+    # You may give them bash login if they will do CLI work; otherwise nologin for minimal
+    subuid_range: "231072:65536"
+    subgid_range: "231072:65536"
+
+  tasks:
+    - name: Install required tools for rootless Docker
+      package:
+        name:
+          - uidmap
+        state: present
+
+    - name: Create the user account
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+        shell: "{{ docker_shell }}"
+        create_home: true
+        home: "/home/{{ docker_user }}"
+        groups: []                 # no extra groups by default
+        append: false              # don’t keep existing groups
+        state: present
+
+    # - name: Ensure /etc/subuid entry for the user
+    #   lineinfile:
+    #     path: /etc/subuid
+    #     regexp: "^{{ docker_user }}:"
+    #     line: "{{ docker_user }}:{{ subuid_range }}"
+    #     state: present
+    #     create: yes
+
+    # - name: Ensure /etc/subgid entry for the user
+    #   lineinfile:
+    #     path: /etc/subgid
+    #     regexp: "^{{ docker_user }}:"
+    #     line: "{{ docker_user }}:{{ subgid_range }}"
+    #     state: present
+    #     create: yes
+
+    # - name: Allow the user to run the rootless setup tool
+    #   # Typically no special permissions beyond being that user
+    #   # But ensure they own their home dir and config dir
+    #   file:
+    #     path: "/home/{{ docker_user }}/.config"
+    #     state: directory
+    #     owner: "{{ docker_user }}"
+    #     group: "{{ docker_user }}"
+    #     mode: "0700"
+
+    # - name: Install Docker rootless extras (if required)  
+    #   package:
+    #     name:
+    #       - docker-ce-rootless-extras
+    #     state: present
+    #     when: ansible_os_family in ["Debian", "RedHat"]
+
+    # - name: Switch to the user context and run rootless install
+    #   become: true
+    #   become_user: "{{ docker_user }}"
+    #   shell: |
+    #     dockerd-rootless-setuptool.sh install
+    #   args:
+    #     creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"

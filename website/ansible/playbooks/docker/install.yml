@@ -1,0 +1,39 @@
+---
+- name: Install Docker engine and verify with hello-world
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Update apt cache (ensure package lists are fresh)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure docker service is enabled and started
+      ansible.builtin.service:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Wait for Docker socket to appear
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        state: present
+        timeout: 30
+
+    - name: Run hello-world container to verify installation
+      ansible.builtin.command: docker run --rm hello-world
+      register: hello_result
+      changed_when: hello_result.rc == 0
+      failed_when: hello_result.rc != 0

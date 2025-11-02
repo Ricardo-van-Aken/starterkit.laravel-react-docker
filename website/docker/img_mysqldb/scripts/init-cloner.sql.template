@@ -1,0 +1,18 @@
+CREATE DATABASE IF NOT EXISTS `${MYSQL_DATABASE_TESTING}`;
+
+-- Create the testing user if it does not exist
+CREATE USER IF NOT EXISTS '${MYSQL_USER_TESTING}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD_TESTING}';
+
+-- Grant read access to the main DB to the testing user
+GRANT SELECT, LOCK TABLES, SHOW VIEW, TRIGGER ON `${MYSQL_DATABASE}`.* TO '${MYSQL_USER_TESTING}'@'%';
+
+-- Grant all privileges on the test DB to the testing user
+GRANT ALL PRIVILEGES ON `${MYSQL_DATABASE_TESTING}`.* TO '${MYSQL_USER_TESTING}'@'%';
+
+-- Grant read access to the test DB to the main user
+GRANT SELECT, LOCK TABLES, SHOW VIEW, TRIGGER ON `${MYSQL_DATABASE_TESTING}`.* TO '${MYSQL_USER}'@'%';
+
+-- Grant PROCESS privilege for mysqldump
+-- GRANT PROCESS ON *.* TO '${MYSQL_USER_TESTING}'@'%';
+
+FLUSH PRIVILEGES;

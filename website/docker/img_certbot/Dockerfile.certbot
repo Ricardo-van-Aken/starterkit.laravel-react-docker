@@ -1,0 +1,20 @@
+FROM certbot/certbot:latest
+
+# Install cron
+RUN apt-get update && apt-get install -y cron
+
+# Copy your renewal script
+COPY scripts/certbot_renew.sh /certbot_renew.sh
+RUN chmod +x /certbot_renew.sh
+
+# Add cron job: run every day at 2am
+RUN echo "0 2 * * * root /certbot_renew.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/certbot-renew
+
+# Give execution rights on the cron job
+RUN chmod 0644 /etc/cron.d/certbot-renew
+
+# Apply cron job
+RUN crontab /etc/cron.d/certbot-renew
+
+# Start cron in the foreground
+CMD ["cron", "-f"]

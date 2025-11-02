@@ -1,0 +1,151 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      context: ../
+      dockerfile: docker/img_laravel/${DOCKERFILE}
+    container_name: laravel_app
+    restart: unless-stopped
+    volumes:
+      - ./img_laravel/${ENV_FILE}:/var/www/.env     # Bind mount: Application environment variables
+      - ${APP_FILES_DIR}:/var/www     # Volume or Bind mount: Application files to be served by nginx
+    secrets:
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_testing_db_database
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+      - redis_password
+    depends_on: 
+      - mysql_db
+      - redis
+    command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+
+  # Nginx Web Server
+  nginx:
+    build:
+      context: ./img_nginx
+      dockerfile: Dockerfile.nginx
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+    volumes:
+      - ${APP_FILES_DIR}:/var/www           # Volume or Bind mount: Application files to be served by nginx
+      - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
+      - certbot_certs:/etc/nginx/ssl/:ro    # Volume: Https certificates from certs container
+    depends_on:
+      - app
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+
+  # MySQL Database
+  mysql_db:
+    build:
+      context: ./img_mysqldb
+      dockerfile: Dockerfile.mysql
+    container_name: db
+    restart: unless-stopped
+    secrets:
+      - mysql_db_rootpass
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_testing_db_database
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+    command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+
+  # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
+  phpmyadmin-admin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-admin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db  # Must be the same as container_name of the db
+      PMA_USER_FILE: /run/secrets/mysql_app_db_username
+      PMA_PASSWORD_FILE: /run/secrets/mysql_app_db_password
+    ports:
+      - 8080:80
+    depends_on:
+      - mysql_db
+    secrets:
+      - mysql_app_db_username
+      - mysql_app_db_password
+    profiles: ["all", "dev-bindmount", "dev-volume"]
+  
+  phpmyadmin-testing:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-testing
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db  # Must be the same as container_name of the db
+      PMA_USER_FILE: /run/secrets/mysql_testing_db_username
+      PMA_PASSWORD_FILE: /run/secrets/mysql_testing_db_password
+    ports:
+      - 8081:80
+    depends_on:
+      - mysql_db
+    secrets:
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+    profiles: ["all", "dev-bindmount", "dev-volume"]
+
+  # Redis for sessions and caching
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    secrets:
+      - redis_password
+    # command: ["/bin/sh", "-c", "REDIS_PASSWORD=$(cat /run/secrets/redis_password) exec redis-server --requirepass \"$REDIS_PASSWORD\""]
+    command: ["redis-server", "--requirepass", "secretredispass"]
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+
+  # Local Certificate Generation Service
+  cert_local:
+    build:
+      context: ./img_certlocal
+      dockerfile: Dockerfile.cert-local
+    container_name: cert_local
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+    volumes:
+      - certbot_certs:/etc/nginx/ssl/:rw  # Volume: Share the generated SSL certificates with nginx
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+  # Certbot for generating real SSL certificates
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      - certbot_files:/var/www/certbot/:rw # Volume: Certbot files to be served by nginx (for confirming domain ownership)
+      - certbot_certs:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
+    profiles: ["all", "staging", "production"]
+
+volumes:
+  app_files:
+  certbot_files:
+  certbot_certs:
+
+secrets:
+  mysql_testing_db_password:
+    file: ./secrets/mysql_testing_db_password
+  mysql_testing_db_username:
+    file: ./secrets/mysql_testing_db_username
+  mysql_testing_db_database:
+    file: ./secrets/mysql_testing_db_database
+  mysql_app_db_password:
+    file: ./secrets/mysql_app_db_password
+  mysql_app_db_username:
+    file: ./secrets/mysql_app_db_username
+  mysql_app_db_database:
+    file: ./secrets/mysql_app_db_database
+  mysql_db_rootpass:
+    file: ./secrets/mysql_db_rootpass
+  redis_password:
+    file: ./secrets/redis_password

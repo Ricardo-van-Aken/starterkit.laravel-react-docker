@@ -1,0 +1,57 @@
+#################################################
+###                                           ###
+###   Node / front-end build stage.           ###
+###                                           ###
+#################################################
+FROM node:18
+
+# Set working directory
+WORKDIR /var/www
+
+# Copy package.json and package-lock.json for building js dependencies
+COPY laravel_root/package.json laravel_root/package-lock.json ./
+COPY laravel_root/vite.config.js laravel_root/tailwind.config.js laravel_root/postcss.config.js ./
+
+# Install npm dependencies
+RUN npm ci
+
+# Copy the entire resources directory for the build
+COPY laravel_root/resources ./resources
+
+# Build main app assets into the public folder (currently using vite)
+RUN npm run build
+
+
+#################################################
+###                                           ###
+###   Laravel / back-end build stage.         ###
+###                                           ###
+#################################################
+FROM laravel-base:latest
+
+# Switch to www user
+USER www-data
+
+# Copy composer files
+COPY --chown=www-data:www-data laravel_root/composer.json laravel_root/composer.lock ./
+
+# Install composer dependencies without running scripts
+RUN composer install --no-scripts
+
+# Copy built assets and node_modules from the Node stage
+COPY --chown=www-data:www-data --from=0 /var/www/public/build ./public/build
+COPY --chown=www-data:www-data --from=0 /var/www/node_modules ./node_modules
+
+# Copy the Laravel application files
+COPY --chown=www-data:www-data laravel_root/ .
+
+# Give testrunner full access to the logs
+RUN chown -R www-data:shared /var/www/storage/logs \
+    && chmod -R 770 /var/www/storage/logs
+# Give testrunner full access to compiled blade views
+RUN chown -R www-data:shared /var/www/storage/framework/views \
+    && chmod -R 770 /var/www/storage/framework/views
+
+# Run composer scripts after all files are in place
+RUN composer run-script post-autoload-dump
+

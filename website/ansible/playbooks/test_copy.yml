@@ -1,0 +1,10 @@
+---
+- name: Copy test file to remote host
+  hosts: droplet
+  gather_facts: no
+  tasks:
+    - name: Copy a simple test file
+      ansible.builtin.copy:
+        src: /home/joel/Documents/Laravel-React-Dockerized/website/ansible/ansible_test.txt
+        dest: /tmp/ansible_test.txt
+        mode: '0644'

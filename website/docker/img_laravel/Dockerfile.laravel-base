@@ -1,0 +1,85 @@
+#################################################
+###                                           ###
+###   PHP / Laravel Stage.                    ###
+###                                           ###
+#################################################
+# Use the official PHP 8.2 FPM image (Laravel 12 requires PHP 8.1+)
+FROM php:8.2-fpm
+
+
+
+# --- Dependencies --- #
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    # Used by composer and laravel to make HTTP requests
+    curl \
+    # Handling .zip archives. Used by composer
+    zip \
+    unzip \
+    # Enable image processing features. Used by laravels intervention/image package`
+    libpng-dev \
+    libjpeg-dev \
+    # Node.js and npm for frontend assets
+    nodejs \
+    npm \
+    # mysql-client for testrunning pipeline. Used by clone_db_for_testing.sh
+    default-mysql-client
+
+# Laravels database drivers for MariaDB/mySQL
+RUN docker-php-ext-install pdo pdo_mysql
+
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Install Vite globally for testing builds in container
+RUN npm install -g vite
+
+# Get latest Composer for project php dependencies
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www
+
+
+
+# --- Users and Groups --- #
+
+# Set group ID and user ID for www-data user to 82. This user runs the laravel application
+RUN usermod -u 82 www-data && groupmod -g 82 www-data
+
+# Add a testrunner user and group for running the db cloning script
+RUN groupadd -g 1002 testrunner
+RUN useradd -u 1002 -ms /bin/bash -g testrunner testrunner
+
+# Create shared group for files/scripts used by both www-data user and testrunner user
+RUN groupadd -g 1003 shared
+RUN usermod -a -G shared www-data && usermod -a -G shared testrunner
+
+# Set ownership of the working directory to www user
+RUN chown -R www-data:www-data /var/www
+
+# Expose port 9000
+EXPOSE 9000
+
+
+
+# --- Scripts for loading in Docker secrets and cloning/testing the laravel database --- #
+
+ARG DOCKERFILE_DIR=docker/img_laravel
+
+# Copy scripts
+COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials.sh           /usr/local/bin/read-db-credentials.sh
+COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials-testing.sh   /usr/local/bin/read-db-credentials-testing.sh
+COPY ${DOCKERFILE_DIR}/scripts/read-redis-password.sh           /usr/local/bin/read-redis-password.sh
+COPY ${DOCKERFILE_DIR}/scripts/clone_db_for_testing.sh          /usr/local/bin/clone_db_for_testing.sh
+COPY ${DOCKERFILE_DIR}/scripts/clone_and_test.sh                /usr/local/bin/clone_and_test.sh
+
+# Set permissions
+RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh
+RUN chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh
+RUN chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh
+RUN chown root:testrunner       /usr/local/bin/clone_and_test.sh                && chmod 550 /usr/local/bin/clone_and_test.sh
+RUN chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
+
