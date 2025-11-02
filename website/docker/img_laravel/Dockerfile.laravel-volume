@@ -1,3 +1,5 @@
+ARG BASE_IMAGE=laravel-base:latest
+
 #################################################
 ###                                           ###
 ###   Node / front-end build stage.           ###
@@ -27,7 +29,6 @@ RUN npm run build
 ###   Laravel / back-end build stage.         ###
 ###                                           ###
 #################################################
-ARG BASE_IMAGE=laravel-base:latest
 FROM ${BASE_IMAGE}
 
 # Switch to www user
