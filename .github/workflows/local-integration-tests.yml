@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_REPO: ${{ secrets.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker
+  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker
 
 jobs:
   build-laravel-image:
@@ -33,7 +33,6 @@ jobs:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
-            laravel-base.latest
             ${{ env.IMAGE_REPO }}:laravel-base.latest
           push: true
           load: true
@@ -46,7 +45,6 @@ jobs:
           context: website
           file: docker/img_laravel/Dockerfile.laravel-volume
           tags: |
-            laravel-app.latest
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
           load: true
@@ -56,8 +54,8 @@ jobs:
       - name: Save images
         run: |
           mkdir -p docker-images
-          docker save laravel-base.latest -o docker-images/laravel-base.tar
-          docker save laravel-app.latest -o docker-images/laravel-app.tar
+          docker save ${{ env.IMAGE_REPO }}:laravel-base.latest -o docker-images/laravel-base.tar
+          docker save ${{ env.IMAGE_REPO }}:laravel-app.latest -o docker-images/laravel-app.tar
 
       - name: Upload images
         uses: actions/upload-artifact@v4
@@ -104,11 +102,11 @@ jobs:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
           tags: |
-            ${{ matrix.image.tag }}
+            ${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest
           push: true
           load: true
-          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }},mode=max
+          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.name }}.latest,mode=max
 
       - name: Save ${{ matrix.image.name }} image
         run: |
@@ -158,13 +156,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Pull base image from Docker Hub
         run: |
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker:laravel_base.latest
-          docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker:laravel_base.latest laravel-base:latest
+          docker pull ${{ env.IMAGE_REPO }}:laravel-base.latest
+          docker tag ${{ env.IMAGE_REPO }}:laravel-base.latest laravel-base.latest
 
       - name: Download Docker Compose images
         uses: actions/download-artifact@v4
