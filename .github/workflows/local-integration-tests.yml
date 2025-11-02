@@ -21,8 +21,8 @@ jobs:
       - name: Build Laravel base image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: website/docker/img_laravel/Dockerfile.laravel-base
+          context: website
+          file: docker/img_laravel/Dockerfile.laravel-base
           tags: laravel-base:latest
           push: false
           load: true
