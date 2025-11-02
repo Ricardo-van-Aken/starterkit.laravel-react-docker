@@ -44,7 +44,7 @@ esac
 docker build -f docker/img_laravel/Dockerfile.laravel-base -t laravel-base:latest .
 
 # Remove all volumes associated with this compose file (clean start)
-docker-compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
 
-# Run docker-compose with the selected .env file and profile
-docker-compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build 
+# Run docker compose with the selected .env file and profile
+docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build 
