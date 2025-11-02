@@ -49,6 +49,11 @@ jobs:
             exit 1
           fi
 
+      - name: Debug BASE_IMAGE value
+        run: |
+          echo "IMAGE_REPO=${{ env.IMAGE_REPO }}"
+          echo "BASE_IMAGE value should be: ${{ env.IMAGE_REPO }}:laravel-base.latest"
+
       - name: Build Laravel app image
         uses: docker/build-push-action@v5
         with:
@@ -60,7 +65,7 @@ jobs:
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
           load: true
-          pull: false
+          pull: true
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest,mode=max
 
