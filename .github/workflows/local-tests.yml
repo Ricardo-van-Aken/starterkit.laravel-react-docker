@@ -1,0 +1,46 @@
+name: Test on PR to main (these tests can also be ran locally)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Laravel Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Docker services
+        working-directory: website
+        run: |
+          chmod +x run_env.sh
+          ./run_env.sh fake-prod
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for database to be ready..."
+          timeout 120 bash -c 'until docker exec db mysqladmin ping -h localhost --silent; do sleep 2; done'
+          echo "Waiting for Laravel app to be ready..."
+          timeout 120 bash -c 'until docker exec laravel_app php artisan --version; do sleep 2; done'
+
+      - name: Run database migrations
+        run: |
+          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan migrate'
+
+      - name: Run Laravel tests on clone of the main database
+        run: |
+          docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
+
+      - name: Cleanup
+        if: always()
+        working-directory: website
+        run: |
+          docker-compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing down -v
+
