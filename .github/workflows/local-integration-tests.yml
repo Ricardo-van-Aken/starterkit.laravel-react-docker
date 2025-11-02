@@ -63,6 +63,7 @@ jobs:
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
           load: true
+          pull: false
           cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest,mode=max
 
