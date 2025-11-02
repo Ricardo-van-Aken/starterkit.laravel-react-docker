@@ -43,7 +43,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: website
-          file: docker/img_laravel/Dockerfile.laravel-volume
+          file: website/docker/img_laravel/Dockerfile.laravel-volume
           tags: |
             ${{ env.IMAGE_REPO }}:laravel-app.latest
           push: true
@@ -72,15 +72,15 @@ jobs:
         image:
           - name: nginx
             context: website/docker/img_nginx
-            file: Dockerfile.nginx
+            file: website/docker/img_nginx/Dockerfile.nginx
             tag: website-nginx.latest
           - name: mysql_db
             context: website/docker/img_mysqldb
-            file: Dockerfile.mysql
+            file: website/docker/img_mysqldb/Dockerfile.mysql
             tag: mysql_db.latest
           - name: cert-local
             context: website/docker/img_certlocal
-            file: Dockerfile.cert-local
+            file: website/docker/img_certlocal/Dockerfile.cert-local
             tag: cert-local.latest
     
     steps:
@@ -111,8 +111,8 @@ jobs:
       - name: Save ${{ matrix.image.name }} image
         run: |
           mkdir -p docker-images
-          filename=$(echo "${{ matrix.image.tag }}" | tr '/:' '_' | sed 's/__*/_/g' | sed 's/^_\|_$//g')
-          docker save ${{ matrix.image.tag }} -o docker-images/${filename}.tar
+          filename=$(echo "${{ matrix.image.name }}" | tr '/:' '_' | sed 's/__*/_/g' | sed 's/^_\|_$//g')
+          docker save ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }} -o docker-images/${filename}.tar
 
       - name: Upload ${{ matrix.image.name }} image
         uses: actions/upload-artifact@v4
