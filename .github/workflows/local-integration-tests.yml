@@ -23,10 +23,15 @@ jobs:
         run: |
           docker build -f docker/img_laravel/Dockerfile.laravel-base -t laravel-base:latest .
 
+      - name: Build Docker Compose images
+        working-directory: website
+        run: |
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing build --pull=never
+
       - name: Start Docker services
         working-directory: website
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d --build
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d
 
       - name: Wait for services to be ready
         run: |
