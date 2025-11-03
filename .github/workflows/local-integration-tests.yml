@@ -69,7 +69,6 @@ jobs:
       - name: Save images
         run: |
           mkdir -p docker-images
-          docker save ${{ env.IMAGE_REPO }}:laravel-base.latest -o docker-images/laravel-base.tar
           docker save ${{ env.IMAGE_REPO }}:laravel-app.latest -o docker-images/laravel-app.tar
 
       - name: Upload images
