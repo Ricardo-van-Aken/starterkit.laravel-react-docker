@@ -78,6 +78,7 @@ jobs:
           name: image-app
           path: docker-images/*.tar
           retention-days: 1
+          compression-level: 0
 
   build-compose-images:
     name: Build Independent Compose Images
