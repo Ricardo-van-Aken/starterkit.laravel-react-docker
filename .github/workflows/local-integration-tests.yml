@@ -166,14 +166,24 @@ jobs:
           IMAGE_REPO="${{ env.IMAGE_REPO }}" \
           docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d --no-build
 
+      - name: Diagnostics - containers, logs, secrets
+        run: |
+          sleep 20
+          echo "Containers status:" && docker ps -a
+          echo "Last 200 lines of db logs:" && docker logs --tail 200 db || true
+          echo "Last 200 lines of laravel_app logs:" && docker logs --tail 200 laravel_app || true
+          echo "Host secrets files:" && ls -l website/docker/secrets || true
+          echo "Secrets mounted in laravel_app:" && docker exec -u www-data laravel_app ls -l /run/secrets || true
+          echo "Secrets mounted in db:" && docker exec db ls -l /run/secrets || true
+
       - name: Wait for services to be ready
         run: |
           echo "Waiting for database service (container) to be ready..."
-          timeout 180 bash -c 'until docker exec db mysqladmin ping -h localhost --silent; do sleep 2; done'
+          timeout 30 bash -c 'until docker exec db mysqladmin ping -h localhost --silent; do sleep 2; done'
           # Give mysqld a moment to begin accepting remote connections
           sleep 5
           echo "Verifying DB accepts connections from laravel_app..."
-          timeout 180 bash -c 'until docker exec -u www-data laravel_app sh -c \
+          timeout 30 bash -c 'until docker exec -u www-data laravel_app sh -c \
             ". /usr/local/bin/read-db-credentials.sh; mysql -h \"$DB_HOST\" -u \"$DB_USERNAME\" -p\"$DB_PASSWORD\" -e \"SELECT 1\" \"$DB_DATABASE\" >/dev/null 2>&1"; do sleep 2; done'
 
       - name: Run database migrations
