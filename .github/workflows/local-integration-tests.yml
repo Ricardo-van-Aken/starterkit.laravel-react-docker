@@ -50,11 +50,6 @@ jobs:
             exit 1
           fi
 
-      - name: Debug BASE_IMAGE value
-        run: |
-          echo "IMAGE_REPO=${{ env.IMAGE_REPO }}"
-          echo "BASE_IMAGE value should be: ${{ env.IMAGE_REPO }}:laravel-base.latest"
-
       - name: Build Laravel app image
         uses: docker/build-push-action@v5
         with:
@@ -172,9 +167,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Download Docker Compose images
         uses: actions/download-artifact@v4
         with:
@@ -190,7 +182,8 @@ jobs:
       - name: Start Docker services
         working-directory: website
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d
+          IMAGE_REPO="${{ env.IMAGE_REPO }}" \
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d --no-build
 
       - name: Wait for services to be ready
         run: |
