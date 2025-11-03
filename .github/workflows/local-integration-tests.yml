@@ -194,7 +194,7 @@ jobs:
 
       - name: Run database migrations
         run: |
-          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan migrate'
+          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan migrate --force'
 
       - name: Run Laravel tests on clone of the empty main database
         run: |
