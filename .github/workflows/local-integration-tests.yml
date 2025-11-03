@@ -138,30 +138,30 @@ jobs:
           path: docker-images/*.tar
           retention-days: 1
 
-  collect-images:
-    name: Collect All Images
-    runs-on: ubuntu-latest
-    needs: [build-laravel-image, build-compose-images]
+  # collect-images:
+  #   name: Collect All Images
+  #   runs-on: ubuntu-latest
+  #   needs: [build-laravel-image, build-compose-images]
     
-    steps:
-      - name: Download all images
-        uses: actions/download-artifact@v4
-        with:
-          pattern: image-*
-          merge-multiple: true
-          path: docker-images
+  #   steps:
+  #     - name: Download all images
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: image-*
+  #         merge-multiple: true
+  #         path: docker-images
 
-      - name: Upload all Docker images
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-images
-          path: docker-images/*.tar
-          retention-days: 1
+  #     - name: Upload all Docker images
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: docker-images
+  #         path: docker-images/*.tar
+  #         retention-days: 1
 
   test:
     name: Run Laravel Tests
     runs-on: ubuntu-latest
-    needs: collect-images
+    needs: [build-laravel-image, build-compose-images]
     
     steps:
       - name: Checkout code
@@ -170,7 +170,8 @@ jobs:
       - name: Download Docker Compose images
         uses: actions/download-artifact@v4
         with:
-          name: docker-images
+          pattern: image-*
+          merge-multiple: true
           path: docker-images
 
       - name: Load Docker Compose images
