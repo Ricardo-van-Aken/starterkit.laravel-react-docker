@@ -117,6 +117,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: Download backend.hcl file
         uses: actions/download-artifact@v4
