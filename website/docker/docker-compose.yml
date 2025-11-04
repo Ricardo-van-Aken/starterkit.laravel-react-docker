@@ -1,6 +1,7 @@
 services:
   # Laravel Application
   app:
+    image: ${IMAGE_REPO}:laravel-app.latest
     build:
       context: ../
       dockerfile: docker/img_laravel/${DOCKERFILE}
@@ -25,6 +26,7 @@ services:
 
   # Nginx Web Server
   nginx:
+    image: ${IMAGE_REPO}:website-nginx.latest
     build:
       context: ./img_nginx
       dockerfile: Dockerfile.nginx
@@ -45,6 +47,7 @@ services:
 
   # MySQL Database
   mysql_db:
+    image: ${IMAGE_REPO}:mysql-db.latest
     build:
       context: ./img_mysqldb
       dockerfile: Dockerfile.mysql
@@ -109,6 +112,7 @@ services:
 
   # Local Certificate Generation Service
   cert_local:
+    image: ${IMAGE_REPO}:cert-local.latest
     build:
       context: ./img_certlocal
       dockerfile: Dockerfile.cert-local
