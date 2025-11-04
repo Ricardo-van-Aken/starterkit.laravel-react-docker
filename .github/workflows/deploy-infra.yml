@@ -117,8 +117,6 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_wrapper: false
 
       - name: Download backend.hcl file
         uses: actions/download-artifact@v4
@@ -135,45 +133,63 @@ jobs:
       - name: Validate
         run: terraform validate
 
-      - name: Plan (apply)
-        id: plan-apply
-        if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
-        continue-on-error: true
+      - name: Plan (apply/destroy flag selection)
+        id: plan-flag
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy' }}
         run: |
-          terraform plan -out=tfplan -detailed-exitcode
-          PLAN_EXIT_CODE=$?
-          if [ $PLAN_EXIT_CODE -eq 2 ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected"
-            exit 0
-          elif [ $PLAN_EXIT_CODE -eq 0 ]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected"
-            exit 0
+          ACTION="${{ github.event.inputs.action }}"
+
+          if [ "$ACTION" = "destroy" ]; then
+            echo "DESTROY_FLAG=-destroy" >> $GITHUB_OUTPUT
           else
-            echo "Terraform plan failed with exit code $PLAN_EXIT_CODE"
-            exit $PLAN_EXIT_CODE
+            echo "DESTROY_FLAG=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Plan (destroy)
-        id: plan-destroy
-        if: github.event.inputs.action == 'destroy'
+      - name: Plan (apply/destroy)
+        id: plan-apply
         continue-on-error: true
+        run: terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} -out=tfplan -detailed-exitcode
+
+      - name: Reference Past Step
         run: |
-          terraform plan -destroy -out=tfplan -detailed-exitcode
-          PLAN_EXIT_CODE=$?
-          if [ $PLAN_EXIT_CODE -eq 2 ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected for destroy"
-            exit 0
-          elif [ $PLAN_EXIT_CODE -eq 0 ]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes to destroy"
-            exit 0
-          else
-            echo "Terraform plan failed with exit code $PLAN_EXIT_CODE"
-            exit $PLAN_EXIT_CODE
-          fi
+          echo "Exit code: ${{ steps.plan-apply.outputs.exitcode}}"
+
+      #   outputs:
+      #     flag: 
+
+
+
+
+      # - name: Plan (apply)
+      #   id: plan-apply
+      #   if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
+      #   continue-on-error: true
+      #   run: terraform plan -out=tfplan -detailed-exitcode
+
+      # - name: Plan (destroy)
+      #   id: plan-destroy
+      #   if: github.event.inputs.action == 'destroy'
+      #   continue-on-error: true
+      #   run: terraform plan -destroy -out=tfplan -detailed-exitcode
+
+      # - name: Verify plan changes
+      #   run: |
+      #     PLAN_EXIT_CODE=$?
+      #     if [ $PLAN_EXIT_CODE -eq 2 ]; then
+      #       echo "has_changes=true" >> $GITHUB_OUTPUT
+      #       echo "Changes detected for destroy"
+      #       exit 0
+      #     elif [ $PLAN_EXIT_CODE -eq 0 ]; then
+      #       echo "has_changes=false" >> $GITHUB_OUTPUT
+      #       echo "No changes to destroy"
+      #       exit 0
+      #     else
+      #       echo "Terraform plan failed with exit code $PLAN_EXIT_CODE"
+      #       exit $PLAN_EXIT_CODE
+      #     fi
+        
+      
+
 
       - name: Upload Plan Artifacts
         if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
