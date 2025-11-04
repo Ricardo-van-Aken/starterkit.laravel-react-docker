@@ -1,5 +1,5 @@
 module "name_generator" {
-  source = "../shared/name_generator"
+  source = "../name_generator"
   name   = var.name
 }
 
