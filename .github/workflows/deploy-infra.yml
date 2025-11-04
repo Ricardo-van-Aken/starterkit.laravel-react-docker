@@ -138,7 +138,7 @@ jobs:
         if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
         continue-on-error: true
         run: |
-          terraform plan -out=tfplan
+          terraform plan -out=tfplan -detailed-exitcode
           PLAN_EXIT_CODE=$?
           if [ $PLAN_EXIT_CODE -eq 2 ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -158,7 +158,7 @@ jobs:
         if: github.event.inputs.action == 'destroy'
         continue-on-error: true
         run: |
-          terraform plan -destroy -out=tfplan
+          terraform plan -destroy -out=tfplan -detailed-exitcode
           PLAN_EXIT_CODE=$?
           if [ $PLAN_EXIT_CODE -eq 2 ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
