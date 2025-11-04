@@ -35,13 +35,56 @@ env:
   TERRAFORM_WORKSPACE: ${{ github.event.inputs.environment }}
 
 jobs:
-  echo-vars:
+  generate-backend-config:
+    name: Generate Backend Configuration
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform
+
     steps:
-      - name: Print environment variables
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backend.hcl file
         run: |
-          echo "Environment variables:"
-          echo "TF_VAR_region=$TF_VAR_region"
-          echo "TF_VAR_bucket_name=$TF_VAR_bucket_name"
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-          echo "TERRAFORM_WORKSPACE=$TERRAFORM_WORKSPACE"
+          source ../scripts/common.sh
+          generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
+  terraform-bootstrap:
+    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    runs-on: ubuntu-latest
+    needs: generate-backend-config
+    defaults:
+      run:
+        working-directory: deployment/terraform/bootstrap
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
+      - name: Select/Create Workspace
+        run: |
+          terraform init -backend-config ../backend.hcl -backend-config="key=projects/${{ github.event.inputs.repository.name }}/infra-bootstrap/terraform.tfstate"
+          terraform workspace select ${{ github.event.inputs.environment }} 2>/dev/null || terraform workspace new ${{ github.event.inputs.environment }}
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: terraform plan -out=tfplan
