@@ -100,6 +100,86 @@ jobs:
           echo "spaces_access_id=$(terraform output -raw spaces_access_id)" >> $GITHUB_OUTPUT
           echo "spaces_secret_key=$(terraform output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
 
+  terraform-plan:
+    name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    runs-on: ubuntu-latest
+    needs: terraform-bootstrap
+    env:
+      TF_VAR_spaces_access_id: ${{ needs.terraform-bootstrap.outputs.spaces_access_id }}
+      TF_VAR_spaces_secret_key: ${{ needs.terraform-bootstrap.outputs.spaces_secret_key }}
+    defaults:
+      run:
+        working-directory: deployment/terraform/environments/common
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
+      - name: Select/Create Workspace
+        run: |
+          terraform init -backend-config ../backend.hcl -backend-config="key=projects/${{ github.event.inputs.repository.name }}/infra-bootstrap/terraform.tfstate"
+          terraform workspace new ${{ github.event.inputs.environment }}
+          terraform workspace select ${{ github.event.inputs.environment }}
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan (apply)
+        id: plan-apply
+        if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
+        continue-on-error: true
+        run: |
+          terraform plan -out=tfplan
+          PLAN_EXIT_CODE=$?
+          if [ $PLAN_EXIT_CODE -eq 2 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+            exit 0
+          elif [ $PLAN_EXIT_CODE -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+            exit 0
+          else
+            echo "Terraform plan failed with exit code $PLAN_EXIT_CODE"
+            exit $PLAN_EXIT_CODE
+          fi
+
+      - name: Plan (destroy)
+        id: plan-destroy
+        if: github.event.inputs.action == 'destroy'
+        continue-on-error: true
+        run: |
+          terraform plan -destroy -out=tfplan
+          PLAN_EXIT_CODE=$?
+          if [ $PLAN_EXIT_CODE -eq 2 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected for destroy"
+            exit 0
+          elif [ $PLAN_EXIT_CODE -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to destroy"
+            exit 0
+          else
+            echo "Terraform plan failed with exit code $PLAN_EXIT_CODE"
+            exit $PLAN_EXIT_CODE
+          fi
+
+      - name: Upload Plan Artifacts
+        if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.event.inputs.environment }}
+          path: deployment/terraform/environments/common/tfplan
+
   terraform-destroy-bootstrap:
     name: Destroy Bootstrap (Cleanup Key)
     runs-on: ubuntu-latest
@@ -116,6 +196,12 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
 
       - name: Select Workspace
         run: |
