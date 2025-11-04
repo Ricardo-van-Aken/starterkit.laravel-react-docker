@@ -63,7 +63,7 @@ jobs:
     needs: generate-backend-config
     defaults:
       run:
-        working-directory: deployment/terraform/bootstrap
+        working-directory: deployment/terraform/bootstrap/common
 
     steps:
       - name: Checkout
