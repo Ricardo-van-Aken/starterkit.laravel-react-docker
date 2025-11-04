@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.event.inputs.environment }}
-          path: deployment/terraform/bootstrap/tfplan
+          path: deployment/terraform/bootstrap/common/tfplan
 
       - name: Apply
         run: terraform apply tfplan
