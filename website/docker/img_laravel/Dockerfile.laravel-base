@@ -3,8 +3,8 @@
 ###   PHP / Laravel Stage.                    ###
 ###                                           ###
 #################################################
-# Use the official PHP 8.2 FPM image (Laravel 12 requires PHP 8.1+)
-FROM php:8.2-fpm
+# Use the official PHP 8.3 FPM image (Laravel 12 requires PHP 8.1+)
+FROM php:8.3-fpm
 
 
 

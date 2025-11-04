@@ -1,3 +1,8 @@
+@php
+    // Detect React pages by extension (.jsx)
+    $isReact = Str::endsWith($page['component'], '.jsx');
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -12,7 +17,15 @@
 
         <!-- Scripts -->
         @routes
-        @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+
+        @if($isReact)
+            {{-- Breeze React --}}
+            @vite(['resources/js/app-react.jsx'])
+        @else
+            {{-- Jetstream Vue --}}
+            @vite(['resources/js/app-vue.js'])
+        @endif
+        {{-- @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"]) --}}
         @inertiaHead
     </head>
     <body class="font-sans antialiased">

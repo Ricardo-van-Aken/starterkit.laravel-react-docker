@@ -5,7 +5,7 @@ ARG BASE_IMAGE=local/starterkit.laravel-react-docker:laravel-base.latest
 ###   Node / front-end build stage.           ###
 ###                                           ###
 #################################################
-FROM node:18
+FROM node:20
 
 # Set working directory
 WORKDIR /var/www
