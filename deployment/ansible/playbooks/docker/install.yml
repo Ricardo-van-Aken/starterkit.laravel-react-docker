@@ -75,8 +75,20 @@
         dockerd-rootless-setuptool.sh install
       args:
         creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
-      # environment:
-        # XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
+        PATH: "/usr/bin:$PATH"
+
+    - name: Check Docker is running rootless
+      become: true
+      become_user: "{{ docker_user }}"
+      ansible.builtin.shell: docker info
+      register: docker_info
+      changed_when: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
+        PATH: "/usr/bin:$PATH"
+
 
     # - name: Check Docker is running rootless
     #   become: true

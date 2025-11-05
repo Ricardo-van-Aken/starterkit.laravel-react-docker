@@ -5,7 +5,7 @@
   gather_facts: true
   vars:
     docker_user: "dockeruser"
-    docker_shell: "/usr/sbin/nologin"
+    # docker_shell: "/usr/sbin/nologin"
 
   tasks:
     - name: Install required tools for rootless Docker
@@ -17,7 +17,7 @@
     - name: Create the user account
       ansible.builtin.user:
         name: "{{ docker_user }}"
-        shell: "{{ docker_shell }}"
+        # shell: "{{ docker_shell }}"
         create_home: true
         home: "/home/{{ docker_user }}"
         groups: []                 # no extra groups by default
