@@ -83,6 +83,7 @@ jobs:
           terraform init
           terraform workspace new ${{ github.event.inputs.environment }}
           terraform workspace select ${{ github.event.inputs.environment }}
+          echo "Env: ${{ github.event.inputs.environment }}"
 
       - name: Validate
         run: terraform validate
