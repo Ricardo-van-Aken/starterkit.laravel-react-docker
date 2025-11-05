@@ -200,7 +200,7 @@ jobs:
   #       run: terraform apply tfplan
 
   terraform-bootstrap-destroy:
-    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    name: Terraform Bootstrap Destroy (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
     runs-on: ubuntu-latest
     needs: [generate-backend-config, terraform-bootstrap]
     defaults:
@@ -223,7 +223,6 @@ jobs:
       - name: Select/Create Workspace
         run: |
           terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
-          terraform workspace new ${{ github.event.inputs.environment }}
           terraform workspace select ${{ github.event.inputs.environment }}
 
       - name: Validate
