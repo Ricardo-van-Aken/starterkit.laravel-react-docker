@@ -76,7 +76,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend.hcl
-          path: deployment/terraform/backend.hcl
+          path: deployment/terraform/
 
       - name: Select/Create Workspace
         run: |
