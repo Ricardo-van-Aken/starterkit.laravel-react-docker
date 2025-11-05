@@ -80,7 +80,7 @@ jobs:
 
       - name: Select/Create Workspace
         run: |
-          terraform init -backend-config="../../backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
+          terraform init
           terraform workspace new ${{ github.event.inputs.environment }}
           terraform workspace select ${{ github.event.inputs.environment }}
 
