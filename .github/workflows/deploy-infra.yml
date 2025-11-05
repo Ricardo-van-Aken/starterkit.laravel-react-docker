@@ -64,6 +64,9 @@ jobs:
     defaults:
       run:
         working-directory: deployment/terraform/bootstrap/common
+    outputs:
+      spaces_access_id: ${{ steps.bootstrap-outputs.outputs.spaces_access_id }}
+      spaces_secret_key: ${{ steps.bootstrap-outputs.outputs.spaces_secret_key }}
 
     steps:
       - name: Checkout
@@ -192,7 +195,10 @@ jobs:
           terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
       - name: Apply (from approved plan)
-        run: terraform apply tfplan
+        run: |
+          echo "Spaces key: $TF_VAR_spaces_access_id"
+          echo "Spaces secret: $TF_VAR_spaces_secret_key"
+          terraform apply tfplan
 
   terraform-bootstrap-destroy:
     name: Terraform Bootstrap Destroy (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
