@@ -81,17 +81,17 @@ jobs:
       - name: Select/Create Workspace
         run: |
           terraform init -backend-config="../../backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
-      #     terraform workspace new ${{ github.event.inputs.environment }}
-      #     terraform workspace select ${{ github.event.inputs.environment }}
+          terraform workspace new ${{ github.event.inputs.environment }}
+          terraform workspace select ${{ github.event.inputs.environment }}
 
-      # - name: Validate
-      #   run: terraform validate
+      - name: Validate
+        run: terraform validate
 
-      # - name: Plan
-      #   run: terraform plan -out=tfplan
+      - name: Plan
+        run: terraform plan -out=tfplan
 
-      # - name: Apply
-      #   run: terraform apply tfplan
+      - name: Apply
+        run: terraform apply tfplan
 
       # - name: Capture Outputs
       #   id: bootstrap-outputs
