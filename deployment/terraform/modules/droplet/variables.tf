@@ -1,7 +1,7 @@
-variable "ssh_key_name" {
-  type      = string
-  sensitive = true
-}
+# variable "ssh_key_name" {
+#   type      = string
+#   sensitive = true
+# }
 
 variable "name" {
   type    = string
@@ -27,6 +27,6 @@ variable "project_id" {
   type = string
 }
 
-data "digitalocean_ssh_key" "me" {
-  name = var.ssh_key_name
-}
+# data "digitalocean_ssh_key" "me" {
+#   name = var.ssh_key_name
+# }

@@ -196,8 +196,6 @@ jobs:
 
       - name: Apply (from approved plan)
         run: |
-          echo "Spaces key: $TF_VAR_spaces_access_id"
-          echo "Spaces secret: $TF_VAR_spaces_secret_key"
           terraform apply tfplan
 
   terraform-bootstrap-destroy:
