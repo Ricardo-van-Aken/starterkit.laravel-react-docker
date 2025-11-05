@@ -18,7 +18,8 @@ terraform {
     skip_region_validation      = true
     skip_s3_checksum            = true
 
-    key = "projects/starterkit.laravel-react-docker/infra-bootstrap/terraform.tfstate"
+    workspace_key_prefix = "projects/starterkit.laravel-react-docker/infra-bootstrap"
+    key                  = "terraform.tfstate"
 
     # Enable lockfile-based state locking in Spaces
     use_lockfile = true
