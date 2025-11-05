@@ -1,5 +1,5 @@
 output "result" {
-  value = "${var.name}-${random_string.suffix.result}"
+  value = "${terraform.workspace}-${var.name}-${random_string.suffix.result}"
 }
 
 output "suffix" {
