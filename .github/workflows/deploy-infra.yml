@@ -203,7 +203,7 @@ jobs:
   terraform-bootstrap-destroy:
     name: Terraform Bootstrap Destroy (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
     runs-on: ubuntu-latest
-    needs: [generate-backend-config, terraform-bootstrap, terraform-plan]
+    needs: [generate-backend-config, terraform-bootstrap, terraform-plan, terraform-apply]
     defaults:
       run:
         working-directory: deployment/terraform/bootstrap/common
