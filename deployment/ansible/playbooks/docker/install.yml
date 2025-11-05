@@ -3,12 +3,27 @@
   hosts: all
   become: true
   gather_facts: true
+  vars:
+    docker_user: "dockeruser"
 
   tasks:
+    - name: Get Docker user info
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+      register: docker_user_info
+
     - name: Update apt cache (ensure package lists are fresh)
       ansible.builtin.apt:
         update_cache: yes
         cache_valid_time: 3600
+
+    - name: Create user systemd .config directory
+      become: true
+      become_user: "{{ docker_user }}"
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/.config/systemd/user"
+        state: directory
+        mode: "0700"
 
     - name: Install Docker packages
       ansible.builtin.apt:
@@ -37,3 +52,42 @@
       register: hello_result
       changed_when: hello_result.rc == 0
       failed_when: hello_result.rc != 0
+
+    - name: Disable and stop Docker service and socket
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+        # masked: yes
+      loop:
+        - docker.service
+        - docker.socket
+
+    - name: Remove Docker socket file if present
+      ansible.builtin.file:
+        path: /var/run/docker.sock
+        state: absent
+
+    - name: Switch to the user context and run rootless install
+      become: true
+      become_user: "{{ docker_user }}"
+      shell: |
+        dockerd-rootless-setuptool.sh install
+      args:
+        creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
+      # environment:
+        # XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
+
+    # - name: Check Docker is running rootless
+    #   become: true
+    #   become_user: "{{ docker_user }}"
+    #   ansible.builtin.shell: docker info --format '{{ "{{" }} .Context {{"}}" }}'
+    #   register: docker_info
+    #   changed_when: false
+    #   failed_when: docker_info.stdout | trim != 'rootless'
+
+    # - name: Debug – show docker context
+    #   become: true
+    #   become_user: "{{ docker_user }}"
+    #   ansible.builtin.debug:
+    #     msg: "Docker context is {{ docker_info.stdout | trim }}"

@@ -3,8 +3,63 @@
   hosts: all
   become: true
   gather_facts: true
+  vars:
+    docker_user: "dockeruser"
+    docker_shell: "/usr/sbin/nologin"
 
   tasks:
+    - name: Install required tools for rootless Docker
+      package:
+        name:
+          - uidmap
+        state: present
+
+    - name: Create the user account
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+        shell: "{{ docker_shell }}"
+        create_home: true
+        home: "/home/{{ docker_user }}"
+        groups: []                 # no extra groups by default
+        append: false              # don’t keep existing groups
+        state: present
+      register: "docker_user_info"
+
+    - name: Enable lingering for the Docker user
+      ansible.builtin.command:
+        cmd: loginctl enable-linger {{ docker_user }}
+        creates: /var/lib/systemd/linger/{{ docker_user }}
+      register: user_linger
+      changed_when:
+        - user_linger.rc == 0
+        - "'skipped' not in user_linger.stdout"
+
+    - name: Ensure user's .profile exists
+      file:
+        path: "/home/{{ docker_user }}/.profile"
+        state: touch
+        owner: "{{ docker_user }}"
+        mode: '0644'
+
+    - name: Add XDG_RUNTIME_DIR and PATH
+      ansible.builtin.lineinfile:
+        path: "/home/{{ docker_user }}/.profile"
+        state: present
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value}}"
+      loop:
+        - { key: "XDG_RUNTIME_DIR", value: "/run/user/{{ docker_user_info.uid }}" }
+        - { key: "PATH", value: "/usr/bin:$PATH" }
+        - { key: "DOCKER_HOST", value: "unix:///run/user/{{ docker_user_info.uid  }}/docker.sock" }
+      become_user: "{{ docker_user }}"
+
+    - name: Make sure the ansible temp dir exists for each user
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/.ansible/tmp"
+        owner: "{{ docker_user }}"
+        state: directory
+        mode: '0700'
+
     - name: Ensure apt cache is up to date before package installs
       ansible.builtin.apt:
         update_cache: yes
