@@ -92,70 +92,67 @@ jobs:
       - name: Apply
         run: terraform apply tfplan
 
-      # - name: Capture Outputs
-      #   id: bootstrap-outputs
-      #   run: |
-      #     echo "spaces_access_id=$(terraform output -raw spaces_access_id)" >> $GITHUB_OUTPUT
-      #     echo "spaces_secret_key=$(terraform output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+      - name: Capture Outputs
+        id: bootstrap-outputs
+        run: |
+          echo "spaces_access_id=$(terraform output -raw spaces_access_id)" >> $GITHUB_OUTPUT
+          echo "spaces_secret_key=$(terraform output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
 
-  # terraform-plan:
-  #   name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-  #   runs-on: ubuntu-latest
-  #   needs: terraform-bootstrap
-  #   env:
-  #     TF_VAR_spaces_access_id: ${{ needs.terraform-bootstrap.outputs.spaces_access_id }}
-  #     TF_VAR_spaces_secret_key: ${{ needs.terraform-bootstrap.outputs.spaces_secret_key }}
-  #   defaults:
-  #     run:
-  #       working-directory: deployment/terraform/environments/common
-  #   outputs:
-  #     has_changes: ${{ steps.plan-apply.outputs.exitcode }}
+  terraform-plan:
+    name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    runs-on: ubuntu-latest
+    needs: terraform-bootstrap
+    env:
+      TF_VAR_spaces_access_id: ${{ needs.terraform-bootstrap.outputs.spaces_access_id }}
+      TF_VAR_spaces_secret_key: ${{ needs.terraform-bootstrap.outputs.spaces_secret_key }}
+    defaults:
+      run:
+        working-directory: deployment/terraform/environments/common
+    outputs:
+      has_changes: ${{ steps.plan-apply.outputs.exitcode }}
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  #     - name: Download backend.hcl file
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: backend.hcl
-  #         path: deployment/terraform/backend.hcl
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/
 
-  #     - name: Select/Create Workspace
-  #       run: |
-  #         terraform init -backend-config ../backend.hcl -backend-config="key=projects/${{ github.event.inputs.repository.name }}/infra-bootstrap/terraform.tfstate"
-  #         terraform workspace new ${{ github.event.inputs.environment }}
-  #         terraform workspace select ${{ github.event.inputs.environment }}
+      - name: Select/Create Workspace
+        run: |
+          terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+          terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
-  #     - name: Validate
-  #       run: terraform validate
+      - name: Validate
+        run: terraform validate
 
-  #     - name: Plan (apply/destroy flag selection)
-  #       id: plan-flag
-  #       if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy' }}
-  #       run: |
-  #         ACTION="${{ github.event.inputs.action }}"
+      - name: Plan (apply/destroy flag selection)
+        id: plan-flag
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy' }}
+        run: |
+          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
+            echo "DESTROY_FLAG=-destroy" >> $GITHUB_OUTPUT
+          else
+            echo "DESTROY_FLAG=" >> $GITHUB_OUTPUT
+          fi
 
-  #         if [ "$ACTION" = "destroy" ]; then
-  #           echo "DESTROY_FLAG=-destroy" >> $GITHUB_OUTPUT
-  #         else
-  #           echo "DESTROY_FLAG=" >> $GITHUB_OUTPUT
-  #         fi
+      - name: Plan (apply/destroy)
+        id: plan-apply
+        continue-on-error: true
+        run: terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} -out=tfplan -detailed-exitcode
 
-  #     - name: Plan (apply/destroy)
-  #       id: plan-apply
-  #       continue-on-error: true
-  #       run: terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} -out=tfplan -detailed-exitcode
-
-  #     - name: Upload Plan Artifacts
-  #       if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: terraform-plan-${{ github.event.inputs.environment }}
-  #         path: deployment/terraform/environments/common/tfplan
+      - name: Upload Plan Artifacts
+        if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.event.inputs.environment }}
+          path: deployment/terraform/environments/common/tfplan
 
   # terraform-apply:
   #   name: Apply Main (if changes are detected and after manual approval)
@@ -201,7 +198,7 @@ jobs:
   terraform-bootstrap-destroy:
     name: Terraform Bootstrap Destroy (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
     runs-on: ubuntu-latest
-    needs: [generate-backend-config, terraform-bootstrap]
+    needs: [generate-backend-config, terraform-bootstrap, terraform-plan]
     defaults:
       run:
         working-directory: deployment/terraform/bootstrap/common
