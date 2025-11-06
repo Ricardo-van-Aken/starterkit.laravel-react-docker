@@ -4,15 +4,13 @@
   become: true
   gather_facts: true
   vars:
-    docker_user: "app"
-    user_service_path: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
-    profile_path: "/home/{{ docker_user }}/.profile"
+    docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
 
   tasks:
-    - name: Get Docker user info
-      ansible.builtin.user:
-        name: "{{ docker_user }}"
-      register: docker_user_info
+    - name: Get docker user UID
+      ansible.builtin.command: id -u {{ docker_user }}
+      register: docker_uid
+      changed_when: false
 
     - name: Install Docker packages
       ansible.builtin.apt:
@@ -24,7 +22,7 @@
           - docker-compose-plugin
         state: present
 
-    - name: Disable and stop Docker service and socket
+    - name: Disable and stop Docker service and socket (required for rootless)
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: stopped
@@ -33,63 +31,33 @@
         - docker.service
         - docker.socket
 
-    - name: Remove Docker socket file if present
+    - name: Remove Docker socket file if present (required for rootless)
       ansible.builtin.file:
         path: /var/run/docker.sock
         state: absent
 
-    - name: dump environment from nspawn machine
-      ansible.builtin.shell: >
-        machinectl shell {{ docker_user }}@ /bin/bash -lc 'exec /usr/bin/dockerd-rootless-setuptool.sh install'
+    - name: Install rootless docker
+      ansible.builtin.command: >
+        dockerd-rootless-setuptool.sh install
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
       args:
           creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
 
-    - name: ensure /usr/bin is added to PATH in .profile
-      ansible.builtin.lineinfile:
-        path: "{{ profile_path }}"
-        regexp: '^export PATH=/usr/bin:\$PATH$'
-        line: 'export PATH=/usr/bin:$PATH'
+    - name: Wait for rootless docker socket to appear
+      ansible.builtin.wait_for:
+        path: "/run/user/{{ docker_uid.stdout }}/docker.sock"
+        state: present
+        timeout: 30
+
+    - name: Verify Docker daemon is running rootless
+      ansible.builtin.command:
+        cmd: docker info --format '{{ "{{ .SecurityOptions }}" }}'
       become_user: "{{ docker_user }}"
-
-    - name: ensure DOCKER_HOST is set in .profile
-      ansible.builtin.lineinfile:
-        path: "{{ profile_path }}"
-        regexp: '^export DOCKER_HOST=unix:///run/user/[0-9]+/docker.sock$'
-        line: "export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock"
-      become_user: "{{ docker_user }}"
-
-    # - name: Switch to the user context and run rootless install
-    #   become: true
-    #   become_user: "{{ docker_user }}"
-    #   shell: |
-    #     dockerd-rootless-setuptool.sh install
-    #   args:
-    #     creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
-    #   environment:
-    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
-    #     PATH: "/usr/bin:$PATH"
-
-    # - name: Check Docker is running rootless
-    #   become: true
-    #   become_user: "{{ docker_user }}"
-    #   ansible.builtin.shell: docker info
-    #   register: docker_info
-    #   changed_when: false
-    #   environment:
-    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_user_info.uid }}"
-    #     PATH: "/usr/bin:$PATH"
-
-
-    # - name: Check Docker is running rootless
-    #   become: true
-    #   become_user: "{{ docker_user }}"
-    #   ansible.builtin.shell: docker info --format '{{ "{{" }} .Context {{"}}" }}'
-    #   register: docker_info
-    #   changed_when: false
-    #   failed_when: docker_info.stdout | trim != 'rootless'
-
-    # - name: Debug – show docker context
-    #   become: true
-    #   become_user: "{{ docker_user }}"
-    #   ansible.builtin.debug:
-    #     msg: "Docker context is {{ docker_info.stdout | trim }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      register: docker_info
+      changed_when: false
+      failed_when: "'rootless' not in docker_info.stdout"

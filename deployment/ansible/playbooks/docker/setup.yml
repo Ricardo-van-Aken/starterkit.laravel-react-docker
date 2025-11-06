@@ -4,14 +4,13 @@
   become: true
   gather_facts: true
   vars:
-    docker_user: "app"
+    docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
 
   tasks:
     - name: Install required tools for rootless Docker
       package:
         name:
           - uidmap
-          - systemd-container
         state: present
 
     - name: Create dedicated app user for rootless docker
@@ -71,3 +70,4 @@
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
+        cache_valid_time: 3600
