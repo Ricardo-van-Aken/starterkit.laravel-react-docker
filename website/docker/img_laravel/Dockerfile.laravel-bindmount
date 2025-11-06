@@ -1,0 +1,2 @@
+ARG BASE_IMAGE=local/starterkit.laravel-react-docker:laravel-base.latest
+FROM ${BASE_IMAGE}
