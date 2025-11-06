@@ -4,54 +4,31 @@
   become: true
   gather_facts: true
   vars:
-    docker_user: "dockeruser"
-    # docker_shell: "/usr/sbin/nologin"
+    docker_user: "app"
 
   tasks:
     - name: Install required tools for rootless Docker
       package:
         name:
           - uidmap
+          - systemd-container
         state: present
 
-    - name: Create the user account
+    - name: Create dedicated app user for rootless docker
       ansible.builtin.user:
-        name: "{{ docker_user }}"
-        # shell: "{{ docker_shell }}"
-        create_home: true
-        home: "/home/{{ docker_user }}"
-        groups: []                 # no extra groups by default
-        append: false              # don’t keep existing groups
+        name: "{{ docker_user  }}"
+        create_home: yes
+        shell: /bin/bash
         state: present
-      register: "docker_user_info"
+        groups: []
+        append: no
+        password_lock: yes
 
-    - name: Enable lingering for the Docker user
+    - name: Enable systemd lingering for the user
       ansible.builtin.command:
-        cmd: loginctl enable-linger {{ docker_user }}
-        creates: /var/lib/systemd/linger/{{ docker_user }}
-      register: user_linger
-      changed_when:
-        - user_linger.rc == 0
-        - "'skipped' not in user_linger.stdout"
-
-    - name: Ensure user's .profile exists
-      file:
-        path: "/home/{{ docker_user }}/.profile"
-        state: touch
-        owner: "{{ docker_user }}"
-        mode: '0644'
-
-    - name: Add XDG_RUNTIME_DIR and PATH
-      ansible.builtin.lineinfile:
-        path: "/home/{{ docker_user }}/.profile"
-        state: present
-        regexp: "^{{ item.key }}="
-        line: "{{ item.key }}={{ item.value}}"
-      loop:
-        - { key: "XDG_RUNTIME_DIR", value: "/run/user/{{ docker_user_info.uid }}" }
-        - { key: "PATH", value: "/usr/bin:$PATH" }
-        - { key: "DOCKER_HOST", value: "unix:///run/user/{{ docker_user_info.uid  }}/docker.sock" }
-      become_user: "{{ docker_user }}"
+        cmd: loginctl enable-linger {{ docker_user  }}
+      args:
+        creates: "/var/lib/systemd/linger/{{ docker_user  }}"
 
     - name: Make sure the ansible temp dir exists for each user
       ansible.builtin.file:
@@ -60,50 +37,37 @@
         state: directory
         mode: '0700'
 
-    - name: Ensure apt cache is up to date before package installs
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-
-    - name: Install prerequisites (ca-certificates, curl)
-      ansible.builtin.apt:
-        name:
-          - ca-certificates
-          - curl
-        state: present
-
     - name: Ensure /etc/apt/keyrings exists
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
-        mode: '0755'
         owner: root
         group: root
-
-    - name: Get system dpkg architecture
-      ansible.builtin.command: dpkg --print-architecture
-      register: dpkg_arch
-      changed_when: false
-      check_mode: false
+        mode: "0755"
 
     - name: Download Docker GPG key to /etc/apt/keyrings/docker.asc
       ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: https://download.docker.com/linux/debian/gpg
         dest: /etc/apt/keyrings/docker.asc
-        mode: '0644'
         owner: root
         group: root
-        force: yes
+        mode: "0644"   # same as chmod a+r, keeps owner write
 
-    - name: Add Docker apt repository (signed-by the downloaded key)
+    - name: Get dpkg architecture (e.g. amd64)
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_arch
+      changed_when: false
+      check_mode: no
+
+    - name: Add Docker apt repository (creates /etc/apt/sources.list.d/docker.list)
       ansible.builtin.apt_repository:
-        filename: docker.list
         repo: >-
           deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/docker.asc]
           https://download.docker.com/linux/ubuntu
           {{ ansible_distribution_release }} stable
+        filename: docker.list
         state: present
 
-    - name: Update apt cache after adding Docker repo
+    - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes

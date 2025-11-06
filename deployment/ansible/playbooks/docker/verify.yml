@@ -1,0 +1,60 @@
+---
+- name: Verify if engine was installed correctly and is running
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    docker_user: "dockeruser"
+
+  tasks:
+    - name: Get docker user UID
+      ansible.builtin.command: id -u {{ docker_user }}
+      register: docker_uid
+      changed_when: false
+
+    - name: Check whether linger is enabled for docker user
+      ansible.builtin.command: loginctl show-user {{ docker_user }} --property=Linger --value
+      register: linger_status
+      changed_when: false
+      failed_when: linger_status.rc != 0
+
+    - name: Enable linger for docker user (so systemd --user runs when logged out)
+      ansible.builtin.command: loginctl enable-linger {{ docker_user }}
+      register: linger_enable
+      become: true
+      when: (linger_status.stdout | default('no')) != 'yes'
+      changed_when: linger_enable.rc == 0
+      failed_when: linger_enable.rc != 0
+
+    - name: Ensure user docker service is enabled+running (systemd --user)
+      # run as the docker user and explicitly export XDG_RUNTIME_DIR so systemctl --user targets the right bus
+      ansible.builtin.command: >
+        systemctl --user enable --now docker.service
+      become: true
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+      register: user_systemd_enable
+      changed_when: user_systemd_enable.rc == 0
+
+    - name: Wait for rootless docker socket to appear
+      ansible.builtin.wait_for:
+        path: "/run/user/{{ docker_uid.stdout }}/docker.sock"
+        state: present
+        timeout: 30
+
+    - name: Run hello-world container to verify installation (rootless)
+      ansible.builtin.command: docker run --rm hello-world
+      become: true
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      register: hello_result
+      changed_when: hello_result.rc == 0
+      failed_when: hello_result.rc != 0
+
+    - name: Debug hello result stdout
+      ansible.builtin.debug:
+        var: hello_result.stdout_lines
+      when: hello_result is defined            
