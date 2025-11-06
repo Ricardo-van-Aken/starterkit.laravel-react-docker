@@ -4,7 +4,7 @@
   become: true
   gather_facts: true
   vars:
-    docker_user: "dockeruser"
+    docker_user: "app"
 
   tasks:
     - name: Get docker user UID
@@ -57,4 +57,4 @@
     - name: Debug hello result stdout
       ansible.builtin.debug:
         var: hello_result.stdout_lines
-      when: hello_result is defined            
+      when: hello_result is defined

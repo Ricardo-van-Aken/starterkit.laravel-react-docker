@@ -4,9 +4,9 @@
   become: true
   gather_facts: true
   vars:
-    docker_user: "dockeruser"
+    docker_user: "app"
     user_service_path: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
-    bashrc_path: "/home/{{ docker_user }}/.bashrc"
+    profile_path: "/home/{{ docker_user }}/.profile"
 
   tasks:
     - name: Get Docker user info
@@ -24,24 +24,6 @@
           - docker-compose-plugin
         state: present
 
-    # - name: Ensure docker service is enabled and started
-    #   ansible.builtin.service:
-    #     name: docker
-    #     enabled: yes
-    #     state: started
-
-    # - name: Wait for Docker socket to appear
-    #   ansible.builtin.wait_for:
-    #     path: /var/run/docker.sock
-    #     state: present
-    #     timeout: 30
-
-    # - name: Run hello-world container to verify installation
-    #   ansible.builtin.command: docker run --rm hello-world
-    #   register: hello_result
-    #   changed_when: hello_result.rc == 0
-    #   failed_when: hello_result.rc != 0
-
     - name: Disable and stop Docker service and socket
       ansible.builtin.systemd:
         name: "{{ item }}"
@@ -56,27 +38,22 @@
         path: /var/run/docker.sock
         state: absent
 
-    - name: check if rootless docker user service already exists
-      ansible.builtin.stat:
-        path: "{{ user_service_path }}"
-      register: docker_user_service
-
     - name: dump environment from nspawn machine
       ansible.builtin.shell: >
         machinectl shell {{ docker_user }}@ /bin/bash -lc 'exec /usr/bin/dockerd-rootless-setuptool.sh install'
       args:
           creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
 
-    - name: ensure /usr/bin is added to PATH in .bashrc
+    - name: ensure /usr/bin is added to PATH in .profile
       ansible.builtin.lineinfile:
-        path: "{{ bashrc_path }}"
+        path: "{{ profile_path }}"
         regexp: '^export PATH=/usr/bin:\$PATH$'
         line: 'export PATH=/usr/bin:$PATH'
       become_user: "{{ docker_user }}"
 
-    - name: ensure DOCKER_HOST is set in .bashrc
+    - name: ensure DOCKER_HOST is set in .profile
       ansible.builtin.lineinfile:
-        path: "{{ bashrc_path }}"
+        path: "{{ profile_path }}"
         regexp: '^export DOCKER_HOST=unix:///run/user/[0-9]+/docker.sock$'
         line: "export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock"
       become_user: "{{ docker_user }}"
