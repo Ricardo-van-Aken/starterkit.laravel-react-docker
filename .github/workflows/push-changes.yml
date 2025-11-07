@@ -1,0 +1,57 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      action:
+        description: 'Terraform action'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
+  TF_VAR_region: ${{ vars.DO_STATE_BUCKET_REGION }}
+  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}  
+  AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
+
+  # Terraforms DigitalOcean provider authorization.
+  TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+
+  # Terraform [TODO: description]
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
+
+jobs:
+  generate-backend-config:
+    name: Generate Backend Configuration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backend.hcl file
+        run: |
+          source ../scripts/common.sh
+          generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl

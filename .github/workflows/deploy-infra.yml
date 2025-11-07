@@ -23,16 +23,15 @@ on:
 env:
   # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
   TF_VAR_region: ${{ vars.DO_STATE_BUCKET_REGION }}
-  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}
+  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}  
   AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
 
   # Terraforms DigitalOcean provider authorization.
   TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-  TF_VAR_spaces_access_id: ${{ secrets.DO_SPACES_ACCESS_ID }}
-  TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
-  TERRAFORM_WORKSPACE: ${{ github.event.inputs.environment }}
-  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
+
+  # Terraform [TODO: description]
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
 
 jobs:
   generate-backend-config:
