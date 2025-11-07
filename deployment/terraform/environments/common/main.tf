@@ -9,10 +9,10 @@ module "bucket" {
 }
 
 module "droplet" {
-  source     = "../../modules/droplet"
-  project_id = module.project.id
-  depends_on = [module.project]
-  # ssh_key_name = var.ssh_key_name
+  source       = "../../modules/droplet"
+  project_id   = module.project.id
+  depends_on   = [module.project]
+  ssh_key_name = var.ssh_key_name
 }
 
 module "database" {
