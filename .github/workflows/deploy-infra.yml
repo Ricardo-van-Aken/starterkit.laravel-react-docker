@@ -30,7 +30,7 @@ env:
   # Terraforms DigitalOcean provider authorization.
   TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
 
-  # Terraform [TODO: description]
+  # Terraform variables [TODO: description]
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
 
 jobs:
