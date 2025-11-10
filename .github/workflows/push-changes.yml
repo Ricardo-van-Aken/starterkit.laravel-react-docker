@@ -34,12 +34,14 @@ env:
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
 
 jobs:
-  generate-backend-config:
+  retrieve-remote-state:
     name: Generate Backend Configuration
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: deployment/terraform
+    outputs:
+      droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
     steps:
       - name: Checkout
@@ -53,8 +55,42 @@ jobs:
           source ../scripts/common.sh
           generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
 
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
       - name: Select/Create Workspace
         working-directory: deployment/terraform/environments/common
         run: |
           terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
           terraform workspace select ${{ github.event.inputs.environment }}
+
+      - name: Capture Outputs
+        id: terraform-state
+        run: |
+          echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+
+
+  ansible-connect-test:
+    name: Test if ansible can connect to the server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start ssh-agent and add private key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Install Ansible
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
