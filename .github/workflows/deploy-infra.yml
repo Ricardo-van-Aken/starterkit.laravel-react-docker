@@ -210,6 +210,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: terraform-apply
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Start ssh-agent and add private key
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -231,8 +234,12 @@ jobs:
     env:
       DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
       DOCKER_USER: "app" # TODO: Add this to repo variables
+      ANSIBLE_HOST_KEY_CHECKING: "True"
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install Ansible
         shell: bash
         run: |
