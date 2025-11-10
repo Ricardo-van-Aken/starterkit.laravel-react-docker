@@ -35,11 +35,8 @@ env:
 
 jobs:
   retrieve-remote-state:
-    name: Generate Backend Configuration
+    name: Retrieve terraform remote state information
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: deployment/terraform
     # outputs:
     #   droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
@@ -52,13 +49,12 @@ jobs:
 
       - name: Create backend.hcl file
         run: |
-          source ../scripts/common.sh
+          source scripts/common.sh
           generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
 
       - name: Select/Create Workspace
-        working-directory: deployment/terraform/environments/common
         run: |
-          terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
           terraform workspace select ${{ github.event.inputs.environment }}
 
       - name: Capture Outputs
