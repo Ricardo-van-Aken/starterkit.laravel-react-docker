@@ -72,7 +72,7 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
     defaults:
       run:
-        working-directory: deployment/terraform
+        working-directory: deployment/ansible
     
     steps:
       - name: Checkout
