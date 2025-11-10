@@ -36,7 +36,7 @@ env:
 jobs:
   build:
     env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/fireship
+      IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/fireship
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
