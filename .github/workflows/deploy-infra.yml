@@ -224,7 +224,7 @@ jobs:
       - name: Add droplet to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ needs.terraform-apply.outputs.droplet_ipv4 }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ needs.terraform-apply.outputs.droplet_ipv4 }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts          
 
   ansible-docker-install:

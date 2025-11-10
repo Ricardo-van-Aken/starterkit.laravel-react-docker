@@ -4,5 +4,5 @@ module "name_generator" {
 }
 
 locals {
-  name = module.name_generator.result
+  name = "s${module.name_generator.result}"
 }
