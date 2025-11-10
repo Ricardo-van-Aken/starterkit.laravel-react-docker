@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: deployment
+        working-directory: deployment/terraform
     # outputs:
     #   droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
@@ -52,18 +52,50 @@ jobs:
 
       - name: Create backend.hcl file
         run: |
-          source scripts/common.sh
+          source ../scripts/common.sh
           generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
+  terraform-plan:
+    name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    runs-on: ubuntu-latest
+    needs: retrieve-remote-state
+    defaults:
+      run:
+        working-directory: deployment/terraform/environments/common
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform
 
       - name: Select/Create Workspace
         run: |
-          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+          terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
           terraform workspace select ${{ github.event.inputs.environment }}
 
-      - name: Capture Outputs
-        id: terraform-state
-        run: |
-          echo "$(terraform output -raw droplet_ipv4)"
+      # - name: Select/Create Workspace
+      #   run: |
+      #     terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+      #     terraform workspace select ${{ github.event.inputs.environment }}
+
+      # - name: Capture Outputs
+      #   id: terraform-state
+      #   run: |
+      #     echo "$(terraform output -raw droplet_ipv4)"
 
   # ansible-connect-test:
   #   name: Test if ansible can connect to the server
