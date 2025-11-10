@@ -1,5 +1,8 @@
 FROM mysql:8.0-debian
 
+# Remove MySQL repository (expired GPG key - gettext-base is from Debian repos)
+RUN rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/sources.list.d/mysql-*.list || true
+
 RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
 
 # Copy the cloner init SQL script template
