@@ -96,6 +96,12 @@ jobs:
           sudo apt update
           sudo apt install -y ansible
 
+      - name: Ansible version
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+        run: |
+          ansible --version
+
       - name: Ansible ping to server
         env:
           ANSIBLE_HOST_KEY_CHECKING: "True"
