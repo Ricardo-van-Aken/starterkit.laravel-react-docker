@@ -40,8 +40,6 @@ jobs:
     defaults:
       run:
         working-directory: deployment/terraform
-    # outputs:
-    #   droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
     steps:
       - name: Checkout
@@ -68,6 +66,8 @@ jobs:
     defaults:
       run:
         working-directory: deployment/terraform/environments/common
+    outputs:
+      droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
     steps:
       - name: Checkout
@@ -87,32 +87,27 @@ jobs:
           terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
           terraform workspace select ${{ github.event.inputs.environment }}
 
-      # - name: Select/Create Workspace
-      #   run: |
-      #     terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
-      #     terraform workspace select ${{ github.event.inputs.environment }}
-
       - name: Capture Outputs
         id: terraform-state
         run: |
-          echo "$(terraform output -raw droplet_ipv4)"
+          echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
-  # ansible-connect-test:
-  #   name: Test if ansible can connect to the server
-  #   runs-on: ubuntu-latest
-  #   environment: ${{ github.event.inputs.environment }}
-  #   defaults:
-  #     run:
-  #       working-directory: deployment/terraform
+  ansible-connect-test:
+    name: Test if ansible can connect to the server
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    defaults:
+      run:
+        working-directory: deployment/terraform
     
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Start ssh-agent and add private key
-  #       uses: webfactory/ssh-agent@v0.9.0
-  #       with:
-  #         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Start ssh-agent and add private key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
   #     # Add server to known_hosts to avoid disabling host key checking
   #     - name: Add droplet to known_hosts
