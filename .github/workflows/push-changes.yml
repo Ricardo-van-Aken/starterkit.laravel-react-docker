@@ -92,10 +92,10 @@ jobs:
       #     terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
       #     terraform workspace select ${{ github.event.inputs.environment }}
 
-      # - name: Capture Outputs
-      #   id: terraform-state
-      #   run: |
-      #     echo "$(terraform output -raw droplet_ipv4)"
+      - name: Capture Outputs
+        id: terraform-state
+        run: |
+          echo "$(terraform output -raw droplet_ipv4)"
 
   # ansible-connect-test:
   #   name: Test if ansible can connect to the server
