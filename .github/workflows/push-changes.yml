@@ -1,10 +1,10 @@
-name: Deploy Infrastructure
+name: Push changes
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Push changes'
         required: true
         type: choice
         options:
@@ -44,6 +44,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Create backend.hcl file
         run: |
