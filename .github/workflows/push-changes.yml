@@ -40,8 +40,8 @@ jobs:
     defaults:
       run:
         working-directory: deployment/terraform
-    outputs:
-      droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
+    # outputs:
+    #   droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
     steps:
       - name: Checkout
@@ -55,12 +55,6 @@ jobs:
           source ../scripts/common.sh
           generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
 
-      - name: Upload backend.hcl file
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/backend.hcl
-
       - name: Select/Create Workspace
         working-directory: deployment/terraform/environments/common
         run: |
@@ -70,41 +64,41 @@ jobs:
       - name: Capture Outputs
         id: terraform-state
         run: |
-          echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+          echo "$(terraform output -raw droplet_ipv4)"
 
-  ansible-connect-test:
-    name: Test if ansible can connect to the server
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    defaults:
-      run:
-        working-directory: deployment/terraform
+  # ansible-connect-test:
+  #   name: Test if ansible can connect to the server
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ github.event.inputs.environment }}
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform
     
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Start ssh-agent and add private key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #     - name: Start ssh-agent and add private key
+  #       uses: webfactory/ssh-agent@v0.9.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # Add server to known_hosts to avoid disabling host key checking
-      - name: Add droplet to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts          
+  #     # Add server to known_hosts to avoid disabling host key checking
+  #     - name: Add droplet to known_hosts
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         ssh-keyscan -H ${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }} >> ~/.ssh/known_hosts
+  #         chmod 644 ~/.ssh/known_hosts          
       
-      - name: Install Ansible
-        shell: bash
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+  #     - name: Install Ansible
+  #       shell: bash
+  #       run: |
+  #         sudo apt update
+  #         sudo apt install -y ansible
 
-      - name: Ansible ping to server
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "True"
-          DROPLET_IP: "${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }}"
-        run: |
-          ansible -i inventory.yml all -m ping -u root
+  #     - name: Ansible ping to server
+  #       env:
+  #         ANSIBLE_HOST_KEY_CHECKING: "True"
+  #         DROPLET_IP: "${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }}"
+  #       run: |
+  #         ansible -i inventory.yml all -m ping -u root
