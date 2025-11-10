@@ -202,6 +202,7 @@ jobs:
 
       - id: terraform-state
         name: Capture Outputs
+        if: github.event.inputs.action == 'apply'
         run: |
           echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
