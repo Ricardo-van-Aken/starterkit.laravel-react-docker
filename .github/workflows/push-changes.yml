@@ -37,6 +37,9 @@ jobs:
   retrieve-remote-state:
     name: Retrieve terraform remote state information
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment
     # outputs:
     #   droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
