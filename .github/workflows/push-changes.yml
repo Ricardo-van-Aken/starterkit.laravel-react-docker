@@ -72,10 +72,10 @@ jobs:
         run: |
           echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
-
   ansible-connect-test:
     name: Test if ansible can connect to the server
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
     defaults:
       run:
         working-directory: deployment/terraform
@@ -88,9 +88,23 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Add server to known_hosts to avoid disabling host key checking
+      - name: Add droplet to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts          
       
       - name: Install Ansible
         shell: bash
         run: |
           sudo apt update
           sudo apt install -y ansible
+
+      - name: Ansible ping to server
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+          DROPLET_IP: "${{ needs.retrieve-remote-state.outputs.droplet_ipv4 }}"
+        run: |
+          ansible -i inventory.yml all -m ping -u root
