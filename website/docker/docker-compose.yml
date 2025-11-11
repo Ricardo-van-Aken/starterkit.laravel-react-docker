@@ -19,8 +19,11 @@ services:
       - mysql_testing_db_password
       - redis_password
     depends_on: 
-      - mysql_db
-      - redis
+      mysql_db:
+        condition: service_started
+        required: false
+      redis:
+        condition: service_started
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
     profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
 
@@ -62,7 +65,7 @@ services:
       - mysql_testing_db_username
       - mysql_testing_db_password
     command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "production"]
 
   # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
   phpmyadmin-admin:
