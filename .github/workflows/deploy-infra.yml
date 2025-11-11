@@ -207,47 +207,47 @@ jobs:
           echo "$(terraform output -raw droplet_ipv4)"
           echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
-  ansible-docker-install:
-    name: Set up SSH connection and create dedicated docker user
-    runs-on: ubuntu-latest
-    needs: terraform-apply
-    if: github.event.inputs.action == 'apply'
-    defaults:
-      run:
-        working-directory: deployment/ansible
-    env:
-      DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
-      DOCKER_USER: "app" # TODO: Add this to repo variables
-      ANSIBLE_HOST_KEY_CHECKING: "True"
+  # ansible-docker-install:
+  #   name: Set up SSH connection and create dedicated docker user
+  #   runs-on: ubuntu-latest
+  #   needs: terraform-apply
+  #   if: github.event.inputs.action == 'apply'
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/ansible
+  #   env:
+  #     DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+  #     DOCKER_USER: "app" # TODO: Add this to repo variables
+  #     ANSIBLE_HOST_KEY_CHECKING: "True"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Start ssh-agent and add private key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #     - name: Start ssh-agent and add private key
+  #       uses: webfactory/ssh-agent@v0.9.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add droplet to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ needs.terraform-apply.outputs.droplet_ipv4 }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts          
+  #     - name: Add droplet to known_hosts
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         ssh-keyscan -H "${{ needs.terraform-apply.outputs.droplet_ipv4 }}" >> ~/.ssh/known_hosts
+  #         chmod 644 ~/.ssh/known_hosts          
 
-      - name: Install Ansible
-        shell: bash
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+  #     - name: Install Ansible
+  #       shell: bash
+  #       run: |
+  #         sudo apt update
+  #         sudo apt install -y ansible
 
-      - name: Prepare user and docker packages
-        run: |
-          ansible-playbook playbooks/docker/setup.yml
+  #     - name: Prepare user and docker packages
+  #       run: |
+  #         ansible-playbook playbooks/docker/setup.yml
 
-      - name: Install docker rootless
-        run: |
-          ansible-playbook playbooks/docker/install.yml
+  #     - name: Install docker rootless
+  #       run: |
+  #         ansible-playbook playbooks/docker/install.yml
 
   terraform-bootstrap-destroy:
     name: Terraform Bootstrap Destroy (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
