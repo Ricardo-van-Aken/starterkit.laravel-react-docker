@@ -15,8 +15,8 @@ module "droplet" {
   ssh_key_name = var.ssh_key_name
 }
 
-# module "database" {
-#   source     = "../../modules/database"
-#   project_id = module.project.id
-#   depends_on = [module.project]
-# }
+module "database" {
+  source     = "../../modules/database"
+  project_id = module.project.id
+  depends_on = [module.project]
+}
