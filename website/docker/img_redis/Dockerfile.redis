@@ -1,0 +1,7 @@
+FROM redis:alpine
+
+# add a tiny wrapper that reads the secret file and calls the original entrypoint
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
