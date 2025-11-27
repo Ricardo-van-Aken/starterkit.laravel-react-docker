@@ -58,7 +58,7 @@ jobs:
           push: true
           file: ./website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
-            ${{ env.IMAGE_NAME }}:laravel-base@${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache
           cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache,mode=max
 
@@ -69,9 +69,9 @@ jobs:
           push: true
           file: ./website/docker/img_laravel/Dockerfile.laravel-volume
           tags: |
-            ${{ env.IMAGE_NAME }}:laravel-app@${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:laravel-app.${{ github.sha }}
           build-args: |
-            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base@${{ github.sha }}
+            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache
           cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache,mode=max
 
