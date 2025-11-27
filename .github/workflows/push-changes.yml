@@ -68,6 +68,7 @@ jobs:
         with:
           push: true
           file: ./website/docker/img_redis/Dockerfile.redis
+          context: ./website/docker/img_redis/
           tags: |
             ${{ env.IMAGE_NAME }}:website-redis.${{ github.sha }}
             ${{ env.IMAGE_NAME }}:website-redis.latest
@@ -79,6 +80,7 @@ jobs:
         with:
           push: true
           file: ./website/docker/img_certbot/Dockerfile.certbot
+          context: ./website/docker/img_certbot/
           tags: |
             ${{ env.IMAGE_NAME }}:website-certbot.${{ github.sha }}
             ${{ env.IMAGE_NAME }}:website-certbot.latest
