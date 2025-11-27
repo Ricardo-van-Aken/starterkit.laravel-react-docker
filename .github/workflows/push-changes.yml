@@ -153,6 +153,8 @@ jobs:
     env:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
+      DOCKER_USER: "app" # TODO: Add this to repo variables
+
     defaults:
       run:
         working-directory: deployment/ansible
