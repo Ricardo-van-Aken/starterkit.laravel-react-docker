@@ -5,7 +5,7 @@ PROFILE="production"
 COMPOSE_FILE="docker/docker-compose.production.yml"
 
 # Remove all volumes associated with this compose file (clean start)
-docker rm docker_app_files
+docker volume rm docker_app_files
 
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
 
