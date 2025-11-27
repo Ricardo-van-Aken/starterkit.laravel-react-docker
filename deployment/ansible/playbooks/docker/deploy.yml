@@ -12,14 +12,23 @@
       register: docker_uid
       changed_when: false
 
+    - name: Add +x permissions
+      copy:
+        remote_src: yes
+        src: "/home/app/a/starterkit.laravel-react-docker/website/{{ item }}"
+        dest: "/home/app/a/starterkit.laravel-react-docker/website/{{ item }}"
+        mode: a+x
+      loop:
+        - run_env.sh
+        - stop_env.sh
+      become_user: "{{ docker_user  }}"
+
     - name: Verify Docker daemon is running rootless
-      ansible.builtin.command:
-        cmd: >
-          /home/app/a/starterkit.laravel-react-docker/website/stop_env.sh production
+      shell:
+        chdir: /home/app/a/starterkit.laravel-react-docker/website
+        cmd: ./run_env.sh production
       become_user: "{{ docker_user }}"
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
         DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-      register: docker_info
       changed_when: false
-      # failed_when: "'rootless' not in docker_info.stdout"
