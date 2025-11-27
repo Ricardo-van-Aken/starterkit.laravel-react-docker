@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script runs docker-compose.yml with a selected profile and .env file.
-# Usage: ./run_env_profile.sh [dev-volume|dev-bindmount|fake-prod]
+# Usage: ./run_env_profile.sh [dev-volume|dev-bindmount|fake-prod|production]
 
 # Get the mode from the first argument
 MODE="$1"
