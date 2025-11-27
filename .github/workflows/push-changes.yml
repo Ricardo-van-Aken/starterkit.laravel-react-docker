@@ -187,6 +187,6 @@ jobs:
 
       - name: Prepare user and docker packages
         run: |
-          ansible-playbook playbooks/docker/setup.yml
+          ansible-playbook playbooks/docker/deploy.yml
 
       
