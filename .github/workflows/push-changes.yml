@@ -51,17 +51,29 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push base image
         uses: docker/build-push-action@v4
         with:
           context: ./website/
           push: true
           file: ./website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
-            ${{ env.IMAGE_NAME }}:laravel-base.latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:laravel-base@${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache
           cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache,mode=max
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./website/
+          push: true
+          file: ./website/docker/img_laravel/Dockerfile.laravel-volume
+          tags: |
+            ${{ env.IMAGE_NAME }}:laravel-app@${{ github.sha }}
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base@${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache,mode=max
 
   # terraform-state:
   #   name: Retrieve terraform remote state
