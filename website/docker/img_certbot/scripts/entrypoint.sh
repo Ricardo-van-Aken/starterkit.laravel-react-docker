@@ -41,17 +41,28 @@ if [ "$1" = "init" ]; then
     if check_certs; then
         echo "Existing certificates were found for: $APP_DOMAIN"
 
-        while true; do
-            read -r -p "Delete certificate for $APP_DOMAIN? [yY/nN]: " ans
+        NON_INTERACTIVE=0
 
-            ans=$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')
-
-            case "$ans" in
-                y) certbot delete --cert-name "$APP_DOMAIN" --non-interactive; break ;;
-                n|"") exit 0 ;;
-                *) echo "Please answer yY/nN." ;;
-            esac
+        for arg in "$@"; do
+            if [ "$arg" = "--non-interactive" ]; then
+                NON_INTERACTIVE=1
+            fi
         done
+
+        # Only delete certs in interactive mode
+        if [ "$NON_INTERACTIVE" -eq 0 ]; then
+            while true; do
+                read -r -p "Delete certificate for $APP_DOMAIN? [yY/nN]: " ans
+
+                ans=$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')
+
+                case "$ans" in
+                    y) certbot delete --cert-name "$APP_DOMAIN" --non-interactive; break ;;
+                    n|"") exit 0 ;;
+                    *) echo "Please answer yY/nN." ;;
+                esac
+            done
+        fi
     fi
 
     echo ""
