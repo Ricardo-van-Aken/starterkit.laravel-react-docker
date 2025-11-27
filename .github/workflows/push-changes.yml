@@ -36,7 +36,7 @@ env:
 jobs:
   build:
     env:
-      IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/laravel_app
+      IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/{{ github.event.repository.name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -58,8 +58,10 @@ jobs:
           push: true
           file: ./website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
-            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:laravel-base.latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache,mode=max
 
   # terraform-state:
   #   name: Retrieve terraform remote state
