@@ -54,7 +54,7 @@ docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
 
 # # Run docker compose with the selected .env file and profile
 # docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init --staging
+docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init
 # docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down
 
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d
