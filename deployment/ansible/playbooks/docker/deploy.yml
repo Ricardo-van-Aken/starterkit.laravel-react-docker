@@ -20,13 +20,14 @@
         mode: a+x
       loop:
         - run_env.sh
+        - run_env.production.sh
         - stop_env.sh
       become_user: "{{ docker_user  }}"
 
     - name: Verify Docker daemon is running rootless
       shell:
         chdir: /home/app/a/starterkit.laravel-react-docker/website
-        cmd: ./run_env.sh production
+        cmd: ./run_env.production.sh
       become_user: "{{ docker_user }}"
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
