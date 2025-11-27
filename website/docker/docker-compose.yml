@@ -2,9 +2,9 @@ services:
   # Laravel Application
   app:
     image: ${IMAGE_REPO}:laravel-app.latest
-    # build:
-    #   context: ../
-    #   dockerfile: docker/img_laravel/${DOCKERFILE}
+    build:
+      context: ../
+      dockerfile: docker/img_laravel/${DOCKERFILE}
     container_name: laravel_app
     restart: unless-stopped
     volumes:
@@ -46,7 +46,9 @@ services:
       - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
       - certbot_certs:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
     depends_on:
-      - app
+      app:
+        condition: service_started
+        required: false
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
     profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]

@@ -51,6 +51,39 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Build and push nginx image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          file: ./website/docker/img_nginx/Dockerfile.nginx
+          tags: |
+            ${{ env.IMAGE_NAME }}:website-nginx.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:website-nginx.latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-nginx-buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:website-nginx-buildcache,mode=max
+
+      - name: Build and push redis image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          file: ./website/docker/img_redis/Dockerfile.redis
+          tags: |
+            ${{ env.IMAGE_NAME }}:website-redis.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:website-redis.latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-redis-buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:website-redis-buildcache,mode=max
+
+      - name: Build and push certbot image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          file: ./website/docker/img_certbot/Dockerfile.certbot
+          tags: |
+            ${{ env.IMAGE_NAME }}:website-certbot.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:website-certbot.latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-certbot-buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:website-certbot-buildcache,mode=max
+
       - name: Build and push base image
         uses: docker/build-push-action@v4
         with:
@@ -70,6 +103,7 @@ jobs:
           file: ./website/docker/img_laravel/Dockerfile.laravel-volume
           tags: |
             ${{ env.IMAGE_NAME }}:laravel-app.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:laravel-app.latest
           build-args: |
             BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache
