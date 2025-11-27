@@ -20,4 +20,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Start cron in the foreground
-CMD ["crond", "-f"]
+CMD ["crond", "&&", "tail", "-f", "/var/log/cron.log"]

@@ -24,7 +24,7 @@
         - stop_env.sh
       become_user: "{{ docker_user  }}"
 
-    - name: Verify Docker daemon is running rootless
+    - name: Deploy images
       shell:
         chdir: /home/app/a/starterkit.laravel-react-docker/website
         cmd: ./run_env.production.sh

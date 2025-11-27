@@ -12,22 +12,20 @@ check_certs() {
     return 0
 }
 
-if [ "$1" = "renew" ] || [ "$1" = "certonly" ]; then
-    if ! check_certs; then
-        echo "=============================================="
-        echo "No SSL certificates found for $APP_DOMAIN!"
-        echo "Checked for /etc/letsencrypt/live/$APP_DOMAIN/fullchain.pem"
-        echo ""
-        echo "To generate your first certificates, run:"
-        echo "docker compose run --rm certbot init"
-        echo ""
-        echo "For staging/test certificates:"
-        echo "docker compose run --rm certbot init --staging"
-        echo "=============================================="
+if [ "$1" != "init" ] && ! check_certs; then
+    echo "=============================================="
+    echo "No SSL certificates found for $APP_DOMAIN!"
+    echo "Checked for /etc/letsencrypt/live/$APP_DOMAIN/fullchain.pem"
+    echo ""
+    echo "To generate your first certificates, run:"
+    echo "docker compose run --rm certbot init"
+    echo ""
+    echo "For staging/test certificates:"
+    echo "docker compose run --rm certbot init --staging"
+    echo "=============================================="
 
-        # Exit process
-        exit 1
-    fi
+    # Exit process
+    exit 1
 fi
 
 # Handle custom init command
@@ -69,5 +67,5 @@ if [ "$1" = "init" ]; then
         "$@"
 fi
 
-# Pass through any other commands to certbot
-exec certbot "$@"
+# Run any other commands
+exec "$@"
