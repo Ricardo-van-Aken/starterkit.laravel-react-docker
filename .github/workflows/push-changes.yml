@@ -36,7 +36,7 @@ env:
 jobs:
   build:
     env:
-      IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/fireship
+      IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/laravel_app
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -51,15 +51,15 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # - name: Build and push image
-      #   uses: docker/build-push-action@v4
-      #   with:
-      #     context: ./test-app
-      #     push: true
-      #     file: ./test-app/Dockerfile
-      #     tags: |
-      #       ${{ env.IMAGE_NAME }}:latest
-      #       ${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./website/
+          push: false
+          file: ./website/docker/img_laravel/Dockerfile.laravel-base
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   terraform-state:
     name: Retrieve terraform remote state
