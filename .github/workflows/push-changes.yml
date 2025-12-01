@@ -33,6 +33,8 @@ env:
   # Terraform [TODO: description]
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
 
+  DOCKER_USER: "${{ secrets.DOCKER_USER }}"
+
 jobs:
   build:
     env:
@@ -153,7 +155,6 @@ jobs:
     env:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
-      DOCKER_USER: "${{ vars.DOCKER_USER }}"
 
     defaults:
       run:
