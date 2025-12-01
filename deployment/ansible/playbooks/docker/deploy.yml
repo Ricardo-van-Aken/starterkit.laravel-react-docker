@@ -1,5 +1,5 @@
 ---
-- name: Install Docker engine and verify with hello-world
+- name: Deploy Docker images with Github Actions
   hosts: all
   become: true
   gather_facts: true
