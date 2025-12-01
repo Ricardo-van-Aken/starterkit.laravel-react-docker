@@ -5,10 +5,10 @@ PROFILE="production"
 COMPOSE_FILE="docker/docker-compose.production.yml"
 
 # Turn off containers
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down
+docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
 # Remove all app files [TODO: Dit willen we niet hardcoden op docker_app_files]
-docker volume rm docker_app_files
+# docker volume rm docker_app_files
 
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
 
