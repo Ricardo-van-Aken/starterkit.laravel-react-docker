@@ -13,6 +13,7 @@ docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
 
 # Run docker compose with the selected .env file and profile
+# [TODO] We should pull interactivity from environment variable
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init --non-interactive
 
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d

@@ -47,4 +47,4 @@ case "$MODE" in
 esac
 
 # Remove all volumes associated with this compose file (clean start)
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down
+docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
