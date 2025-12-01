@@ -35,7 +35,7 @@ services:
     volumes:
       - ${APP_FILES_DIR}:/var/www           # Volume or Bind mount: Application files to be served by nginx
       - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - certbot_certs:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
+      - ./secrets/letsencrypt:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
     depends_on:
       app:
         condition: service_started
@@ -67,7 +67,7 @@ services:
     restart: no
     volumes:
       - certbot_files:/var/www/certbot/:rw # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - certbot_certs:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
+      - ./secrets/letsencrypt:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
     profiles: ["all", "staging", "production"]
 
 volumes:
