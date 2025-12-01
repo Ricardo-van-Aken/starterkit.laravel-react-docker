@@ -4,16 +4,15 @@ ENV_FILE="docker/.env.production"
 PROFILE="production"
 COMPOSE_FILE="docker/docker-compose.production.yml"
 
-# Turn off containers
+# Wind down containers and remove volumes
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
-# Remove all app files [TODO: Dit willen we niet hardcoden op docker_app_files]
-# docker volume rm docker_app_files
-
+# Pull latest versions of images from registry
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
 
-# Run docker compose with the selected .env file and profile
-# [TODO] We should pull interactivity from environment variable
+# Prepare certificates
+# [TODO] We should pull certbot interactivity from environment variable
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init --non-interactive
 
+# Run docker compose with the selected .env file and profile
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d
