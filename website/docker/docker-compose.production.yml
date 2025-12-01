@@ -62,8 +62,8 @@ services:
     depends_on:
       - nginx
     environment:
-      - APP_DOMAIN=zeepaardje.xyz
-      - DOMAIN_EMAIL=jtbuter@gmail.com
+      - APP_DOMAIN=${APP_DOMAIN}
+      - DOMAIN_EMAIL=${DOMAIN_EMAIL}
     restart: no
     volumes:
       - certbot_files:/var/www/certbot/:rw # Volume: Certbot files to be served by nginx (for confirming domain ownership)
