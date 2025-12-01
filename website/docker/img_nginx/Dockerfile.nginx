@@ -1,4 +1,5 @@
 FROM nginx:alpine
+# FROM nginx@sha256:eb212fe30b5b70a2ba09a0e3a1db07aea232fda6a6046a2bbf40c7203d3d5745
 
 COPY conf.d/*.template /etc/nginx/templates/
 

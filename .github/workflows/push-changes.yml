@@ -156,10 +156,6 @@ jobs:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
 
-    defaults:
-      run:
-        working-directory: deployment/ansible
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -185,6 +181,6 @@ jobs:
 
       - name: Run deployment
         run: |
-          ansible-playbook playbooks/docker/deploy.yml
+          ansible-playbook deployment/ansible/playbooks/docker/deploy.yml
 
       

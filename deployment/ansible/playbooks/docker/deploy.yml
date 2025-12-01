@@ -12,21 +12,44 @@
       register: docker_uid
       changed_when: false
 
-    - name: Add +x permissions
+    - name: Check if stop_env.sh exists
+      stat:
+        path: "/home/{{ docker_user  }}/stop_env.sh"
+      register: stop_env
+
+    - name: Take down any containers using existing docker-compose.yml
+      shell:
+        chdir: /home/{{ docker_user }}
+        cmd: ./stop_env.sh
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      changed_when: false
+      when: stop_env.stat.exists
+
+    - name: Copy *.sh files and add execution permissions
       copy:
-        remote_src: yes
-        src: "/home/app/a/starterkit.laravel-react-docker/website/{{ item }}"
-        dest: "/home/app/a/starterkit.laravel-react-docker/website/{{ item }}"
+        src: "./website/{{ item }}"
+        dest: "/home/{{ docker_user  }}/{{ item }}"
         mode: a+x
       loop:
-        - run_env.sh
         - run_env.production.sh
         - stop_env.sh
       become_user: "{{ docker_user  }}"
 
+    - name: Copy docker files
+      copy:
+        src: "./website/docker/{{ item }}"
+        dest: "/home/{{ docker_user  }}/{{ item }}"
+      loop:
+        - .env.production
+        - docker-compose.production.yml
+      become_user: "{{ docker_user  }}"
+
     - name: Deploy images
       shell:
-        chdir: /home/app/a/starterkit.laravel-react-docker/website
+        chdir: /home/{{ docker_user }}
         cmd: ./run_env.production.sh
       become_user: "{{ docker_user }}"
       environment:

@@ -1,8 +1,8 @@
 #!/bin/sh
 
-ENV_FILE="docker/.env.production"
+ENV_FILE=".env.production"
 PROFILE="production"
-COMPOSE_FILE="docker/docker-compose.production.yml"
+COMPOSE_FILE="docker-compose.production.yml"
 
 # Wind down containers and remove volumes
 docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
