@@ -35,6 +35,8 @@ env:
 
   DOCKER_USER: "${{ secrets.DOCKER_USER }}"
 
+  WORKSPACE: ${{ github.workspace }}
+
 jobs:
   build:
     name: Build Docker images
@@ -191,5 +193,3 @@ jobs:
       - name: Run deployment
         run: |
           ansible-playbook deployment/ansible/playbooks/docker/deploy.yml -i deployment/ansible/inventory.yml
-
-      

@@ -5,6 +5,7 @@
   gather_facts: true
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
+    root: "{{ lookup('env', 'WORKSPACE') }}"
 
   tasks:
     - name: Get docker user UID
@@ -30,7 +31,7 @@
 
     - name: Copy *.sh files and add execution permissions
       copy:
-        src: "./website/{{ item }}"
+        src: "{{ root  }}/website/{{ item }}"
         dest: "/home/{{ docker_user  }}/{{ item }}"
         mode: a+x
       loop:
@@ -40,7 +41,7 @@
 
     - name: Copy docker files
       copy:
-        src: "./website/docker/{{ item }}"
+        src: "{{ root  }}/website/docker/{{ item }}"
         dest: "/home/{{ docker_user  }}/{{ item }}"
       loop:
         - .env.production
