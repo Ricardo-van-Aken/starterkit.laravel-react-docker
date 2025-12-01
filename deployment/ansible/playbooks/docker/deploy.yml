@@ -20,7 +20,7 @@
     - name: Take down any containers using existing docker-compose.yml
       shell:
         chdir: /home/{{ docker_user }}
-        cmd: ./stop_env.sh
+        cmd: ./stop_env.sh production
       become_user: "{{ docker_user }}"
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"

@@ -34,9 +34,9 @@ case "$MODE" in
     ;;
   production)
     # For simulating production/testing
-    ENV_FILE="docker/.env.production"
+    ENV_FILE=".env.production"
     PROFILE="production"
-    COMPOSE_FILE="docker/docker-compose.production.yml"
+    COMPOSE_FILE="docker-compose.production.yml"
     ;;
   *)
     # Invalid mode provided

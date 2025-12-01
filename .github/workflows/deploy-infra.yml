@@ -246,10 +246,6 @@ jobs:
         run: |
           ansible-playbook playbooks/docker/setup.yml
 
-      - name: Create directories
-        run: |
-          ansible-playbook playbooks/common/setup.yml
-
       - name: Install docker rootless
         run: |
           ansible-playbook playbooks/docker/install.yml
