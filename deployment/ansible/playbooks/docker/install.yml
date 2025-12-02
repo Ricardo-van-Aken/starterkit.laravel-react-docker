@@ -61,3 +61,24 @@
       register: docker_info
       changed_when: false
       failed_when: "'rootless' not in docker_info.stdout"
+
+    - name: Find path to rootlesskit
+      ansible.builtin.command:
+        cmd: >
+          which rootlesskit
+      register: rootlesskit_path
+
+    - name: Set capabilities for rootlesskit binary
+      ansible.builtin.command:
+        cmd: >
+          setcap cap_net_bind_service=ep {{ rootlesskit_path.stdout }}
+
+    - name: Restart docker service for the current user
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        scope: user
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
