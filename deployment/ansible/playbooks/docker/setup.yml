@@ -7,10 +7,11 @@
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
 
   tasks:
-    - name: Install required tools for rootless Docker
+    - name: Install required tools for (rootless) Docker
       package:
         name:
           - uidmap
+          - acl
         state: present
 
     - name: Create dedicated app user for rootless docker
@@ -71,3 +72,22 @@
       ansible.builtin.apt:
         update_cache: yes
         cache_valid_time: 3600
+
+    - name: Ensure secrets directory exists
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/secrets"
+        state: directory
+        mode: '0775'  # rwxrwxr-x for directory
+        owner: "{{ docker_user }}"
+        group: "{{ docker_user }}"
+      become_user: "{{ docker_user }}"
+
+    - name: Set default ACL so all new files inherit 400 permissions for owner
+      ansible.posix.acl:
+        path: "/home/{{ docker_user }}/secrets"
+        entity: "{{ docker_user }}"
+        etype: user
+        permissions: r--
+        default: yes
+        state: present
+      become_user: "{{ docker_user }}"
