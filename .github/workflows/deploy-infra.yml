@@ -92,10 +92,15 @@ jobs:
           terraform -chdir=key workspace select -or-create key
           terraform -chdir=project workspace select -or-create project
 
+      - name: Plan
+        run: |
+          terraform -chdir=key plan -out=tfplan-key
+          terraform -chdir=project plan -out=tfplan-project -var name="${{ github.event.repository.name }}"
+
       - name: Apply
         run: |
-          terraform -chdir=key apply --auto-approve
-          terraform -chdir=project apply --auto-approve
+          terraform -chdir=key apply tfplan-key
+          terraform -chdir=project apply tfplan-project
 
       - name: Destroy
         run: |
