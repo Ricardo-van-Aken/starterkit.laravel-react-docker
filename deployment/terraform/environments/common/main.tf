@@ -13,3 +13,9 @@ module "droplet" {
 #   source     = "../../modules/database"
 #   project_id = var.project_id
 # }
+
+module "domain" {
+  source       = "../../modules/domain"
+  droplet_ipv4 = module.droplet.ipv4
+  project_id   = var.project_id
+}
