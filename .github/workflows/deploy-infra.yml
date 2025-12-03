@@ -92,8 +92,16 @@ jobs:
         run: |
           terraform -chdir=key workspace select -or-create key
 
+      - name: Plan create
+        run: |
+          terraform -chdir=key plan -out=tfplan
+
       - name: Apply
-        run: terraform -chdir=key apply
+        run: terraform -chdir=key apply tfplan
+
+      - name: Plan destroy
+        run: |
+          terraform -chdir=key plan -destroy -out=tfplan
 
       - name: Destroy
         run: terraform -chdir=key apply -destroy
