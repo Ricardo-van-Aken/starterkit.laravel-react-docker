@@ -17,3 +17,8 @@ variable "ssh_key_name" {
   type      = string
   sensitive = true
 }
+
+variable "project_id" {
+  type      = string
+  sensitive = true
+}

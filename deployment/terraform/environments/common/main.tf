@@ -1,22 +1,15 @@
-# module "project" {
-#   source = "../../modules/project"
-# }
-
 module "bucket" {
   source     = "../../modules/bucket"
-  project_id = module.project.id
-  depends_on = [module.project]
+  project_id = var.project_id
 }
 
 module "droplet" {
   source       = "../../modules/droplet"
-  project_id   = module.project.id
-  depends_on   = [module.project]
+  project_id   = var.project_id
   ssh_key_name = var.ssh_key_name
 }
 
 module "database" {
   source     = "../../modules/database"
-  project_id = module.project.id
-  depends_on = [module.project]
+  project_id = var.project_id
 }
