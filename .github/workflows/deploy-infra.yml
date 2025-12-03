@@ -32,7 +32,6 @@ env:
   TF_VAR_spaces_access_id: ${{ secrets.DO_SPACES_ACCESS_ID }}
   TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
-  TERRAFORM_WORKSPACE: ${{ github.event.inputs.environment }}
 
   DOCKER_USER: "${{ secrets.DOCKER_USER }}"
 
@@ -101,6 +100,7 @@ jobs:
       - name: Destroy
         run: |
           terraform -chdir=key apply -destroy --auto-approve
+          terraform -chdir=project apply -destroy --auto-approve
 
   #     - name: Plan
   #       run: terraform plan -out=tfplan
