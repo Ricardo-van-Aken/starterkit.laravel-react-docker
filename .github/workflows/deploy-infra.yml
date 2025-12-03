@@ -85,8 +85,8 @@ jobs:
 
       - name: Initialize Terraform workspaces
         run: |
-          terraform -chdir=key init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
-          terraform -chdir=project init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+          terraform -chdir=key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+          terraform -chdir=project init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
 
       - name: Select or create workspaces
         run: |
