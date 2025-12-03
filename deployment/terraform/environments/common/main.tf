@@ -1,6 +1,6 @@
-module "project" {
-  source = "../../modules/project"
-}
+# module "project" {
+#   source = "../../modules/project"
+# }
 
 module "bucket" {
   source     = "../../modules/bucket"
