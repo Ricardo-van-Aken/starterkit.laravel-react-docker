@@ -91,12 +91,17 @@ jobs:
       - name: Select or create workspaces
         run: |
           terraform -chdir=key workspace select -or-create key
+          terraform -chdir=project workspace select -or-create project
 
       - name: Apply
-        run: terraform -chdir=key apply --auto-approve
+        run: |
+          terraform -chdir=key apply --auto-approve
+          terraform -chdir=project apply --auto-approve
 
       - name: Destroy
-        run: terraform -chdir=key apply -destroy --auto-approve
+        run: |
+          terraform -chdir=key apply -destroy --auto-approve
+          terraform -chdir=project apply -destroy --auto-approve
 
   #     - name: Plan
   #       run: terraform plan -out=tfplan
