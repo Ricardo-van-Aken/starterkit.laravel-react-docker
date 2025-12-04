@@ -34,6 +34,7 @@ env:
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
 
   DOCKER_USER: "${{ secrets.DOCKER_USER }}"
+  WORKSPACE: ${{ github.workspace }}
 
 jobs:
   generate-backend-config:

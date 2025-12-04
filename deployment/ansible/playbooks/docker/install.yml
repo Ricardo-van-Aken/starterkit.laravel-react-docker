@@ -6,7 +6,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
-    docker_playbook_dir: "{{ root  }}/deployment/ansible/playbooks/docker"
+    docker_playbook_dir: "{{ root  }}/deployment/ansible/playbooks/docker/"
 
   tasks:
     - name: Get docker user UID
