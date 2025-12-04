@@ -48,6 +48,12 @@
         - docker-compose.production.yml
       become_user: "{{ docker_user  }}"
 
+    - name: Copy laravel environment file
+      copy:
+        src: "{{ root  }}/website/docker/img_laravel/.env"
+        dest: "/home/{{ docker_user  }}/.env"
+      become_user: "{{ docker_user  }}"
+
     - name: Deploy images
       shell:
         chdir: /home/{{ docker_user }}
