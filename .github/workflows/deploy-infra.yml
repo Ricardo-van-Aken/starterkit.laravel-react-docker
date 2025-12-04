@@ -167,7 +167,7 @@ jobs:
 
   terraform-apply:
     name: Apply Main (if changes are detected and after manual approval)
-    if: (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy') && needs.terraform-plan.outputs.has_changes == 2
+    if: (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy') && needs.terraform-plan.outputs.has_changes != 1
     runs-on: ubuntu-latest
     needs: terraform-plan
     environment: ${{ github.event.inputs.environment }}
