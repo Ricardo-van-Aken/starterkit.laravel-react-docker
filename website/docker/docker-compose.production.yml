@@ -90,6 +90,10 @@ secrets:
     file: ./secrets/mysql_app_db_database
   mysql_app_db_ssl:
     file: ./secrets/mysql_app_db_ssl
+  mysql_app_db_port:
+    file: ./secrets/mysql_app_db_port
+  mysql_app_db_host:
+    file: ./secrets/mysql_app_db_host
   mysql_db_rootpass:
     file: ./secrets/mysql_db_rootpass
   redis_password:
