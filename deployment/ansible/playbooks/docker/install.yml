@@ -5,6 +5,8 @@
   gather_facts: true
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
+    root: "{{ lookup('env', 'WORKSPACE') }}"
+    docker_playbook_dir: "{{ root  }}/deployment/ansible/playbooks/docker"
 
   tasks:
     - name: Get docker user UID
@@ -72,6 +74,32 @@
       ansible.builtin.command:
         cmd: >
           setcap cap_net_bind_service=ep {{ rootlesskit_path.stdout }}
+
+    - name: Read existing Docker config.json
+      slurp:
+        src: "/home/{{ docker_user }}/.docker/config.json"
+      register: docker_config_raw
+
+    - name: Parse existing Docker config.json
+      set_fact:
+        docker_config_parsed: >-
+          {{ docker_config_raw.content | b64decode | from_json }}
+
+    - name: Load custom Docker config.json from file
+      set_fact:
+        docker_config_extra: >-
+          {{ lookup("file", docker_playbook_dir + "files/config.json") | from_json }}
+
+    - name: Merge Docker config (recursive)
+      set_fact:
+        docker_config_merged: >-
+          {{ docker_config_parsed | combine(docker_config_extra, recursive=True) }}
+
+    - name: Write merged ~/.docker/config.json
+      copy:
+        dest: "/home/{{ docker_user }}/.docker/config.json"
+        content: "{{ docker_config_merged | to_nice_json }}"
+        mode: '0600'
 
     - name: Restart docker service for the current user
       ansible.builtin.systemd:
