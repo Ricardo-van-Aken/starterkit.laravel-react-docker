@@ -48,12 +48,12 @@
         - docker-compose.production.yml
       become_user: "{{ docker_user  }}"
 
-    # - name: Deploy images
-    #   shell:
-    #     chdir: /home/{{ docker_user }}
-    #     cmd: ./run_env.production.sh
-    #   become_user: "{{ docker_user }}"
-    #   environment:
-    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-    #     DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-    #   changed_when: false
+    - name: Deploy images
+      shell:
+        chdir: /home/{{ docker_user }}
+        cmd: ./run_env.production.sh
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      changed_when: false
