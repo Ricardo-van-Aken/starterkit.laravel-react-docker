@@ -30,24 +30,30 @@ fi
 
 # Handle custom init command
 if [ "$1" = "init" ]; then
-    shift
     STAGING_FLAG=""
-    if [ "$1" = "--staging" ]; then
-        STAGING_FLAG="--staging"
-        shift
-    fi
+    NON_INTERACTIVE=0
+
+    NEW_ARGS=()
+
+    for arg in "$@"; do
+        if [ "$arg" = "--staging" ]; then
+            STAGING_FLAG="--staging"
+            continue
+        fi
+
+        if [ "$arg" = "--non-interactive" ]; then
+            NON_INTERACTIVE=1
+            continue
+        fi
+
+        NEW_ARGS+=("$arg")
+    done
+
+    set -- "${NEW_ARGS[@]}"
 
     # Delete existing certificates
     if check_certs; then
         echo "Existing certificates were found for: $APP_DOMAIN"
-
-        NON_INTERACTIVE=0
-
-        for arg in "$@"; do
-            if [ "$arg" = "--non-interactive" ]; then
-                NON_INTERACTIVE=1
-            fi
-        done
 
         # Only delete certs in interactive mode
         if [ "$NON_INTERACTIVE" -eq 0 ]; then
