@@ -109,8 +109,7 @@ jobs:
       run:
         working-directory: deployment/terraform/bootstrap
     outputs:
-      spaces_access_id: ${{ steps.bootstrap-outputs.outputs.spaces_access_id }}
-      spaces_secret_key: ${{ steps.bootstrap-outputs.outputs.spaces_secret_key }}
+      project_id: ${{ steps.bootstrap-outputs.outputs.project_id }}
     if: github.event.inputs.action == 'apply'
 
     steps:
@@ -228,7 +227,7 @@ jobs:
   terraform-ephemeral-destroy:
     name: Destroy temporary Terraform resources
     runs-on: ubuntu-latest
-    needs: terraform-plan
+    needs: [terraform-ephemeral-create, terraform-plan]
     defaults:
       run:
         working-directory: deployment/terraform/ephemeral
