@@ -274,7 +274,7 @@ jobs:
   terraform-ephemeral-destroy:
     name: Destroy temporary Terraform resources
     runs-on: ubuntu-latest
-    needs: [terraform-ephemeral-create, terraform-plan]
+    needs: [terraform-ephemeral-create, terraform-plan, terraform-apply]
     defaults:
       run:
         working-directory: deployment/terraform/ephemeral
