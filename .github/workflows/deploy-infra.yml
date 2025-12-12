@@ -127,7 +127,7 @@ jobs:
 
       - name: Initialize Terraform workspaces
         run: |
-          terraform init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
 
       - name: Plan
         run: terraform plan -out=tfplan
