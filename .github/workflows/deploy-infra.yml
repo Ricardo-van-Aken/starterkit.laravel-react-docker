@@ -141,6 +141,11 @@ jobs:
         run: |
           echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
 
+      - name: Capture Outputs
+        id: bootstrap-outputs
+        run: |
+          echo "$(terraform output -raw project_id)"
+
   terraform-plan:
     name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
     runs-on: ubuntu-latest
