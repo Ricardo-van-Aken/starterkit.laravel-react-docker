@@ -141,8 +141,7 @@ jobs:
         run: |
           echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
 
-      - name: Capture Outputs
-        id: bootstrap-outputs
+      - name: Checkie
         run: |
           echo "$(terraform output -raw project_id)"
 
