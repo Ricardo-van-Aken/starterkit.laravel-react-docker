@@ -166,6 +166,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Echo outputs
+        run: |
+          echo "spaces_access_id=$TF_VAR_spaces_access_id"
+          echo "spaces_secret_key=$TF_VAR_spaces_access_id"
+
+
       - name: Download backend.hcl file
         uses: actions/download-artifact@v4
         with:
