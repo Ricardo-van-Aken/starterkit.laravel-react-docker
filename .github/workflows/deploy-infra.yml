@@ -101,6 +101,11 @@ jobs:
           echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
           echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
 
+      - name: Echo outputs
+        run: |
+          echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)"
+          echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)"
+
   terraform-bootstrap-create:
     name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
     runs-on: ubuntu-latest
