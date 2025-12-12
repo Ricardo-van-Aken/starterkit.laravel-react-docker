@@ -139,8 +139,7 @@ jobs:
       - name: Capture Outputs
         id: bootstrap-outputs
         run: |
-          echo "spaces_access_id=$(terraform output -raw spaces_access_id)" >> $GITHUB_OUTPUT
-          echo "spaces_secret_key=$(terraform output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+          echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
 
   terraform-plan:
     name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
