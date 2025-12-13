@@ -6,7 +6,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
-    environment: "{{ lookup('env', 'ENVIRONMENT') }}"
+    environment_suffix: "{{ lookup('env', 'ENVIRONMENT') }}"
 
   tasks:
     - name: Get docker user UID
@@ -45,7 +45,7 @@
         src: "{{ root  }}/website/docker/{{ item }}"
         dest: "/home/{{ docker_user  }}/{{ item }}"
       loop:
-        - ".env.{{ environment  }}"
+        - ".env.{{ environment_suffix  }}"
         - docker-compose.yml
       become_user: "{{ docker_user  }}"
 
