@@ -6,6 +6,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
+    environment: "{{ lookup('env', 'ENVIRONMENT') }}"
 
   tasks:
     - name: Get docker user UID
@@ -35,7 +36,7 @@
         dest: "/home/{{ docker_user  }}/{{ item }}"
         mode: a+x
       loop:
-        - run_env.production.sh
+        - run_env.sh
         - stop_env.sh
       become_user: "{{ docker_user  }}"
 
@@ -44,8 +45,8 @@
         src: "{{ root  }}/website/docker/{{ item }}"
         dest: "/home/{{ docker_user  }}/{{ item }}"
       loop:
-        - .env.production
-        - docker-compose.production.yml
+        - ".env.{{ environment  }}"
+        - docker-compose.yml
       become_user: "{{ docker_user  }}"
 
     - name: Copy laravel environment file
@@ -54,12 +55,26 @@
         dest: "/home/{{ docker_user  }}/.env"
       become_user: "{{ docker_user  }}"
 
-    - name: Deploy images
-      shell:
-        chdir: /home/{{ docker_user }}
-        cmd: ./run_env.production.sh
-      become_user: "{{ docker_user }}"
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-      changed_when: false
+    - name: Find all `secrets` files
+      ansible.builtin.find:
+        paths: ./secrets
+        file_type: file
+      register: secret_files
+
+    - name: Ensure secret files are readable by the docker container
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        owner: "{{ docker_user  }}"
+        group: "{{ docker_user  }}"
+        mode: "0644"
+      loop: "{{ secret_files.files }}"
+
+    # - name: Deploy images
+    #   shell:
+    #     chdir: /home/{{ docker_user }}
+    #     cmd: ./run_env.sh
+    #   become_user: "{{ docker_user }}"
+    #   environment:
+    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+    #     DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+    #   changed_when: false

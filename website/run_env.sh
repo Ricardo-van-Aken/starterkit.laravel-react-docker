@@ -32,6 +32,11 @@ case "$MODE" in
     ENV_FILE="docker/.env.testing"
     PROFILE="testing"
     ;;
+  staging)
+    # For staging infrastructure
+    ENV_FILE=".env.staging"
+    PROFILE="staging"
+    ;;
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"
@@ -40,11 +45,26 @@ case "$MODE" in
     ;;
 esac
 
-# Build the base laravel application image if it doesn't exist or Dockerfile.base has changed
-docker build -f docker/img_laravel/Dockerfile.laravel-base -t local/starterkit.laravel-react-docker:laravel-base.latest .
+if [ "$MODE" = "staging" ]; then
+# Wind down containers and remove volumes
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
-# Remove all volumes associated with this compose file (clean start)
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+  # Pull latest versions of images from registry
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
 
-# Run docker compose with the selected .env file and profile
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build
+  # Prepare certificates
+  # [TODO] We should pull certbot interactivity from environment variable
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init --non-interactive
+
+  # Run docker compose with the selected .env file and profile
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d  
+else
+  # Build the base laravel application image if it doesn't exist or Dockerfile.base has changed
+  docker build -f docker/img_laravel/Dockerfile.laravel-base -t local/starterkit.laravel-react-docker:laravel-base.latest .
+
+  # Remove all volumes associated with this compose file (clean start)
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+
+  # Run docker compose with the selected .env file and profile
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build
+fi
