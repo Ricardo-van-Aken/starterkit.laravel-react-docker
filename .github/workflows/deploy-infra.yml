@@ -160,7 +160,7 @@ jobs:
       run:
         working-directory: deployment/terraform/environments/common
     outputs:
-      has_changes: ${{ steps.plan-apply.outputs.exitcode }}
+      has_changes: ${{ steps.plan.outputs.exitcode }}
 
     steps:
       - name: Checkout
@@ -195,7 +195,7 @@ jobs:
           fi
 
       - name: Plan (apply/destroy)
-        id: plan-apply
+        id: plan
         continue-on-error: true
         run: |
           set -o pipefail
@@ -217,17 +217,14 @@ jobs:
           fi
 
       - name: Force-unlock terraform state if lock found
-        if: ${{ steps.plan-apply.outputs.lock_id != '' }}
+        if: ${{ steps.plan.outputs.lock_id != '' }}
         env:
-          LOCK_ID: ${{ steps.plan-apply.outputs.lock_id }}
+          LOCK_ID: ${{ steps.plan.outputs.lock_id }}
         run: |
           echo "Unlocking state with lock id: $LOCK_ID"
           # Ensure backend is initialized (again) if necessary
           terraform init -input=false -no-color
           terraform force-unlock -force "$LOCK_ID"
-      # - name: Force unlock
-      #   run: |
-
 
       - name: Upload Plan Artifacts
         if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
@@ -273,7 +270,7 @@ jobs:
           terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
       - name: Apply (from approved plan)
-        id: plan-apply
+        id: apply
         run: |
           set -o pipefail
           terraform apply tfplan -no-color 2>&1 | tee plan.log || true
@@ -291,9 +288,9 @@ jobs:
           fi
 
       - name: Force-unlock terraform state if lock found
-        if: ${{ steps.plan-apply.outputs.lock_id != '' }}
+        if: ${{ steps.apply.outputs.lock_id != '' }}
         env:
-          LOCK_ID: ${{ steps.plan-apply.outputs.lock_id }}
+          LOCK_ID: ${{ steps.apply.outputs.lock_id }}
         run: |
           echo "Unlocking state with lock id: $LOCK_ID"
           # Ensure backend is initialized (again) if necessary
