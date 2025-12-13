@@ -249,7 +249,7 @@ jobs:
 
       - name: Apply (from approved plan)
         run: |
-          terraform apply tfplan -lock=false
+          terraform apply -lock=false tfplan
 
       - id: terraform-state
         name: Capture Outputs
