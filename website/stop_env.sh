@@ -41,7 +41,7 @@ case "$MODE" in
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"
-    echo "Valid options: dev-volume, dev-bindmount, fake-prod, production"
+    echo "Valid options: dev-volume, dev-bindmount, fake-prod, staging"
     exit 1
     ;;
 esac
