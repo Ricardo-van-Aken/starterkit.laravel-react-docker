@@ -107,7 +107,7 @@ jobs:
           echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)"
 
   test:
-    name: Terraform Temporary resources
+    name: Get outputs of temporary resources
     runs-on: ubuntu-latest
     needs: terraform-ephemeral-create
 
