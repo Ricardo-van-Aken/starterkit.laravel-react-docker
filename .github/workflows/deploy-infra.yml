@@ -200,7 +200,6 @@ jobs:
         run: |
           terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
           -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
-          -lock=false \
           -out=tfplan \
           -detailed-exitcode
 
@@ -249,7 +248,7 @@ jobs:
 
       - name: Apply (from approved plan)
         run: |
-          terraform apply -lock=false tfplan
+          terraform apply tfplan
 
       - id: terraform-state
         name: Capture Outputs
