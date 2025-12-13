@@ -12,9 +12,6 @@ if [ -z "$MODE" ]; then
   exit 1
 fi
 
-# Path to the main docker-compose file
-COMPOSE_FILE="docker/docker-compose.yml"
-
 # Select the appropriate .env file and docker-compose profile based on the mode
 case "$MODE" in
   dev-volume)
@@ -46,7 +43,10 @@ case "$MODE" in
 esac
 
 if [ "$MODE" = "staging" ]; then
-# Wind down containers and remove volumes
+  # Path to the main docker-compose file
+  COMPOSE_FILE="docker-compose.yml"
+
+  # Wind down containers and remove volumes
   docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
   # Pull latest versions of images from registry
@@ -59,6 +59,9 @@ if [ "$MODE" = "staging" ]; then
   # Run docker compose with the selected .env file and profile
   docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d  
 else
+  # Path to the main docker-compose file
+  COMPOSE_FILE="docker/docker-compose.yml"
+
   # Build the base laravel application image if it doesn't exist or Dockerfile.base has changed
   docker build -f docker/img_laravel/Dockerfile.laravel-base -t local/starterkit.laravel-react-docker:laravel-base.latest .
 
