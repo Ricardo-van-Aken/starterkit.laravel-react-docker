@@ -2,9 +2,6 @@
 
 set -e
 
-# Make domains
-DOMAINS="$APP_DOMAIN,www.$APP_DOMAIN"
-
 check_certs() {
     if [ ! -f "/etc/letsencrypt/live/$APP_DOMAIN/fullchain.pem" ]; then
         return 1
@@ -67,10 +64,11 @@ if [ "$1" = "init" ]; then
 
     echo ""
     
-    echo "Generating (new) initial certificates for: $DOMAINS"
+    echo "Generating (new) initial certificates for: $APP_DOMAIN"
 
     exec certbot certonly $STAGING_FLAG --webroot -w /var/www/certbot \
-        $(echo "$DOMAINS" | tr ',' '\n' | xargs -I {} echo "-d {}") \
+        $(echo "$APP_DOMAIN" | tr ',' '\n' | xargs -I {} echo "-d {}") \
+        ---cert-name "$APP_DOMAIN"
         --email "$DOMAIN_EMAIL" \
         --agree-tos \
         --no-eff-email \
