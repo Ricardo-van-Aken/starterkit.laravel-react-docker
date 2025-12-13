@@ -28,10 +28,6 @@ variable "domain_id" {
   sensitive = true
 }
 
-variable "domain_id" {
-  type = string
-}
-
 variable "record_type" {
   type = string
 }
