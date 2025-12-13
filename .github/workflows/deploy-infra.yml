@@ -200,7 +200,6 @@ jobs:
         run: |
           terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
           -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
-          -lock=false \
           -out=tfplan \
           -detailed-exitcode
 
