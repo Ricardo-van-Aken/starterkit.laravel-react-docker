@@ -6,7 +6,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
-    environment_suffix: "{{ lookup('env', 'ENVIRONMENT') }}"
+    env_name: "{{ lookup('env', 'ENVIRONMENT') }}"
 
   tasks:
     - name: Get docker user UID
@@ -19,16 +19,16 @@
         path: "/home/{{ docker_user  }}/stop_env.sh"
       register: stop_env
 
-    # - name: Take down any containers using existing docker-compose.yml
-    #   shell:
-    #     chdir: /home/{{ docker_user }}
-    #     cmd: ./stop_env.sh production
-    #   become_user: "{{ docker_user }}"
-    #   environment:
-    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-    #     DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-    #   changed_when: false
-    #   when: stop_env.stat.exists
+    - name: Take down any containers using existing docker-compose.yml
+      shell:
+        chdir: /home/{{ docker_user }}
+        cmd: ./stop_env.sh {{ env_name  }}
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      changed_when: false
+      when: stop_env.stat.exists
 
     - name: Copy *.sh files and add execution permissions
       copy:
@@ -45,7 +45,7 @@
         src: "{{ root  }}/website/docker/{{ item }}"
         dest: "/home/{{ docker_user  }}/{{ item }}"
       loop:
-        - ".env.{{ environment_suffix  }}"
+        - ".env.{{ env_name  }}"
         - docker-compose.yml
       become_user: "{{ docker_user  }}"
 
@@ -71,12 +71,12 @@
       loop_control:
         label: "{{ item.path }}"
 
-    # - name: Deploy images
-    #   shell:
-    #     chdir: /home/{{ docker_user }}
-    #     cmd: ./run_env.sh
-    #   become_user: "{{ docker_user }}"
-    #   environment:
-    #     XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-    #     DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-    #   changed_when: false
+    - name: Deploy images
+      shell:
+        chdir: /home/{{ docker_user }}
+        cmd: ./run_env.sh {{ env_name  }}
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      changed_when: false

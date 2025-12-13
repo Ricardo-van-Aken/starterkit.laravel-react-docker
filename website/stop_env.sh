@@ -32,11 +32,11 @@ case "$MODE" in
     ENV_FILE="docker/.env.testing"
     PROFILE="testing"
     ;;
-  production)
+  staging)
     # For simulating production/testing
-    ENV_FILE=".env.production"
-    PROFILE="production"
-    COMPOSE_FILE="docker-compose.production.yml"
+    ENV_FILE=".env.staging"
+    PROFILE="staging"
+    COMPOSE_FILE="docker-compose.yml"
     ;;
   *)
     # Invalid mode provided
