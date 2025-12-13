@@ -8,8 +8,8 @@ on:
         required: true
         type: choice
         options:
-          - dev
           - staging
+          - dev
           - production
       action:
         description: 'Terraform action'

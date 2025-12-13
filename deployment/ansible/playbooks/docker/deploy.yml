@@ -68,6 +68,8 @@
         group: "{{ docker_user  }}"
         mode: "0644"
       loop: "{{ secret_files.files }}"
+      loop_control:
+        label: "{{ item.path }}"
 
     # - name: Deploy images
     #   shell:
