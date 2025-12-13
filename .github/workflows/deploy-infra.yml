@@ -304,36 +304,36 @@ jobs:
           echo "$(terraform output -raw droplet_ipv4)"
           echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
-  terraform-bootstrap-destroy:
-    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: deployment/terraform/bootstrap
-    if: github.event.inputs.action == 'destroy'
+  # terraform-bootstrap-destroy:
+  #   name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/bootstrap
+  #   if: github.event.inputs.action == 'destroy'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/bootstrap
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/bootstrap
 
-      - name: Initialize Terraform workspaces
-        run: |
-          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
 
-      - name: Plan
-        run: terraform plan -destroy -out=tfplan
+  #     - name: Plan
+  #       run: terraform plan -destroy -out=tfplan
 
-      - name: Apply
-        run: terraform apply tfplan
+  #     - name: Apply
+  #       run: terraform apply tfplan
 
   terraform-ephemeral-destroy:
     name: Destroy temporary Terraform resources
