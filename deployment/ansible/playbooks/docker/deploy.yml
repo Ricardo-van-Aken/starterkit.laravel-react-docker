@@ -57,7 +57,7 @@
 
     - name: Find all `secrets` files
       ansible.builtin.find:
-        paths: ./secrets
+        paths: "/home/{{ docker_user  }}/secrets"
         file_type: file
       register: secret_files
 
