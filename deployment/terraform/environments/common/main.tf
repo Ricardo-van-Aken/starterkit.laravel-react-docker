@@ -17,7 +17,7 @@ module "record" {
   name      = var.record_name
 }
 
-# module "database" {
-#   source     = "../../modules/database"
-#   project_id = var.project_id
-# }
+module "database" {
+  source     = "../../modules/database"
+  project_id = var.project_id
+}
