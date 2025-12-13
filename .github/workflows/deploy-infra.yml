@@ -202,7 +202,6 @@ jobs:
           -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
           -out=tfplan \
           -detailed-exitcode -no-color 2>&1 | tee plan.log || true
-          
 
           # Extract lock id (awk method - robust)
           LOCK_ID=$(awk '/Lock Info:/{f=1; next} f && /ID:/{print $2; exit}' plan.log)
