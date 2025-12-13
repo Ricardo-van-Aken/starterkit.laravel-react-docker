@@ -1,19 +1,11 @@
 variable "name" {
-  type    = string
-  default = "project-name"
+  type = string
 }
 
 variable "description" {
-  type    = string
-  default = "This is is the default description text."
+  type = string
 }
 
 variable "environment" {
-  type    = string
-  default = "Development"
-}
-
-variable "do_token" {
-  type      = string
-  sensitive = true
+  type = string
 }

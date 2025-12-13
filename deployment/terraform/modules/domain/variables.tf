@@ -1,10 +1,10 @@
 variable "droplet_ipv4" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "name" {
-  type    = string
-  default = "zeepaardje.xyz"
+  type = string
 }
 
 variable "project_id" {
