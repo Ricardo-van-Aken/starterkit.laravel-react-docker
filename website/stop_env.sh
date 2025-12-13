@@ -38,6 +38,12 @@ case "$MODE" in
     PROFILE="staging"
     COMPOSE_FILE="docker-compose.yml"
     ;;
+  production)
+    # For simulating production/testing
+    ENV_FILE=".env.production"
+    PROFILE="production"
+    COMPOSE_FILE="docker-compose.yml"
+    ;;
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"

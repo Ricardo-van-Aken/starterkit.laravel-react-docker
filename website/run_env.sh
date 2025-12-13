@@ -34,6 +34,11 @@ case "$MODE" in
     ENV_FILE=".env.staging"
     PROFILE="staging"
     ;;
+  production)
+    # For production infrastructure
+    ENV_FILE=".env.production"
+    PROFILE="production"
+    ;;
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"
@@ -42,7 +47,7 @@ case "$MODE" in
     ;;
 esac
 
-if [ "$MODE" = "staging" ]; then
+if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
   # Path to the main docker-compose file
   COMPOSE_FILE="docker-compose.yml"
 
