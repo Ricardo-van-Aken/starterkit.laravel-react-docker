@@ -273,8 +273,32 @@ jobs:
           terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
       - name: Apply (from approved plan)
+        id: plan-apply
         run: |
-          terraform apply tfplan
+          set -o pipefail
+          terraform apply tfplan -no-color 2>&1 | tee plan.log || true
+          
+
+          # Extract lock id (awk method - robust)
+          LOCK_ID=$(awk '/Lock Info:/{f=1; next} f && /ID:/{print $2; exit}' plan.log)
+
+          if [ -n "$LOCK_ID" ]; then
+            echo "Found lock id: $LOCK_ID"
+            # Export to later steps via GITHUB_OUTPUT
+            echo "lock_id=$LOCK_ID" >> $GITHUB_OUTPUT
+          else
+            echo "No lock id found in plan output."
+          fi
+
+      - name: Force-unlock terraform state if lock found
+        if: ${{ steps.plan-apply.outputs.lock_id != '' }}
+        env:
+          LOCK_ID: ${{ steps.plan-apply.outputs.lock_id }}
+        run: |
+          echo "Unlocking state with lock id: $LOCK_ID"
+          # Ensure backend is initialized (again) if necessary
+          terraform init -input=false -no-color
+          terraform force-unlock -force "$LOCK_ID"
 
       - id: terraform-state
         name: Capture Outputs
