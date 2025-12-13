@@ -14,12 +14,14 @@
       register: docker_uid
       changed_when: false
 
-    - name: Check if stop_env.sh exists
-      stat:
-        path: "/home/{{ docker_user  }}/stop_env.sh"
-      register: stop_env
-
-    - block:
+    - name: Take down existing docker environment
+      ignore_errors: yes
+      block:
+      - name: Check if stop_env.sh exists (first ever deploy)
+        stat:
+          path: "/home/{{ docker_user  }}/stop_env.sh"
+        register: stop_env
+      
       - name: Take down any containers using existing docker-compose.yml
         shell:
           chdir: /home/{{ docker_user }}
@@ -30,32 +32,31 @@
           DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
         changed_when: false
         when: stop_env.stat.exists
-      ignore_errors: yes
 
-    - name: Copy *.sh files and add execution permissions
-      copy:
-        src: "{{ root  }}/website/{{ item }}"
-        dest: "/home/{{ docker_user  }}/{{ item }}"
-        mode: a+x
-      loop:
-        - run_env.sh
-        - stop_env.sh
+    - name: Copy all required files for running containers
       become_user: "{{ docker_user  }}"
+      block:
+      - name: Copy *.sh files and add execution permissions
+        copy:
+          src: "{{ root  }}/website/{{ item }}"
+          dest: "/home/{{ docker_user  }}/{{ item }}"
+          mode: a+x
+        loop:
+          - run_env.sh
+          - stop_env.sh
 
-    - name: Copy docker files
-      copy:
-        src: "{{ root  }}/website/docker/{{ item }}"
-        dest: "/home/{{ docker_user  }}/{{ item }}"
-      loop:
-        - ".env.{{ env_name  }}"
-        - docker-compose.yml
-      become_user: "{{ docker_user  }}"
+      - name: Copy docker files
+        copy:
+          src: "{{ root  }}/website/docker/{{ item }}"
+          dest: "/home/{{ docker_user  }}/{{ item }}"
+        loop:
+          - ".env.{{ env_name  }}"
+          - docker-compose.yml
 
-    - name: Copy laravel environment file
-      copy:
-        src: "{{ root  }}/website/docker/img_laravel/.env"
-        dest: "/home/{{ docker_user  }}/.env"
-      become_user: "{{ docker_user  }}"
+      - name: Copy laravel environment file
+        copy:
+          src: "{{ root  }}/website/docker/img_laravel/.env"
+          dest: "/home/{{ docker_user  }}/.env"
 
     - name: Find all `secrets` files
       ansible.builtin.find:
@@ -73,12 +74,21 @@
       loop_control:
         label: "{{ item.path }}"
 
-    - name: Deploy images
-      shell:
-        chdir: /home/{{ docker_user }}
-        cmd: ./run_env.sh {{ env_name  }}
+    - name: Deploy containers
       become_user: "{{ docker_user }}"
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
         DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-      changed_when: false
+      block:
+      - name: Take down any containers using updated docker-compose.yml
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./stop_env.sh {{ env_name  }}
+        changed_when: false
+        when: stop_env.stat.exists
+
+      - name: Deploy images
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./run_env.sh {{ env_name  }}
+        changed_when: false
