@@ -12,7 +12,7 @@ module "droplet" {
 module "record" {
   source    = "../../modules/record"
   domain_id = var.domain_id
-  value     = var.record_value
+  value     = module.droplet.ipv4
   type      = var.record_type
   name      = var.record_name
 }

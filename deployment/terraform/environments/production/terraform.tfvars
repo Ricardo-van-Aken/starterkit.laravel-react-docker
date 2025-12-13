@@ -1,3 +1,2 @@
-record_type  = "CNAME"
-record_name  = "www"
-record_value = "@"
+record_type = "CNAME"
+record_name = "www"
