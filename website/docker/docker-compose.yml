@@ -70,6 +70,25 @@ services:
       - ./secrets/letsencrypt:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
     profiles: ["all", "staging", "production"]
 
+  # MySQL Database
+  mysql_db:
+    image: ${IMAGE_REPO}:mysql-db.latest
+    build:
+      context: ./img_mysqldb
+      dockerfile: Dockerfile.mysql
+    container_name: db
+    restart: unless-stopped
+    secrets:
+      - mysql_db_rootpass
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_testing_db_database
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+    command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+
   # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
   phpmyadmin-admin:
     image: phpmyadmin/phpmyadmin:latest
