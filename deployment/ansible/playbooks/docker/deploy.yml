@@ -30,7 +30,7 @@
           DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
         changed_when: false
         when: stop_env.stat.exists
-      - ignore_errors: yes
+      ignore_errors: yes
 
     - name: Copy *.sh files and add execution permissions
       copy:
