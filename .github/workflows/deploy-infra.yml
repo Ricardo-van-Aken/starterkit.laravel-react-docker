@@ -217,7 +217,7 @@ jobs:
           fi
 
       - name: Force-unlock terraform state if lock found
-        if: ${{ steps.plan.outputs.lock_id != '' }}
+        if: ${{ steps.plan-apply.outputs.lock_id != '' }}
         env:
           LOCK_ID: ${{ steps.plan-apply.outputs.lock_id }}
         run: |
