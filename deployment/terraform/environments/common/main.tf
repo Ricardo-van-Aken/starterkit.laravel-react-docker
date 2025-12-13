@@ -9,7 +9,7 @@ module "droplet" {
   ssh_key_name = var.ssh_key_name
 }
 
-module "record" {
+module "record_root" {
   source    = "../../modules/record"
   domain_id = var.domain_id
   value     = module.droplet.ipv4
@@ -17,7 +17,7 @@ module "record" {
   name      = var.record_name
 }
 
-module "record" {
+module "record_cname" {
   count     = terraform.workspace == "production" ? 1 : 0
   source    = "../../modules/record"
   domain_id = var.domain_id
