@@ -197,7 +197,11 @@ jobs:
       - name: Plan (apply/destroy)
         id: plan-apply
         continue-on-error: true
-        run: terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} -out=tfplan -detailed-exitcode
+        run: |
+          terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
+          -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
+          -out=tfplan \
+          -detailed-exitcode
 
       - name: Upload Plan Artifacts
         if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
