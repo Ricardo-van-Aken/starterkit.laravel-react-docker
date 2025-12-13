@@ -13,8 +13,17 @@ module "record" {
   source    = "../../modules/record"
   domain_id = var.domain_id
   value     = module.droplet.ipv4
-  type      = var.record_type
+  type      = "A"
   name      = var.record_name
+}
+
+module "record" {
+  count     = terraform.workspace == "production" ? 1 : 0
+  source    = "../../modules/record"
+  domain_id = var.domain_id
+  value     = "@"
+  type      = "CNAME"
+  name      = "www"
 }
 
 module "database" {
