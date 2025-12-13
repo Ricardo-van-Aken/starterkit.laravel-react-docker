@@ -68,7 +68,7 @@ if [ "$1" = "init" ]; then
 
     exec certbot certonly $STAGING_FLAG --webroot -w /var/www/certbot \
         $(echo "$APP_DOMAIN" | tr ',' '\n' | xargs -I {} echo "-d {}") \
-        --cert-name "$APP_DOMAIN"
+        --cert-name "$APP_DOMAIN" \
         --email "$DOMAIN_EMAIL" \
         --agree-tos \
         --no-eff-email \
