@@ -19,16 +19,18 @@
         path: "/home/{{ docker_user  }}/stop_env.sh"
       register: stop_env
 
-    - name: Take down any containers using existing docker-compose.yml
-      shell:
-        chdir: /home/{{ docker_user }}
-        cmd: ./stop_env.sh {{ env_name  }}
-      become_user: "{{ docker_user }}"
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-      changed_when: false
-      when: stop_env.stat.exists
+    - block:
+      - name: Take down any containers using existing docker-compose.yml
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./stop_env.sh {{ env_name  }}
+        become_user: "{{ docker_user }}"
+        environment:
+          XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+          DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+        changed_when: false
+        when: stop_env.stat.exists
+      - ignore_errors: yes
 
     - name: Copy *.sh files and add execution permissions
       copy:
