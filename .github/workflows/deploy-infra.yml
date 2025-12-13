@@ -115,6 +115,7 @@ jobs:
         working-directory: deployment/terraform/bootstrap
     outputs:
       project_id: ${{ steps.bootstrap-outputs.outputs.project_id }}
+      domain_id: ${{ steps.bootstrap-outputs.outputs.domain_id }}
     if: github.event.inputs.action == 'apply'
 
     steps:
@@ -144,6 +145,7 @@ jobs:
         id: bootstrap-outputs
         run: |
           echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
+          echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
 
   terraform-plan:
     name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
@@ -153,6 +155,7 @@ jobs:
       TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
       TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
       TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
     defaults:
       run:
         working-directory: deployment/terraform/environments/common
