@@ -1,0 +1,44 @@
+name: Create kickstarting resources
+description: Create or destroy ephemeral Terraform infrastructure
+
+inputs:
+  action:
+    description: "create or destroy"
+    required: true
+
+outputs:
+  spaces_access_id:
+    description: "Spaces access key ID"
+    value: ${{ steps.outputs.outputs.spaces_access_id }}
+  spaces_secret_key:
+    description: "Spaces secret key"
+    value: ${{ steps.outputs.outputs.spaces_secret_key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+# jobs:
+#   ephemeral:
+#     name: Create or destroy temporary resources
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         working-directory: deployment/terraform/ephemeral
+#     outputs:
+#       spaces_access_id: ${{ steps.ephemeral-outputs.outputs.spaces_access_id }}
+#       spaces_secret_key: ${{ steps.ephemeral-outputs.outputs.spaces_secret_key }}
+#     env:
+#       DESTROY: ${{ github.event.inputs.action == 'destroy' && '-destroy' || '' }}
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3

@@ -38,11 +38,15 @@ env:
   WORKSPACE: ${{ github.workspace }}
 
 jobs:
-  test-module:
+  test-action:
     name: Test if modularization works
-    uses: ./.github/workflows/terraform/ephemeral.yml
-    with:
-      action: 'destroy'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test
+        uses: ./.github/actions/ephemeral
+        with:
+          action: 'destroy'
 
   generate-backend-config:
     name: Generate Backend Configuration
