@@ -1,0 +1,90 @@
+name: Create kickstarting resources
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        description: "create or destroy"
+        required: true
+        type: choice
+        options:
+          - create
+          - destroy
+
+jobs:
+  ephemeral:
+    name: Create or destroy temporary resources
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform/ephemeral
+    outputs:
+      spaces_access_id: ${{ steps.ephemeral-outputs.outputs.spaces_access_id }}
+      spaces_secret_key: ${{ steps.ephemeral-outputs.outputs.spaces_secret_key }}
+    env:
+      DESTROY: ${{ github.event.inputs.action == 'destroy' && '-destroy' || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # - name: Download backend.hcl file
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: backend.hcl
+      #     path: deployment/terraform/ephemeral
+
+      # - name: Initialize Terraform workspaces
+      #   run: |
+      #     terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
+
+      # - name: Select or create workspaces
+      #   run: |
+      #     terraform -chdir=spaces-key workspace select -or-create spaces-key
+
+      # - name: Apply
+      #   run: |
+      #     terraform -chdir=spaces-key apply -auto-approve
+
+      # - name: Capture Outputs
+      #   id: ephemeral-outputs
+      #   run: |
+      #     echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
+      #     echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+
+      # - name: Echo outputs
+      #   run: |
+      #     echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)"
+      #     echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)"
+
+  # destroy:
+  #   name: Destroy temporary Terraform resources
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/ephemeral
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
+
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/ephemeral
+
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
+
+  #     - name: Select workspace and destroy
+  #       run: |
+  #         terraform -chdir=spaces-key workspace select spaces-key
+  #         terraform -chdir=spaces-key apply -destroy -auto-approve
