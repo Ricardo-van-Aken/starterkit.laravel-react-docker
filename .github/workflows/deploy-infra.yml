@@ -38,6 +38,28 @@ env:
   WORKSPACE: ${{ github.workspace }}
 
 jobs:
+  generate-backend-config:
+    name: Generate Backend Configuration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backend.hcl file
+        run: |
+          source ../scripts/common.sh
+          generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
   test-action:
     name: Test if modularization works
     runs-on: ubuntu-latest
@@ -48,29 +70,7 @@ jobs:
       - name: Test
         uses: ./.github/actions/ephemeral
         with:
-          action: 'destroy'
-
-  # generate-backend-config:
-  #   name: Generate Backend Configuration
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: deployment/terraform
-
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-
-  #     - name: Create backend.hcl file
-  #       run: |
-  #         source ../scripts/common.sh
-  #         generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
-
-  #     - name: Upload backend.hcl file
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: backend.hcl
-  #         path: deployment/terraform/backend.hcl
+          destroy: false
 
   # terraform-ephemeral-create:
   #   name: Terraform Temporary resources

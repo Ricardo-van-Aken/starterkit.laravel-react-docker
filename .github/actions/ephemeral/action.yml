@@ -2,9 +2,10 @@ name: Create kickstarting resources
 description: Create or destroy ephemeral Terraform infrastructure
 
 inputs:
-  action:
+  destroy:
     description: "create or destroy"
     required: true
+    default: "false"
 
 outputs:
   spaces_access_id:
@@ -17,28 +18,37 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+    - uses: hashicorp/setup-terraform@v3
 
-# jobs:
-#   ephemeral:
-#     name: Create or destroy temporary resources
-#     runs-on: ubuntu-latest
-#     defaults:
-#       run:
-#         working-directory: deployment/terraform/ephemeral
-#     outputs:
-#       spaces_access_id: ${{ steps.ephemeral-outputs.outputs.spaces_access_id }}
-#       spaces_secret_key: ${{ steps.ephemeral-outputs.outputs.spaces_secret_key }}
-#     env:
-#       DESTROY: ${{ github.event.inputs.action == 'destroy' && '-destroy' || '' }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: deployment/terraform/ephemeral
 
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v4
+    - shell: bash
+      run: |
+        terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
+        terraform -chdir=spaces-key workspace select -or-create spaces-key
 
-#       - name: Setup Terraform
-#         uses: hashicorp/setup-terraform@v3
+    - shell: bash
+      if: ${{ inputs.destroy == "true" }}
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          terraform -chdir=deployment/terraform/ephemeral/spaces-key apply -destroy -auto-approve
+        else
+          terraform -chdir=deployment/terraform/ephemeral/spaces-key apply -auto-approve
+        fi
+
+    - name: Capture outputs
+      id: outputs
+      shell: bash
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          echo "spaces_access_id=" >> $GITHUB_OUTPUT
+          echo "spaces_secret_key=" >> $GITHUB_OUTPUT
+        else
+          echo "spaces_access_id=$(terraform -chdir=deployment/terraform/ephemeral/spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
+          echo "spaces_secret_key=$(terraform -chdir=deployment/terraform/ephemeral/spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+        fi
