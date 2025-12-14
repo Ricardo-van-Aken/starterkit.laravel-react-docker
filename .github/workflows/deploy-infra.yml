@@ -50,329 +50,329 @@ jobs:
         with:
           action: 'destroy'
 
-  generate-backend-config:
-    name: Generate Backend Configuration
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: deployment/terraform
+  # generate-backend-config:
+  #   name: Generate Backend Configuration
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Create backend.hcl file
-        run: |
-          source ../scripts/common.sh
-          generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+  #     - name: Create backend.hcl file
+  #       run: |
+  #         source ../scripts/common.sh
+  #         generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
 
-      - name: Upload backend.hcl file
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/backend.hcl
+  #     - name: Upload backend.hcl file
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/backend.hcl
 
-  terraform-ephemeral-create:
-    name: Terraform Temporary resources
-    runs-on: ubuntu-latest
-    needs: generate-backend-config
-    defaults:
-      run:
-        working-directory: deployment/terraform/ephemeral
-    outputs:
-      spaces_access_id: ${{ steps.ephemeral-outputs.outputs.spaces_access_id }}
-      spaces_secret_key: ${{ steps.ephemeral-outputs.outputs.spaces_secret_key }}
+  # terraform-ephemeral-create:
+  #   name: Terraform Temporary resources
+  #   runs-on: ubuntu-latest
+  #   needs: generate-backend-config
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/ephemeral
+  #   outputs:
+  #     spaces_access_id: ${{ steps.ephemeral-outputs.outputs.spaces_access_id }}
+  #     spaces_secret_key: ${{ steps.ephemeral-outputs.outputs.spaces_secret_key }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/ephemeral
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/ephemeral
 
-      - name: Initialize Terraform workspaces
-        run: |
-          terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
 
-      - name: Select or create workspaces
-        run: |
-          terraform -chdir=spaces-key workspace select -or-create spaces-key
+  #     - name: Select or create workspaces
+  #       run: |
+  #         terraform -chdir=spaces-key workspace select -or-create spaces-key
 
-      - name: Apply
-        run: |
-          terraform -chdir=spaces-key apply -auto-approve
+  #     - name: Apply
+  #       run: |
+  #         terraform -chdir=spaces-key apply -auto-approve
 
-      - name: Capture Outputs
-        id: ephemeral-outputs
-        run: |
-          echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
-          echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+  #     - name: Capture Outputs
+  #       id: ephemeral-outputs
+  #       run: |
+  #         echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
+  #         echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
 
-      - name: Echo outputs
-        run: |
-          echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)"
-          echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)"
+  #     - name: Echo outputs
+  #       run: |
+  #         echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)"
+  #         echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)"
 
-  terraform-bootstrap-create:
-    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-    runs-on: ubuntu-latest
-    needs: generate-backend-config
-    defaults:
-      run:
-        working-directory: deployment/terraform/bootstrap
-    outputs:
-      project_id: ${{ steps.bootstrap-outputs.outputs.project_id }}
-      domain_id: ${{ steps.bootstrap-outputs.outputs.domain_id }}
+  # terraform-bootstrap-create:
+  #   name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+  #   runs-on: ubuntu-latest
+  #   needs: generate-backend-config
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/bootstrap
+  #   outputs:
+  #     project_id: ${{ steps.bootstrap-outputs.outputs.project_id }}
+  #     domain_id: ${{ steps.bootstrap-outputs.outputs.domain_id }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/bootstrap
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/bootstrap
 
-      - name: Initialize Terraform workspaces
-        run: |
-          terraform init -backend-config="backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform init -backend-config="backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
       
-      - name: Plan
-        run: terraform plan -out=tfplan
+  #     - name: Plan
+  #       run: terraform plan -out=tfplan
 
-      - name: Apply
-        run: terraform apply tfplan
+  #     - name: Apply
+  #       run: terraform apply tfplan
 
-      - name: Capture Outputs
-        id: bootstrap-outputs
-        run: |
-          echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
-          echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
+  #     - name: Capture Outputs
+  #       id: bootstrap-outputs
+  #       run: |
+  #         echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
+  #         echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
 
-  terraform-plan:
-    name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-    runs-on: ubuntu-latest
-    needs: [terraform-ephemeral-create, terraform-bootstrap-create]
-    env:
-      TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
-      TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
-      TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
-      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
-    defaults:
-      run:
-        working-directory: deployment/terraform/environments/common
-    outputs:
-      has_changes: ${{ steps.plan.outputs.exitcode }}
+  # terraform-plan:
+  #   name: Terraform Plan (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+  #   runs-on: ubuntu-latest
+  #   needs: [terraform-ephemeral-create, terraform-bootstrap-create]
+  #   env:
+  #     TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
+  #     TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
+  #     TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+  #     TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/environments/common
+  #   outputs:
+  #     has_changes: ${{ steps.plan.outputs.exitcode }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Echo outputs
-        run: |
-          echo "spaces_access_id=${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
-          echo "spaces_secret_key=${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}"
+  #     - name: Echo outputs
+  #       run: |
+  #         echo "spaces_access_id=${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
+  #         echo "spaces_secret_key=${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}"
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/
 
-      - name: Select/Create Workspace
-        run: |
-          terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
-          terraform workspace select -or-create ${{ github.event.inputs.environment }}
+  #     - name: Select/Create Workspace
+  #       run: |
+  #         terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+  #         terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
-      - name: Plan (apply/destroy flag selection)
-        id: plan-flag
-        run: |
-          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
-            echo "DESTROY_FLAG=-destroy" >> $GITHUB_OUTPUT
-          else
-            echo "DESTROY_FLAG=" >> $GITHUB_OUTPUT
-          fi
+  #     - name: Plan (apply/destroy flag selection)
+  #       id: plan-flag
+  #       run: |
+  #         if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
+  #           echo "DESTROY_FLAG=-destroy" >> $GITHUB_OUTPUT
+  #         else
+  #           echo "DESTROY_FLAG=" >> $GITHUB_OUTPUT
+  #         fi
 
-      - name: Plan (apply/destroy)
-        id: plan
-        continue-on-error: true
-        run: |
-          terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
-          -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
-          -out=tfplan \
-          -detailed-exitcode
+  #     - name: Plan (apply/destroy)
+  #       id: plan
+  #       continue-on-error: true
+  #       run: |
+  #         terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
+  #         -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
+  #         -out=tfplan \
+  #         -detailed-exitcode
 
-      - name: Upload Plan Artifacts
-        if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-${{ github.event.inputs.environment }}
-          path: deployment/terraform/environments/common/tfplan
+  #     - name: Upload Plan Artifacts
+  #       if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: terraform-plan-${{ github.event.inputs.environment }}
+  #         path: deployment/terraform/environments/common/tfplan
 
-  terraform-apply:
-    name: Apply Main (if changes are detected and after manual approval)
-    if: (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy') && needs.terraform-plan.outputs.has_changes != 1
-    runs-on: ubuntu-latest
-    needs: terraform-plan
-    environment: ${{ github.event.inputs.environment }}
-    defaults:
-      run:
-        working-directory: deployment/terraform/environments/common
-    outputs:
-      droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
+  # terraform-apply:
+  #   name: Apply Main (if changes are detected and after manual approval)
+  #   if: (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy') && needs.terraform-plan.outputs.has_changes != 1
+  #   runs-on: ubuntu-latest
+  #   needs: terraform-plan
+  #   environment: ${{ github.event.inputs.environment }}
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/environments/common
+  #   outputs:
+  #     droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/
 
-      - name: Download Plan Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan-${{ github.event.inputs.environment }}
-          path: deployment/terraform/environments/common
+  #     - name: Download Plan Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: terraform-plan-${{ github.event.inputs.environment }}
+  #         path: deployment/terraform/environments/common
 
-      - name: Select Workspace
-        run: |
-          terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
-          terraform workspace select -or-create ${{ github.event.inputs.environment }}
+  #     - name: Select Workspace
+  #       run: |
+  #         terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+  #         terraform workspace select -or-create ${{ github.event.inputs.environment }}
 
-      - name: Apply (from approved plan)
-        id: apply
-        run: |
-          terraform apply tfplan
+  #     - name: Apply (from approved plan)
+  #       id: apply
+  #       run: |
+  #         terraform apply tfplan
 
-      - id: terraform-state
-        name: Capture Outputs
-        if: github.event.inputs.action == 'apply'
-        run: |
-          echo "$(terraform output -raw droplet_ipv4)"
-          echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+  #     - id: terraform-state
+  #       name: Capture Outputs
+  #       if: github.event.inputs.action == 'apply'
+  #       run: |
+  #         echo "$(terraform output -raw droplet_ipv4)"
+  #         echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 
-  ansible-docker-install:
-    name: Set up SSH connection and create dedicated docker user
-    runs-on: ubuntu-latest
-    needs: terraform-apply
-    if: github.event.inputs.action == 'apply'
-    defaults:
-      run:
-        working-directory: deployment/ansible
-    env:
-      DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
-      ANSIBLE_HOST_KEY_CHECKING: "True"
+  # ansible-docker-install:
+  #   name: Set up SSH connection and create dedicated docker user
+  #   runs-on: ubuntu-latest
+  #   needs: terraform-apply
+  #   if: github.event.inputs.action == 'apply'
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/ansible
+  #   env:
+  #     DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+  #     ANSIBLE_HOST_KEY_CHECKING: "True"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Start ssh-agent and add private key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #     - name: Start ssh-agent and add private key
+  #       uses: webfactory/ssh-agent@v0.9.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add droplet to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ needs.terraform-apply.outputs.droplet_ipv4 }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts          
+  #     - name: Add droplet to known_hosts
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         ssh-keyscan -H "${{ needs.terraform-apply.outputs.droplet_ipv4 }}" >> ~/.ssh/known_hosts
+  #         chmod 644 ~/.ssh/known_hosts          
 
-      - name: Install Ansible
-        shell: bash
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+  #     - name: Install Ansible
+  #       shell: bash
+  #       run: |
+  #         sudo apt update
+  #         sudo apt install -y ansible
 
-      - name: Install ansible.posix collection
-        run: |
-          ansible-galaxy collection install ansible.posix
+  #     - name: Install ansible.posix collection
+  #       run: |
+  #         ansible-galaxy collection install ansible.posix
 
-      - name: Prepare user and docker packages
-        run: |
-          ansible-playbook playbooks/docker/setup.yml
+  #     - name: Prepare user and docker packages
+  #       run: |
+  #         ansible-playbook playbooks/docker/setup.yml
 
-      - name: Install docker rootless
-        run: |
-          ansible-playbook playbooks/docker/install.yml
+  #     - name: Install docker rootless
+  #       run: |
+  #         ansible-playbook playbooks/docker/install.yml
 
-  terraform-bootstrap-destroy:
-    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: deployment/terraform/bootstrap
-    if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'all'
+  # terraform-bootstrap-destroy:
+  #   name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/bootstrap
+  #   if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'all'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/bootstrap
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/bootstrap
 
-      - name: Initialize Terraform workspaces
-        run: |
-          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
 
-      - name: Plan
-        run: terraform plan -destroy -out=tfplan
+  #     - name: Plan
+  #       run: terraform plan -destroy -out=tfplan
 
-      - name: Apply
-        run: terraform apply tfplan
+  #     - name: Apply
+  #       run: terraform apply tfplan
 
-  terraform-ephemeral-destroy:
-    name: Destroy temporary Terraform resources
-    runs-on: ubuntu-latest
-    needs: [terraform-ephemeral-create, terraform-plan, terraform-apply]
-    defaults:
-      run:
-        working-directory: deployment/terraform/ephemeral
-    if: ${{ always() }}
+  # terraform-ephemeral-destroy:
+  #   name: Destroy temporary Terraform resources
+  #   runs-on: ubuntu-latest
+  #   needs: [terraform-ephemeral-create, terraform-plan, terraform-apply]
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/ephemeral
+  #   if: ${{ always() }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
 
-      - name: Download backend.hcl file
-        uses: actions/download-artifact@v4
-        with:
-          name: backend.hcl
-          path: deployment/terraform/ephemeral
+  #     - name: Download backend.hcl file
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend.hcl
+  #         path: deployment/terraform/ephemeral
 
-      - name: Initialize Terraform workspaces
-        run: |
-          terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
+  #     - name: Initialize Terraform workspaces
+  #       run: |
+  #         terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
 
-      - name: Select workspace and destroy
-        run: |
-          terraform -chdir=spaces-key workspace select spaces-key
-          terraform -chdir=spaces-key apply -destroy -auto-approve
+  #     - name: Select workspace and destroy
+  #       run: |
+  #         terraform -chdir=spaces-key workspace select spaces-key
+  #         terraform -chdir=spaces-key apply -destroy -auto-approve
