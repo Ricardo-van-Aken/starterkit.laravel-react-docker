@@ -11,6 +11,7 @@ on:
           - dev
           - staging
           - production
+          - all
       action:
         description: 'Terraform action'
         required: true
@@ -197,32 +198,10 @@ jobs:
         id: plan
         continue-on-error: true
         run: |
-          set -o pipefail
           terraform plan ${{ steps.plan-flag.outputs.DESTROY_FLAG }} \
           -var-file="../${{ github.event.inputs.environment }}/terraform.tfvars" \
           -out=tfplan \
-          -detailed-exitcode -no-color 2>&1 | tee plan.log || true
-
-          # Extract lock id (awk method - robust)
-          LOCK_ID=$(awk '/Lock Info:/{f=1; next} f && /ID:/{print $2; exit}' plan.log)
-
-          if [ -n "$LOCK_ID" ]; then
-            echo "Found lock id: $LOCK_ID"
-            # Export to later steps via GITHUB_OUTPUT
-            echo "lock_id=$LOCK_ID" >> $GITHUB_OUTPUT
-          else
-            echo "No lock id found in plan output."
-          fi
-
-      - name: Force-unlock terraform state if lock found
-        if: ${{ steps.plan.outputs.lock_id != '' }}
-        env:
-          LOCK_ID: ${{ steps.plan.outputs.lock_id }}
-        run: |
-          echo "Unlocking state with lock id: $LOCK_ID"
-          # Ensure backend is initialized (again) if necessary
-          terraform init -input=false -no-color
-          terraform force-unlock -force "$LOCK_ID"
+          -detailed-exitcode
 
       - name: Upload Plan Artifacts
         if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'
@@ -270,30 +249,7 @@ jobs:
       - name: Apply (from approved plan)
         id: apply
         run: |
-          set -o pipefail
-          terraform apply tfplan -no-color 2>&1 | tee plan.log || true
-          
-
-          # Extract lock id (awk method - robust)
-          LOCK_ID=$(awk '/Lock Info:/{f=1; next} f && /ID:/{print $2; exit}' plan.log)
-
-          if [ -n "$LOCK_ID" ]; then
-            echo "Found lock id: $LOCK_ID"
-            # Export to later steps via GITHUB_OUTPUT
-            echo "lock_id=$LOCK_ID" >> $GITHUB_OUTPUT
-          else
-            echo "No lock id found in plan output."
-          fi
-
-      - name: Force-unlock terraform state if lock found
-        if: ${{ steps.apply.outputs.lock_id != '' }}
-        env:
-          LOCK_ID: ${{ steps.apply.outputs.lock_id }}
-        run: |
-          echo "Unlocking state with lock id: $LOCK_ID"
-          # Ensure backend is initialized (again) if necessary
-          terraform init -input=false -no-color
-          terraform force-unlock -force "$LOCK_ID"
+          terraform apply tfplan
 
       - id: terraform-state
         name: Capture Outputs
@@ -347,36 +303,36 @@ jobs:
         run: |
           ansible-playbook playbooks/docker/install.yml
 
-  # terraform-bootstrap-destroy:
-  #   name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: deployment/terraform/bootstrap
-  #   if: github.event.inputs.action == 'destroy'
+  terraform-bootstrap-destroy:
+    name: Terraform Bootstrap (${{ github.event.inputs.environment }} - ${{ github.event.inputs.action }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform/bootstrap
+    if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'all'
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  #     - name: Download backend.hcl file
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: backend.hcl
-  #         path: deployment/terraform/bootstrap
+      - name: Download backend.hcl file
+        uses: actions/download-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/bootstrap
 
-  #     - name: Initialize Terraform workspaces
-  #       run: |
-  #         terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
+      - name: Initialize Terraform workspaces
+        run: |
+          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-bootstrap"
 
-  #     - name: Plan
-  #       run: terraform plan -destroy -out=tfplan
+      - name: Plan
+        run: terraform plan -destroy -out=tfplan
 
-  #     - name: Apply
-  #       run: terraform apply tfplan
+      - name: Apply
+        run: terraform apply tfplan
 
   terraform-ephemeral-destroy:
     name: Destroy temporary Terraform resources
