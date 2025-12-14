@@ -33,7 +33,6 @@ runs:
         terraform -chdir=spaces-key workspace select -or-create spaces-key
 
     - shell: bash
-      if: ${{ inputs.destroy == "true" }}
       run: |
         if [ "${{ inputs.destroy }}" = "true" ]; then
           terraform -chdir=deployment/terraform/ephemeral/spaces-key apply -destroy -auto-approve
