@@ -13,10 +13,10 @@ inputs:
 
 outputs:
   spaces_secret_key:
-    description: "Spaces access key secret"
+    description: "Spaces secret key"
     value: ${{ steps.outputs.outputs.spaces_secret_key }}
   spaces_access_id:
-    description: "yeet"
+    description: "Spaces access id"
     value: ${{ steps.outputs.outputs.spaces_access_id }}
 
 runs:

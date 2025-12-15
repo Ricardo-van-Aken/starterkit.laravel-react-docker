@@ -83,6 +83,7 @@ jobs:
     steps:
       - run: |
           echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
+          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}"
 
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
