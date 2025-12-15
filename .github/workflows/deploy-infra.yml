@@ -140,7 +140,7 @@ jobs:
     name: Destroy ephemerals
     runs-on: ubuntu-latest
     needs:
-      - terraform-plan
+      - terraform-apply
       - terraform-ephemeral-create
     if: ${{ always() }}
 
