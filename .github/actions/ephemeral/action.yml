@@ -12,12 +12,9 @@ inputs:
     default: "deployment/terraform/ephemeral"
 
 outputs:
-  spaces_access_id:
+  spaces_access_key:
     description: "Spaces access key ID"
     value: ${{ steps.outputs.outputs.spaces_access_id }}
-  spaces_secret_key:
-    description: "Spaces secret key"
-    value: ${{ steps.outputs.outputs.spaces_secret_key }}
 
 runs:
   using: composite
