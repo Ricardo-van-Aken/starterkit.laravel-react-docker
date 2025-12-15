@@ -60,15 +60,39 @@ jobs:
           name: backend.hcl
           path: deployment/terraform/backend.hcl
 
-  test-action:
-    name: Test if modularization works
+  terraform-ephemeral-create:
+    name: Create ephemerals
+    runs-on: ubuntu-latest
+    outputs:
+      spaces_access_id: ${{ steps.outputs.outputs.spaces_access_id }}
+      spaces_secret_key: ${{ steps.outputs.outputs.spaces_secret_key }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/ephemeral
+        id: outputs
+        with:
+          destroy: false
+
+  test-output:
+    runs-on: ubuntu-latest
+    needs: terraform-ephemeral-create
+
+    steps:
+      - run: |
+          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
+          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_key }}"
+
+  terraform-ephemeral-destroy:
+    name: Destroy ephemerals
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test
-        uses: ./.github/actions/ephemeral
+      - uses: ./.github/actions/ephemeral
+        id: outputs
         with:
           destroy: true
 
