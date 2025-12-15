@@ -1,0 +1,55 @@
+name: Create or destroy environment
+description: Creation or destruction of environment infrastructure
+
+inputs:
+  destroy:
+    description: "Create or destroy"
+    required: true
+    default: "false"
+  environment:
+    description: "Environment to modify"
+    required: true
+    default: "default"
+  default_path:
+    description: "Terraform environments path"
+    required: false
+    default: "deployment/terraform/environments/common"
+
+outputs:
+  droplet_ipv4:
+    description: "IPv4 of droplet created for environment"
+    value: ${{ steps.outputs.outputs.droplet_ipv4 }}
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v3
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.default_path }}
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: terraform-plan-${{ inputs.environment }}
+        path: ${{ inputs.default_path }}
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+        terraform workspace select -or-create ${{ github.event.inputs.environment }}
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        terraform apply tfplan
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      id: outputs
+      run: |
+        echo "$(terraform output -raw droplet_ipv4)"
+        echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+

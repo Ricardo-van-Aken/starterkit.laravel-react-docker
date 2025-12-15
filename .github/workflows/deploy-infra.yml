@@ -78,7 +78,7 @@ jobs:
 
   terraform-bootstrap-create:
     name: Create project resources
-    needs: terraform-ephemeral-create
+    needs: generate-backend-config
     runs-on: ubuntu-latest
 
     steps:
@@ -88,8 +88,21 @@ jobs:
         with:
           destroy: false
 
+  terraform-plan:
+    name: Plan creation
+    needs: terraform-bootstrap-create
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/environments/plan
+        with:
+          destroy: false
+          environment: "staging"
+
   terraform-bootstrap-destroy:
-    name: Create project resources
+    name: Destroy project resources
     needs: terraform-bootstrap-create
     runs-on: ubuntu-latest
 
