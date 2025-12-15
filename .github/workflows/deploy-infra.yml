@@ -62,6 +62,7 @@ jobs:
 
   terraform-ephemeral-create:
     name: Create ephemerals
+    needs: generate-backend-config
     runs-on: ubuntu-latest
     outputs:
       spaces_access_id: ${{ steps.outputs.outputs.spaces_access_id }}
