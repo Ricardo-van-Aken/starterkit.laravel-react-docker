@@ -112,6 +112,18 @@ jobs:
           destroy: false
           environment: ${{ github.event.inputs.environment }}
 
+  terraform-apply:
+    name: Apply the plan
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/environments/plan
+        with:
+          environment: ${{ github.event.inputs.environment }}
+
   # terraform-bootstrap-destroy:
   #   name: Destroy project resources
   #   needs: terraform-bootstrap-create
