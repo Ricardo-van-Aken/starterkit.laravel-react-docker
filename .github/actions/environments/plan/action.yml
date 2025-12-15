@@ -42,15 +42,13 @@ runs:
       working-directory: ${{ inputs.default_path }}
       run: |
         if [ "${{ inputs.destroy }}" = "true" ]; then
+          echo ""
+        else
           terraform plan -destroy \
           -var-file="../${{ inputs.environment }}/terraform.tfvars" \
           -out=tfplan \
           -detailed-exitcode
-        else
-          terraform plan \
-          -var-file="../${{ inputs.environment }}/terraform.tfvars" \
-          -out=tfplan \
-          -detailed-exitcode
+        fi
 
     - name: Upload Plan Artifacts
       uses: actions/upload-artifact@v4
