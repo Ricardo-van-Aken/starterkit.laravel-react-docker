@@ -13,8 +13,11 @@ inputs:
 
 outputs:
   spaces_access_key:
-    description: "Spaces access key ID"
+    description: "Spaces access key secret"
     value: ${{ steps.outputs.outputs.spaces_access_key }}
+  yeet:
+    description: "yeet"
+    value: ${{ steps.outputs.outputs.yeet }}
 
 runs:
   using: composite
@@ -51,4 +54,5 @@ runs:
           echo "spaces_secret_key=" >> $GITHUB_OUTPUT
         else
           echo "spaces_access_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+          echo "yeet=yeet" >> $GITHUB_OUTPUT
         fi

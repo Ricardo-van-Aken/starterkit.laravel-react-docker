@@ -66,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       spaces_access_key: ${{ steps.outputs.outputs.spaces_access_key }}
+      yeet: ${{ steps.outputs.outputs.yeet }}
 
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +82,7 @@ jobs:
 
     steps:
       - run: |
-          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_key }}"
+          echo "${{ needs.terraform-ephemeral-create.outputs.yeet }}"
 
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
