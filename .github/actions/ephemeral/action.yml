@@ -53,5 +53,6 @@ runs:
           echo "spaces_access_id=" >> $GITHUB_OUTPUT
           echo "spaces_secret_key=" >> $GITHUB_OUTPUT
         else
+          echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
           echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
         fi
