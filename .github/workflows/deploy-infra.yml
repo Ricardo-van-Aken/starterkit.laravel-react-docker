@@ -120,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/plan
+      - uses: ./.github/actions/environments/apply
         with:
           environment: ${{ github.event.inputs.environment }}
 
