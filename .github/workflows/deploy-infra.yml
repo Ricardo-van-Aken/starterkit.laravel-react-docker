@@ -76,19 +76,34 @@ jobs:
         with:
           destroy: false
 
-  test-output:
-    runs-on: ubuntu-latest
+  terraform-bootstrap-create:
+    name: Create project resources
     needs: terraform-ephemeral-create
+    runs-on: ubuntu-latest
 
     steps:
-      - run: |
-          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
-          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}"
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/bootstrap
+        with:
+          destroy: false
+
+  terraform-bootstrap-destroy:
+    name: Create project resources
+    needs: terraform-bootstrap-create
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/bootstrap
+        with:
+          destroy: true
 
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
     runs-on: ubuntu-latest
-    needs: test-output
+    needs: terraform-ephemeral-create
 
     steps:
       - uses: actions/checkout@v4

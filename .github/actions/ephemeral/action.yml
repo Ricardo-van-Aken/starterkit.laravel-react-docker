@@ -3,11 +3,11 @@ description: Create or destroy ephemeral Terraform infrastructure
 
 inputs:
   destroy:
-    description: "create or destroy"
+    description: "Create or destroy"
     required: true
     default: "false"
   default_path:
-    description: "create or destroy"
+    description: "Terraform ephemerals path"
     required: false
     default: "deployment/terraform/ephemeral"
 
