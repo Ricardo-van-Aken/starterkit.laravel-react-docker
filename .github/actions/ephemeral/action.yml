@@ -6,6 +6,10 @@ inputs:
     description: "create or destroy"
     required: true
     default: "false"
+  default_path:
+    description: "create or destroy"
+    required: false
+    default: "deployment/terraform/ephemeral"
 
 outputs:
   spaces_access_id:
@@ -18,36 +22,37 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-
     - uses: hashicorp/setup-terraform@v3
 
     - uses: actions/download-artifact@v4
       with:
         name: backend.hcl
-        path: deployment/terraform/ephemeral
+        path: ${{ inputs.default_path }}
 
     - shell: bash
+      working-directory: ${{ inputs.default_path }}
       run: |
         terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
         terraform -chdir=spaces-key workspace select -or-create spaces-key
 
     - shell: bash
+      working-directory: ${{ inputs.default_path }}
       run: |
         if [ "${{ inputs.destroy }}" = "true" ]; then
-          terraform -chdir=deployment/terraform/ephemeral/spaces-key apply -destroy -auto-approve
+          terraform -chdir=spaces-key apply -destroy -auto-approve
         else
-          terraform -chdir=deployment/terraform/ephemeral/spaces-key apply -auto-approve
+          terraform -chdir=spaces-key apply -auto-approve
         fi
 
     - name: Capture outputs
       id: outputs
       shell: bash
+      working-directory: deployment/terraform/ephemeral
       run: |
         if [ "${{ inputs.destroy }}" = "true" ]; then
           echo "spaces_access_id=" >> $GITHUB_OUTPUT
           echo "spaces_secret_key=" >> $GITHUB_OUTPUT
         else
-          echo "spaces_access_id=$(terraform -chdir=deployment/terraform/ephemeral/spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
-          echo "spaces_secret_key=$(terraform -chdir=deployment/terraform/ephemeral/spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
+          echo "spaces_access_id=$(terraform -chdir=spaces-key output -raw spaces_access_id)" >> $GITHUB_OUTPUT
+          echo "spaces_secret_key=$(terraform -chdir=spaces-key output -raw spaces_secret_key)" >> $GITHUB_OUTPUT
         fi
