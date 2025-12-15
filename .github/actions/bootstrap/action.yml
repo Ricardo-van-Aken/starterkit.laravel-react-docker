@@ -14,10 +14,10 @@ inputs:
 outputs:
   domain_id:
     description: "Domain identifier"
-    value: "domain_id"
+    value: "yeet"
   project_id:
     description: "Project identifier"
-    value: ${{ steps.outputs.outputs.project_id }}
+    value: "yeet"
 
 runs:
   using: composite
