@@ -99,7 +99,7 @@ jobs:
       - uses: ./.github/actions/environments/plan
         with:
           destroy: false
-          environment: "staging"
+          environment: ${{ github.event.inputs.environment }}
 
   terraform-bootstrap-destroy:
     name: Destroy project resources
