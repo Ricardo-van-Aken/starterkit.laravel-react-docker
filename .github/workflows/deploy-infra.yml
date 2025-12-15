@@ -70,7 +70,7 @@ jobs:
       - name: Test
         uses: ./.github/actions/ephemeral
         with:
-          destroy: false
+          destroy: true
 
   # terraform-ephemeral-create:
   #   name: Terraform Temporary resources
