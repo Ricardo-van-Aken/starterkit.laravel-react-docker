@@ -94,7 +94,9 @@ jobs:
 
   terraform-plan:
     name: Plan creation
-    needs: [terraform-bootstrap-create, terraform-ephemeral-create]
+    needs:
+      - terraform-bootstrap-create
+      - terraform-ephemeral-create
     runs-on: ubuntu-latest
     env:
       TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
