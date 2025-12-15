@@ -65,7 +65,6 @@ jobs:
     needs: generate-backend-config
     runs-on: ubuntu-latest
     outputs:
-      spaces_access_id: ${{ steps.outputs.outputs.spaces_access_key }}
       spaces_secret_key: ${{ steps.outputs.outputs.spaces_secret_key }}
 
     steps:
@@ -82,7 +81,7 @@ jobs:
 
     steps:
       - run: |
-          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}"
+          echo "${{ needs.terraform-ephemeral-create.outputs.spaces_access_key }}"
 
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
