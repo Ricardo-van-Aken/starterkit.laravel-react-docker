@@ -101,17 +101,17 @@ jobs:
           destroy: false
           environment: ${{ github.event.inputs.environment }}
 
-  terraform-bootstrap-destroy:
-    name: Destroy project resources
-    needs: terraform-bootstrap-create
-    runs-on: ubuntu-latest
+  # terraform-bootstrap-destroy:
+  #   name: Destroy project resources
+  #   needs: terraform-bootstrap-create
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/bootstrap
-        with:
-          destroy: true
+  #     - uses: ./.github/actions/bootstrap
+  #       with:
+  #         destroy: true
 
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
