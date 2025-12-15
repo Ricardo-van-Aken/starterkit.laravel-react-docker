@@ -121,7 +121,8 @@ jobs:
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
     runs-on: ubuntu-latest
-    needs: terraform-ephemeral-create
+    needs: terraform-plan
+    if: ${{ always() }}
 
     steps:
       - uses: actions/checkout@v4
