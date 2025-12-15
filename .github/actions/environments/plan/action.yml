@@ -33,7 +33,7 @@ runs:
     - shell: bash
       working-directory: ${{ inputs.default_path }}
       run: |
-        terraform init -backend-config="../../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+        terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
         terraform workspace select -or-create ${{ inputs.environment }}
 
     - id: plan
