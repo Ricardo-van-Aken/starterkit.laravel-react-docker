@@ -88,23 +88,34 @@ jobs:
         with:
           destroy: false
 
-  terraform-plan:
-    name: Plan creation
-    needs: [terraform-bootstrap-create, terraform-ephemeral-create]
+  outputs-sanity:
+    name: Output check
+    needs: terraform-bootstrap-create
     runs-on: ubuntu-latest
-    env:
-      TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
-      TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
-      TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
-      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/plan
-        with:
-          destroy: false
-          environment: ${{ github.event.inputs.environment }}
+      - run: |
+          echo "${{ needs.terraform-bootstrap-create.outputs.domain_id }}"
+
+  # terraform-plan:
+  #   name: Plan creation
+  #   needs: [terraform-bootstrap-create, terraform-ephemeral-create]
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
+  #     TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
+  #     TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+  #     TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - uses: ./.github/actions/environments/plan
+  #       with:
+  #         destroy: false
+  #         environment: ${{ github.event.inputs.environment }}
 
   # terraform-bootstrap-destroy:
   #   name: Destroy project resources
@@ -121,7 +132,9 @@ jobs:
   terraform-ephemeral-destroy:
     name: Destroy ephemerals
     runs-on: ubuntu-latest
-    needs: terraform-plan
+    needs:
+      # - terraform-plan
+      - terraform-ephemeral-create
     if: ${{ always() }}
 
     steps:
