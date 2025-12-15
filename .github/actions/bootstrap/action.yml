@@ -14,10 +14,10 @@ inputs:
 outputs:
   domain_id:
     description: "Domain identifier"
-    value: "yeet"
+    value: ${{ steps.outputs.outputs.domain_id }}
   project_id:
     description: "Project identifier"
-    value: "yeet"
+    value: ${{ steps.outputs.outputs.project_id }}
 
 runs:
   using: composite
@@ -43,15 +43,15 @@ runs:
           terraform apply -auto-approve
         fi
 
-    # - name: Capture outputs
-    #   id: outputs
-    #   shell: bash
-    #   working-directory: ${{ inputs.default_path }}
-    #   run: |
-    #     if [ "${{ inputs.destroy }}" = "true" ]; then
-    #       echo "project_id=" >> $GITHUB_OUTPUT
-    #       echo "domain_id=" >> $GITHUB_OUTPUT
-    #     else
-    #       echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
-    #       echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
-    #     fi
+    - name: Capture outputs
+      id: outputs
+      shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          echo "project_id=" >> $GITHUB_OUTPUT
+          echo "domain_id=" >> $GITHUB_OUTPUT
+        else
+          echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
+          echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
+        fi

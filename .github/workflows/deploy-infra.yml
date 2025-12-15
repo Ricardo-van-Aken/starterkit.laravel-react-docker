@@ -80,11 +80,15 @@ jobs:
     name: Create project resources
     needs: generate-backend-config
     runs-on: ubuntu-latest
+    outputs:
+      project_id: ${{ steps.outputs.outputs.project_id }}
+      domain_id: ${{ steps.outputs.outputs.domain_id }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/bootstrap
+        id: outputs
         with:
           destroy: false
 
