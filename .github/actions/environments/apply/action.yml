@@ -2,6 +2,10 @@ name: Create or destroy environment
 description: Creation or destruction of environment infrastructure
 
 inputs:
+  destroy:
+    description: "Create or destroy"
+    required: true
+    default: "false"
   environment:
     description: "Environment to modify"
     required: true

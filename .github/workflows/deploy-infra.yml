@@ -130,6 +130,7 @@ jobs:
       - uses: ./.github/actions/environments/apply
         id: outputs
         with:
+          destroy: ${{ github.event.inputs.action == 'destroy' }}
           environment: ${{ github.event.inputs.environment }}
 
   # terraform-bootstrap-destroy:
