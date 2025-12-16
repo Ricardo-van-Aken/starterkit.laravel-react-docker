@@ -157,6 +157,11 @@ jobs:
     strategy:
       matrix:
         env: ${{ fromJSON(needs.terraform-workspaces.outputs.json) }}
+    env:
+      TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
+      TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
+      TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
 
     steps:
       - uses: actions/checkout@v4
