@@ -54,4 +54,4 @@ runs:
           echo "droplet_ipv4=" >> $GITHUB_OUTPUT
         else
           echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
-
+        fi
