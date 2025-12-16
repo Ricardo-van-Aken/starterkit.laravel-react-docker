@@ -46,7 +46,12 @@ jobs:
     steps:
       - id: outputs
         run: |
-          echo "destroy=${{ eq(toLower(github.event.inputs.action), 'destroy') }}" >> $GITHUB_OUTPUT
+          echo "destroy=${{ github.event.inputs.action == 'destroy' }}" >> $GITHUB_OUTPUT
+
+  sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ needs.destroy-flag.outputs.value }}"
 
   generate-backend-config:
     name: Generate Backend Configuration
