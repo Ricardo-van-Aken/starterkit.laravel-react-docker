@@ -46,6 +46,8 @@ runs:
       working-directory: ${{ inputs.default_path }}
       id: outputs
       run: |
-        echo "$(terraform output -raw droplet_ipv4)"
-        echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          echo "droplet_ipv4=" >> $GITHUB_OUTPUT
+        else
+          echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
 

@@ -121,11 +121,14 @@ jobs:
     needs: terraform-plan
     if: github.event.inputs.action != 'plan' && needs.terraform-plan.outputs.has_changes != 1
     runs-on: ubuntu-latest
+    outputs:
+      droplet_ipv4: ${{ steps.outputs.outputs.droplet_ipv4 }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/environments/apply
+        id: outputs
         with:
           environment: ${{ github.event.inputs.environment }}
 
