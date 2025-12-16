@@ -113,7 +113,7 @@ jobs:
       - uses: ./.github/actions/environments/plan
         id: outputs
         with:
-          destroy: github.event.inputs.action == 'destroy'
+          destroy: ${{ github.event.inputs.action == 'destroy' }}
           environment: ${{ github.event.inputs.environment }}
 
   terraform-apply:
