@@ -148,7 +148,7 @@ jobs:
 
   terraform-destroy-all:
     name: Destroy entire project infrastructure
-    if: github.event.inputs.environment == 'all' && github.event.inputs.action == 'destroy'
+    if: github.event.inputs.environment == 'all' && github.event.inputs.action == 'destroy' && needs.terraform-workspaces.outputs.json != '[]'
     needs:
       - terraform-ephemeral-create
       - terraform-bootstrap-create
