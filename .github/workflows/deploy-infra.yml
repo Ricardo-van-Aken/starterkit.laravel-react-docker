@@ -46,7 +46,7 @@ jobs:
     steps:
       - id: outputs
         run: |
-          echo "destroy=\"${{ github.event.inputs.action == 'destroy' }}\"" >> $GITHUB_OUTPUT
+          echo "destroy=${{ github.event.inputs.action == 'destroy' }}" >> $GITHUB_OUTPUT
 
   sanity:
     runs-on: ubuntu-latest
