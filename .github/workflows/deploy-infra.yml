@@ -119,15 +119,15 @@ jobs:
   terraform-apply:
     name: Apply the plan
     needs: terraform-plan
-    if: (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy') && needs.terraform-plan.outputs.has_changes != 1
+    if: github.event.inputs.action != 'plan' && needs.terraform-plan.outputs.has_changes != 1
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # - uses: ./.github/actions/environments/apply
-      #   with:
-      #     environment: ${{ github.event.inputs.environment }}
+      - uses: ./.github/actions/environments/apply
+        with:
+          environment: ${{ github.event.inputs.environment }}
 
   # terraform-bootstrap-destroy:
   #   name: Destroy project resources
