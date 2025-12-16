@@ -8,7 +8,7 @@ inputs:
     default: "deployment/terraform/environments/common"
 
 outputs:
-  workspaces_json:
+  json:
     description: "Json list of workspaces"
     value: ${{ steps.outputs.outputs.json }}
 

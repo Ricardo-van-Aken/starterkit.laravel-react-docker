@@ -44,7 +44,7 @@ runs:
     - shell: bash
       working-directory: ${{ inputs.default_path }}
       run: |
-        terraform apply tfplan
+        terraform apply tfplan-${{ inputs.environment }}
 
     - shell: bash
       working-directory: ${{ inputs.default_path }}

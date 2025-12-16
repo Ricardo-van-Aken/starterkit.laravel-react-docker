@@ -49,12 +49,12 @@ runs:
         if [ "${{ inputs.destroy }}" = "true" ]; then
           terraform plan -destroy \
           -var-file="../${{ inputs.environment }}/terraform.tfvars" \
-          -out=tfplan \
+          -out=tfplan-${{ inputs.environment }} \
           -detailed-exitcode
         else
           terraform plan \
           -var-file="../${{ inputs.environment }}/terraform.tfvars" \
-          -out=tfplan \
+          -out=tfplan-${{ inputs.environment }} \
           -detailed-exitcode
         fi
 
@@ -63,4 +63,4 @@ runs:
       if: steps.plan.outputs.exitcode != 1
       with:
         name: terraform-plan-${{ inputs.environment }}
-        path: ${{ inputs.default_path }}/tfplan
+        path: ${{ inputs.default_path }}/tfplan-${{ inputs.environment }}
