@@ -26,7 +26,7 @@ module "record_cname" {
   name      = "www"
 }
 
-module "database" {
-  source     = "../../modules/database"
-  project_id = var.project_id
-}
+# module "database" {
+#   source     = "../../modules/database"
+#   project_id = var.project_id
+# }
