@@ -132,6 +132,15 @@ jobs:
           destroy: ${{ github.event.inputs.action == 'destroy' }}
           environment: ${{ github.event.inputs.environment }}
 
+  terraform-workspaces:
+    name: List active environment workspaces
+    needs: generate-backend-config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/utils/terraform-workspaces
+
   terraform-destroy-all:
     name: Destroy entire project infrastructure
     needs:
