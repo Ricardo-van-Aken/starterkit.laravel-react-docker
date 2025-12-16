@@ -33,7 +33,8 @@ runs:
       run: |
         json=$(terraform workspace list \
           | sed 's/^\*\? *//' \
-          | jq -R -s .)
+          | jq -R . \
+          | jq -s .)
 
         printf 'json<<EOF\n%s\nEOF\n' "$json" >> "$GITHUB_OUTPUT"
 
