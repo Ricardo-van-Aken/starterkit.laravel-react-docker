@@ -132,6 +132,24 @@ jobs:
           destroy: ${{ github.event.inputs.action == 'destroy' }}
           environment: ${{ github.event.inputs.environment }}
 
+  terraform-destroy-all:
+    name: Destroy entire project infrastructure
+    needs:
+      - terraform-ephemeral-create
+      - terraform-bootstrap-create
+    if: github.event.inputs.environment == 'all' && github.event.inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environments:
+          - dev
+          - staging
+          - prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+
   # terraform-bootstrap-destroy:
   #   name: Destroy project resources
   #   needs: terraform-bootstrap-create
