@@ -128,17 +128,17 @@ jobs:
           destroy: ${{ needs.destroy-flag.outputs.value }}
           environment: ${{ github.event.inputs.environment }}
 
-  terraform-apply:
-    name: Apply the plan
-    needs: terraform-plan
-    runs-on: ubuntu-latest
+  # terraform-apply:
+  #   name: Apply the plan
+  #   needs: terraform-plan
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/apply
-        with:
-          environment: ${{ github.event.inputs.environment }}
+  #     - uses: ./.github/actions/environments/apply
+  #       with:
+  #         environment: ${{ github.event.inputs.environment }}
 
   # terraform-bootstrap-destroy:
   #   name: Destroy project resources
