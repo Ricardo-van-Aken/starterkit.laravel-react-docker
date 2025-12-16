@@ -55,6 +55,7 @@ runs:
 
     - name: Upload Plan Artifacts
       uses: actions/upload-artifact@v4
+      if: ${{ steps.plan.outputs.exitcode == 2 }}
       with:
         name: terraform-plan-${{ inputs.environment }}
         path: ${{ inputs.default_path }}/tfplan
