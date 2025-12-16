@@ -38,6 +38,16 @@ env:
   WORKSPACE: ${{ github.workspace }}
 
 jobs:
+  # compute the destroy boolean once and expose as a job output
+  destroy-flag:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.outputs.outputs.destroy }}
+    steps:
+      - id: outputs
+        run: |
+          echo "destroy=${{ eq(toLower(github.event.inputs.action), 'destroy') }}" >> $GITHUB_OUTPUT
+
   generate-backend-config:
     name: Generate Backend Configuration
     runs-on: ubuntu-latest
@@ -109,7 +119,7 @@ jobs:
 
       - uses: ./.github/actions/environments/plan
         with:
-          destroy: false
+          destroy: ${{ needs.destroy-flag.outputs.value }}
           environment: ${{ github.event.inputs.environment }}
 
   terraform-apply:
