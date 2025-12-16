@@ -34,8 +34,8 @@ runs:
         json=$(terraform workspace list \
           | sed 's/^\*\? *//' \
           | jq -R . \
-          | jq -s -c 'map(select(length > 0))')
-
+          | jq -s -c 'map(select(length > 0 and . != "default"))')
+          
         echo "json=$json" >> "$GITHUB_OUTPUT"
 
     - shell: bash
