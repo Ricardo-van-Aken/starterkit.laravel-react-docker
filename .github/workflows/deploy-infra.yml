@@ -79,7 +79,6 @@ jobs:
   terraform-bootstrap-create:
     name: Create project resources
     needs: generate-backend-config
-    if: github.event.inputs.action == 'destroy'
     runs-on: ubuntu-latest
     outputs:
       project_id: ${{ steps.outputs.outputs.project_id }}
