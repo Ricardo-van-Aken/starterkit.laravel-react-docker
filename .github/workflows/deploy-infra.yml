@@ -17,9 +17,9 @@ on:
         required: true
         type: choice
         options:
-          - plan
           - apply
           - destroy
+          - plan
 
 env:
   # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
