@@ -1,6 +1,12 @@
 name: Push changes
 
 on:
+  push:
+    branches:
+      - staging
+      - dev
+      - production
+
   workflow_dispatch:
     inputs:
       environment:
@@ -11,14 +17,6 @@ on:
           - staging
           - dev
           - production
-      action:
-        description: 'Terraform action'
-        required: true
-        type: choice
-        options:
-          - plan
-          - apply
-          - destroy
 
 env:
   # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
@@ -36,6 +34,8 @@ env:
   DOCKER_USER: "${{ secrets.DOCKER_USER }}"
 
   WORKSPACE: ${{ github.workspace }}
+
+  BRANCH: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment != '' && github.event.inputs.environment || github.ref_name) || github.ref_name }}
 
 jobs:
   build:
@@ -141,7 +141,7 @@ jobs:
       - name: Terraform init & select workspace
         run: |
           terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
-          terraform workspace select ${{ github.event.inputs.environment }}
+          terraform workspace select ${{ env.BRANCH }}
 
       - id: terraform-state
         name: Capture Outputs
@@ -154,11 +154,11 @@ jobs:
     needs:
       - terraform-state
       - build
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ env.BRANCH }}
     env:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
-      ENVIRONMENT: "${{ github.event.inputs.environment }}"
+      ENVIRONMENT: "${{ env.BRANCH }}"
 
     steps:
       - name: Checkout
