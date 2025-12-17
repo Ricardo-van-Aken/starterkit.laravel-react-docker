@@ -133,6 +133,23 @@ jobs:
           destroy: ${{ github.event.inputs.action == 'destroy' }}
           environment: ${{ github.event.inputs.environment }}
 
+  docker-install:
+    name: Set up SSH connection and create dedicated docker user
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    if: github.event.inputs.action == 'apply'
+    env:
+      DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+      ANSIBLE_HOST_KEY_CHECKING: "True"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/ansible/install-docker
+        with:
+          droplet_ipv4: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+
   terraform-workspaces:
     name: List active environment workspaces
     needs: generate-backend-config
