@@ -71,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/ephemeral
+      - uses: ./.github/actions/terraform/ephemeral
         id: outputs
         with:
           destroy: false
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/bootstrap
+      - uses: ./.github/actions/terraform/bootstrap
         id: outputs
         with:
           destroy: false
@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/plan
+      - uses: ./.github/actions/terraform/environments/plan
         id: outputs
         with:
           destroy: ${{ github.event.inputs.action == 'destroy' }}
@@ -127,7 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/apply
+      - uses: ./.github/actions/terraform/environments/apply
         id: outputs
         with:
           destroy: ${{ github.event.inputs.action == 'destroy' }}
@@ -162,7 +162,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - id: outputs
-        uses: ./.github/actions/utils/terraform-workspaces
+        uses: ./.github/actions/terraform/utils/workspaces
 
   terraform-destroy-all:
     name: Destroy entire project infrastructure
@@ -184,13 +184,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/environments/plan
+      - uses: ./.github/actions/terraform/environments/plan
         id: outputs
         with:
           environment: ${{ matrix.env }}
           destroy: true
 
-      - uses: ./.github/actions/environments/apply
+      - uses: ./.github/actions/terraform/environments/apply
         with:
           environment: ${{ matrix.env }}
           destroy: true
@@ -205,7 +205,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/bootstrap
+      - uses: ./.github/actions/terraform/bootstrap
         with:
           destroy: true
 
@@ -221,7 +221,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/ephemeral
+      - uses: ./.github/actions/terraform/ephemeral
         id: outputs
         with:
           destroy: true
