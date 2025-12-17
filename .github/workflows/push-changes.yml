@@ -158,7 +158,7 @@ jobs:
     env:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
-      ENVIRONMENT: "$BRANCH"
+      ENVIRONMENT: $BRANCH
 
     steps:
       - name: Checkout
