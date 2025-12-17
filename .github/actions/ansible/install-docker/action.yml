@@ -9,6 +9,9 @@ inputs:
   droplet_ipv4:
     description: "Droplet to SSH into"
     required: true
+  ssh_private_key:
+    description: "The private SSH key"
+    required: true
 
 runs:
   using: composite
@@ -16,7 +19,7 @@ runs:
   - name: Start ssh-agent and add private key
     uses: webfactory/ssh-agent@v0.9.0
     with:
-      ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      ssh-private-key: ${{ inputs.ssh_private_key }}
 
   - shell: bash
     run: |

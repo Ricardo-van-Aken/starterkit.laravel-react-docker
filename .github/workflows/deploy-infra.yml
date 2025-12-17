@@ -148,6 +148,7 @@ jobs:
 
       - uses: ./.github/actions/ansible/install-docker
         with:
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           droplet_ipv4: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
 
   terraform-workspaces:
