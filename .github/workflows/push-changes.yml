@@ -35,7 +35,7 @@ env:
 
   WORKSPACE: ${{ github.workspace }}
 
-  BRANCH: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment != '' && github.event.inputs.environment || github.ref_name) || github.ref_name }}
+  ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment != '' && github.event.inputs.environment || github.ref_name) || github.ref_name }}
 
 jobs:
   build:
@@ -141,7 +141,7 @@ jobs:
       - name: Terraform init & select workspace
         run: |
           terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
-          terraform workspace select $BRANCH
+          terraform workspace select $ENVIRONMENT
 
       - id: terraform-state
         name: Capture Outputs
@@ -154,11 +154,10 @@ jobs:
     needs:
       - terraform-state
       - build
-    environment: $BRANCH
+    environment: $ENVIRONMENT
     env:
       ANSIBLE_HOST_KEY_CHECKING: "True"
       DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
-      ENVIRONMENT: $BRANCH
 
     steps:
       - name: Checkout
