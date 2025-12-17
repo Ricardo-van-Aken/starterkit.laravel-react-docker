@@ -1,0 +1,43 @@
+name: Get workspaces as json
+description: List all active workspaces for a workspace prefix
+
+inputs:
+  default_path:
+    description: "Terraform environments path"
+    required: false
+    default: "deployment/terraform/environments/common"
+
+outputs:
+  json:
+    description: "Json list of workspaces"
+    value: ${{ steps.outputs.outputs.json }}
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v3
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.default_path }}
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+
+    - shell: bash
+      id: outputs
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        json=$(terraform workspace list \
+          | sed 's/^\*\? *//' \
+          | jq -R . \
+          | jq -s -c 'map(select(length > 0 and . != "default"))')
+          
+        echo "json=$json" >> "$GITHUB_OUTPUT"
+
+    - shell: bash
+      run: |
+        echo "${{ steps.outputs.outputs.json }}"
