@@ -1,0 +1,5 @@
+{
+	"max-concurrent-downloads": 1,
+	"mtu": 1420,
+	"network-control-plane-mtu": 1420
+}

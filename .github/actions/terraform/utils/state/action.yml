@@ -1,0 +1,76 @@
+name: Get terraform output
+description: Gets terraform outputs for a given environment
+
+inputs:
+  working_dir:
+    description: "Terraform environments path"
+    required: true
+    default: ""
+  
+  environment:
+    description: "Environment to retrieve state of"
+    required: false
+    default: ""
+  
+  workspace_key_prefix:
+    description: "The remote workspace key prefix"
+    required: false
+    default: ""
+  
+  key:
+    description: "The remote workspace key prefix"
+    required: false
+    default: ""
+  
+  output_keys:
+    description: "The names of the outputs to retrieve"
+    required: true
+    default: "[]"
+
+outputs:
+  json:
+    description: "JSON dictionary with outputs"
+    value: ${{ steps.outputs.outputs.json }}
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        if [ -z "${{ inputs.environment }}" ] && [ -z "${{ inputs.key }}" ]; then
+          exit 1
+        fi
+
+    - uses: hashicorp/setup-terraform@v3
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.working_dir }}
+
+    - shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        if [ -z "${{ inputs.environment }}" ]; then
+          terraform init -backend-config="backend.hcl" -backend-config="key=projects/uw-stroom/infra-bootstrap/terraform.tfstate"
+        else
+          terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=${{ inputs.workspace_key_prefix }}"
+          terraform workspace select ${{ inputs.environment }}
+        fi
+
+    - shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+        echo "$(terraform output -json)"
+
+    - shell: bash
+      working-directory: ${{ inputs.working_dir }}
+      id: outputs
+      run: |
+        echo "$(terraform output -json \
+        | jq -c --arg keys "${{ inputs.output_keys }}" '
+                  . as $orig
+                  | ($keys | split(",") | map(gsub("^\\s+|\\s+$"; ""))) as $klist
+                  | reduce $klist[] as $k ({}; .[$k] = ($orig[$k]?.value // null))
+                ' \
+        | awk '{ printf "json=%s\n", $0 }')" >> $GITHUB_OUTPUT

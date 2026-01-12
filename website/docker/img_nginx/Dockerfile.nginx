@@ -1,7 +1,20 @@
 FROM nginx:alpine
+# FROM nginx@sha256:eb212fe30b5b70a2ba09a0e3a1db07aea232fda6a6046a2bbf40c7203d3d5745
 
-# Copy main nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY conf.d/*.template /etc/nginx/templates/
 
-# Copy the default server template for envsubst
-COPY default.conf.template /etc/nginx/templates/default.conf.template
+COPY conf.d/nginx.conf /etc/nginx/nginx.conf
+
+# Copy entrypoint script into the image
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Copy SSL-certificate polling script into image
+COPY scripts/polling.sh /usr/local/bin/polling.sh
+
+# Make sure it's executable
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/polling.sh
+
+# Use the script as the entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["nginx", "-g", "daemon off;"]

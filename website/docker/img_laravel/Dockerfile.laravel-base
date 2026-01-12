@@ -6,7 +6,8 @@
 # Use the official PHP 8.3 FPM image (Laravel 12 requires PHP 8.1+)
 FROM php:8.3-fpm
 
-
+ARG WWW_UID=82
+ARG WWW_GID=82
 
 # --- Dependencies --- #
 
@@ -42,12 +43,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-
-
 # --- Users and Groups --- #
 
 # Set group ID and user ID for www-data user to 82. This user runs the laravel application
-RUN usermod -u 82 www-data && groupmod -g 82 www-data
+RUN usermod -u ${WWW_UID} www-data && groupmod -g ${WWW_GID} www-data
 
 # Add a testrunner user and group for running the db cloning script
 RUN groupadd -g 1002 testrunner

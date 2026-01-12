@@ -1,0 +1,30 @@
+name: Generate backend
+description: Generates the backend configuration for terraform
+
+inputs:
+  default_path:
+    description: "Terraform environments path"
+    required: false
+    default: "deployment/terraform"
+
+  state_bucket_region:
+    description: "DigitalOcean state bucket region"
+    required: true
+
+  state_bucket_name:
+    description: "DigitalOcean state bucket name"
+    required: true
+  
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        source ../scripts/common.sh
+        generate_backend_file "${{ inputs.state_bucket_region }}" "${{ inputs.state_bucket_name }}" "backend.hcl"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.default_path }}/backend.hcl
