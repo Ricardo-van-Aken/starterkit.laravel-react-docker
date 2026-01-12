@@ -90,6 +90,10 @@ jobs:
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
             tag: website-nginx.latest
+          - name: redis
+            context: website/docker/img_redis
+            file: website/docker/img_redis/Dockerfile.redis
+            tag: website-redis.latest
           - name: mysql-db
             context: website/docker/img_mysqldb
             file: website/docker/img_mysqldb/Dockerfile.mysql
