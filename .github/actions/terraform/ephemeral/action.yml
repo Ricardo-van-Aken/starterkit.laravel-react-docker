@@ -32,7 +32,7 @@ runs:
     - shell: bash
       working-directory: ${{ inputs.default_path }}
       run: |
-        terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/uw-stroom/infra-ephemeral"
+        terraform -chdir=spaces-key init -backend-config="../backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-ephemeral"
         terraform -chdir=spaces-key workspace select -or-create spaces-key
 
     - shell: bash

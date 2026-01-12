@@ -32,7 +32,7 @@ runs:
     - shell: bash
       working-directory: ${{ inputs.default_path }}
       run: |
-        terraform init -backend-config="backend.hcl" -backend-config="key=projects/uw-stroom/infra-bootstrap/terraform.tfstate"
+        terraform init -backend-config="backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
 
     - shell: bash
       working-directory: ${{ inputs.default_path }}

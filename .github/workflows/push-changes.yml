@@ -37,7 +37,7 @@ env:
 
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
 
-  IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/uw-stroom
+  IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
   build-common-images:
@@ -134,7 +134,7 @@ jobs:
         with:
           output_keys: "droplet_ipv4"
           working_dir: deployment/terraform/environments/common
-          workspace_key_prefix: "projects/uw-stroom/infra-environments"
+          workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
           environment: $ENVIRONMENT
 
       - uses: ./.github/actions/ansible/deploy-builds
