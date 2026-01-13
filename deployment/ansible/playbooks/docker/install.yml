@@ -75,7 +75,7 @@
         cmd: >
           setcap cap_net_bind_service=ep {{ rootlesskit_path.stdout }}
 
-    - name: Read existing Docker config.json
+    - name: Read existing Docker daemon.json
       slurp:
         src: "/home/{{ docker_user }}/.docker/daemon.json"
       register: docker_config_raw
