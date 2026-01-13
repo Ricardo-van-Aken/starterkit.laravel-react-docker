@@ -11,8 +11,6 @@ services:
       - ${ENV_FILE}:/var/www/.env     # Bind mount: Application environment variables
       - ${APP_FILES_DIR}:/var/www     # Volume or Bind mount: Application files to be served by nginx
       - mysql-certs:/mysql-certs:ro
-    environment:
-      MYSQL_ATTR_SSL_CA: /run/secrets/mysql_app_db_ssl
     secrets:
       - mysql_app_db_database
       - mysql_app_db_username
@@ -22,7 +20,7 @@ services:
       - mysql_testing_db_username
       - mysql_testing_db_password
       - redis_password
-    depends_on: 
+    depends_on:
       redis:
         condition: service_started
       mysql_db:
