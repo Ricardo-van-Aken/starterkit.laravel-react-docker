@@ -6,7 +6,6 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
-    docker_playbook_dir: "{{ root  }}/deployment/ansible/playbooks/docker/"
 
   tasks:
     - name: Get docker user UID
@@ -75,30 +74,11 @@
         cmd: >
           setcap cap_net_bind_service=ep {{ rootlesskit_path.stdout }}
 
-    - name: Read existing Docker daemon.json
-      slurp:
-        src: "/home/{{ docker_user }}/.docker/daemon.json"
-      register: docker_config_raw
-
-    - name: Parse existing Docker daemon.json
-      set_fact:
-        docker_config_parsed: >-
-          {{ docker_config_raw.content | b64decode | from_json }}
-
-    - name: Load custom Docker daemon.json from file
-      set_fact:
-        docker_config_extra: >-
-          {{ lookup("file", docker_playbook_dir + "files/daemon.json") | from_json }}
-
-    - name: Merge Docker config (recursive)
-      set_fact:
-        docker_config_merged: >-
-          {{ docker_config_parsed | combine(docker_config_extra, recursive=True) }}
-
-    - name: Write merged ~/.docker/daemon.json
+    - name: Copy custom Docker daemon config to remote
+      become_user: "{{ docker_user  }}"
       copy:
         dest: "/home/{{ docker_user }}/.docker/daemon.json"
-        content: "{{ docker_config_merged | to_nice_json }}"
+        src: "{{ root  }}/deployment/ansible/playbooks/docker/files/daemon.json"
         mode: '0600'
 
     - name: Restart docker service for the current user
