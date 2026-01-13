@@ -79,9 +79,41 @@
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
         DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-        DOCKER_HUB_TOKEN: "{{ lookup('env', 'DOCKER_HUB_TOKEN')  }}"
-        DOCKER_HUB_USERNAME: "{{ lookup('env', 'DOCKER_HUB_USERNAME')  }}"
       block:
+      - name: Log into Docker
+        no_log: true
+        environment:
+          DOCKER_HUB_TOKEN: "{{ lookup('env', 'DOCKER_HUB_TOKEN')  }}"
+          DOCKER_HUB_USERNAME: "{{ lookup('env', 'DOCKER_HUB_USERNAME')  }}"
+        shell: |
+          echo "{{ lookup('env','DOCKER_HUB_TOKEN') }}" | docker login --username "{{ lookup('env','DOCKER_HUB_USERNAME') }}" --password-stdin
+
+      - name: Read existing Docker config.json
+        slurp:
+          src: "/home/{{ docker_user }}/.docker/config.json"
+        register: docker_config_raw
+
+      - name: Parse existing Docker config.json
+        set_fact:
+          docker_config_parsed: >-
+            {{ docker_config_raw.content | b64decode | from_json }}
+
+      - name: Load custom Docker config.json from file
+        set_fact:
+          docker_config_extra: >-
+            {{ lookup("file", docker_playbook_dir + "files/config.json") | from_json }}
+
+      - name: Merge Docker config (recursive)
+        set_fact:
+          docker_config_merged: >-
+            {{ docker_config_parsed | combine(docker_config_extra, recursive=True) }}
+
+      - name: Write merged ~/.docker/config.json
+        copy:
+          dest: "/home/{{ docker_user }}/.docker/config.json"
+          content: "{{ docker_config_merged | to_nice_json }}"
+          mode: '0600'
+
       - name: Take down any containers using updated docker-compose.yml
         shell:
           chdir: /home/{{ docker_user }}

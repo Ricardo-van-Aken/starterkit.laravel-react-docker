@@ -52,11 +52,6 @@ if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
   # Path to the main docker-compose file
   COMPOSE_FILE="docker-compose.yml"
 
-  echo "Logging into Docker Hub..."
-  echo "$DOCKER_HUB_TOKEN" | docker login \
-    --username "$DOCKER_HUB_USERNAME" \
-    --password-stdin
-
   echo "Winding down containers and removing volumes"
   docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
