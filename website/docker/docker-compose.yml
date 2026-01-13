@@ -16,6 +16,8 @@ services:
       - mysql_app_db_username
       - mysql_app_db_password
       - mysql_app_db_ssl
+      - mysql_app_db_host
+      - mysql_app_db_port
       - mysql_testing_db_database
       - mysql_testing_db_username
       - mysql_testing_db_password
