@@ -79,6 +79,8 @@
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
         DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+        DOCKER_HUB_TOKEN: "{{ lookup('env', 'DOCKER_HUB_TOKEN')  }}"
+        DOCKER_HUB_USERNAME: "{{ lookup('env', 'DOCKER_HUB_USERNAME')  }}"
       block:
       - name: Take down any containers using updated docker-compose.yml
         shell:
@@ -88,10 +90,6 @@
         when: stop_env.stat.exists
 
       - name: Deploy images
-        no_log: true
-        environment:
-          DOCKER_HUB_TOKEN: "{{ lookup('env', 'DOCKER_HUB_TOKEN')  }}"
-          DOCKER_HUB_USERNAME: "{{ lookup('env', 'DOCKER_HUB_USERNAME')  }}"
         shell:
           chdir: /home/{{ docker_user }}
           cmd: ./run_env.sh {{ env_name  }}
