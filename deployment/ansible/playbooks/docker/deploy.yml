@@ -6,6 +6,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
+    docker_playbook_dir: "{{ root  }}/deployment/ansible/playbooks/docker/"
     env_name: "{{ lookup('env', 'ENVIRONMENT') }}"
 
   tasks:
