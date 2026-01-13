@@ -31,7 +31,7 @@ env:
   # Terraform [TODO: description]
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
 
-  DOCKER_USER: "${{ secrets.DOCKER_USER }}"
+  DOCKER_USER: ${{ vars.DOCKER_USER }}
 
   WORKSPACE: ${{ github.workspace }}
 
