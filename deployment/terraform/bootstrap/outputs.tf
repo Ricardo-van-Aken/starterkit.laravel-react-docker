@@ -1,9 +1,7 @@
-output "spaces_access_id" {
-  value     = module.key.spaces_access_id
-  sensitive = true
+output "project_id" {
+  value = module.project.id
 }
 
-output "spaces_secret_key" {
-  value     = module.key.spaces_secret_key
-  sensitive = true
+output "domain_id" {
+  value = module.domain.id
 }

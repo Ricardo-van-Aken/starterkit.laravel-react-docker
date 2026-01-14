@@ -1,10 +1,295 @@
-name: Basic workflow
+name: Push changes
 
 on:
+  push:
+    branches:
+      - staging
+      - dev
+      - production
+
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Push changes'
+        required: true
+        type: choice
+        options:
+          - staging
+          - dev
+          - production
+
+env:
+  # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
+  TF_VAR_region: ${{ vars.DO_STATE_BUCKET_REGION }}
+  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}  
+  AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
+
+  # Terraforms DigitalOcean provider authorization.
+  TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+
+  # Terraform [TODO: description]
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
+
+  DOCKER_USER: ${{ vars.DOCKER_USER }}
+
+  WORKSPACE: ${{ github.workspace }}
+
+  ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
+
+  IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
-  deploy:
+  build-common-images:
+    name: Build docker images
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - name: website-nginx
+            context: website/docker/img_nginx
+            file: website/docker/img_nginx/Dockerfile.nginx
+            
+          - name: website-redis
+            context: website/docker/img_redis
+            file: website/docker/img_redis/Dockerfile.redis
+            
+          - name: website-certbot
+            context: website/docker/img_certbot
+            file: website/docker/img_certbot/Dockerfile.certbot
+            
+          - name: laravel-base
+            context: website
+            file: website/docker/img_laravel/Dockerfile.laravel-base
     steps:
-      - run: echo "It's working"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ matrix.image.context }}
+          push: true
+          file: ${{ matrix.image.file }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}-buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}-buildcache,mode=max
+
+  build-app-image:
+    name: Build the laravel app
+    runs-on: ubuntu-latest
+    needs: build-common-images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v4
+        with:
+          context: website/
+          push: true
+          file: website/docker/img_laravel/Dockerfile.laravel-volume
+          tags: |
+            ${{ env.IMAGE_NAME }}:laravel-app.${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:laravel-app.latest
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache,mode=max
+
+  deploy-builds:
+    runs-on: ubuntu-latest
+    needs: build-app-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/utils/generate-backend
+        with:
+          state_bucket_region: ${{ vars.DO_STATE_BUCKET_REGION }}
+          state_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}
+
+      - uses: ./.github/actions/terraform/utils/state
+        id: outputs
+        with:
+          output_keys: "droplet_ipv4"
+          working_dir: deployment/terraform/environments/common
+          workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
+          environment: $ENVIRONMENT
+
+      - uses: ./.github/actions/ansible/deploy-builds
+        env:
+          DROPLET_IP: ${{ fromJSON(steps.outputs.outputs.json).droplet_ipv4 }}
+          ANSIBLE_HOST_KEY_CHECKING: "True"
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME }}
+        with:
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+  # build:
+  #   name: Build Docker images
+  #   env:
+  #     IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
+
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ vars.DOCKER_HUB_USERNAME }}
+  #         password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+  #     - name: Build and push nginx image
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         push: true
+  #         file: ./website/docker/img_nginx/Dockerfile.nginx
+  #         context: ./website/docker/img_nginx/
+  #         tags: |
+  #           ${{ env.IMAGE_NAME }}:website-nginx.${{ github.sha }}
+  #           ${{ env.IMAGE_NAME }}:website-nginx.latest
+  #         cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-nginx-buildcache
+  #         cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:website-nginx-buildcache,mode=max
+
+  #     - name: Build and push redis image
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         push: true
+  #         file: ./website/docker/img_redis/Dockerfile.redis
+  #         context: ./website/docker/img_redis/
+  #         tags: |
+  #           ${{ env.IMAGE_NAME }}:website-redis.${{ github.sha }}
+  #           ${{ env.IMAGE_NAME }}:website-redis.latest
+  #         cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-redis-buildcache
+  #         cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:website-redis-buildcache,mode=max
+
+  #     - name: Build and push certbot image
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         push: true
+  #         file: ./website/docker/img_certbot/Dockerfile.certbot
+  #         context: ./website/docker/img_certbot/
+  #         tags: |
+  #           ${{ env.IMAGE_NAME }}:website-certbot.${{ github.sha }}
+  #           ${{ env.IMAGE_NAME }}:website-certbot.latest
+  #         cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:website-certbot-buildcache
+  #         cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:website-certbot-buildcache,mode=max
+
+  #     - name: Build and push base image
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         context: ./website/
+  #         push: true
+  #         file: ./website/docker/img_laravel/Dockerfile.laravel-base
+  #         tags: |
+  #           ${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
+  #         cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache
+  #         cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-base-buildcache,mode=max
+
+  #     - name: Build and push app image
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         context: ./website/
+  #         push: true
+  #         file: ./website/docker/img_laravel/Dockerfile.laravel-volume
+  #         tags: |
+  #           ${{ env.IMAGE_NAME }}:laravel-app.${{ github.sha }}
+  #           ${{ env.IMAGE_NAME }}:laravel-app.latest
+  #         build-args: |
+  #           BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
+  #         cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache
+  #         cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app-buildcache,mode=max
+
+  # terraform-state:
+  #   name: Retrieve terraform remote state
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: deployment/terraform/environments/common
+  #   outputs:
+  #     droplet_ipv4: ${{ steps.terraform-state.outputs.droplet_ipv4 }}
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
+
+  #     - name: Create backend.hcl
+  #       run: |
+  #         source ../../../scripts/common.sh
+  #         generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+  #     - name: Terraform init & select workspace
+  #       run: |
+  #         terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+  #         terraform workspace select $ENVIRONMENT
+
+  #     - id: terraform-state
+  #       name: Capture Outputs
+  #       run: |
+  #         echo "droplet_ipv4=$(terraform output -raw droplet_ipv4)" >> $GITHUB_OUTPUT
+
+  # deploy-builds:
+  #   name: Deploy images to the remote host
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - terraform-state
+  #     - build
+  #   environment: $ENVIRONMENT
+  #   env:
+  #     ANSIBLE_HOST_KEY_CHECKING: "True"
+  #     DROPLET_IP: "${{ needs.terraform-state.outputs.droplet_ipv4 }}"
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: Start ssh-agent and add private key
+  #       uses: webfactory/ssh-agent@v0.9.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+  #     # Add server to known_hosts to avoid disabling host key checking
+  #     # [TODO] Create private and public keys to validate host
+  #     - name: Add droplet to known_hosts
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         ssh-keyscan -H "$DROPLET_IP" >> ~/.ssh/known_hosts
+  #         chmod 644 ~/.ssh/known_hosts
+      
+  #     - name: Install Ansible
+  #       shell: bash
+  #       run: |
+  #         sudo apt update
+  #         sudo apt install -y ansible
+
+  #     - name: Run deployment
+  #       run: |
+  #         ansible-playbook deployment/ansible/playbooks/docker/deploy.yml -i deployment/ansible/inventory.yml

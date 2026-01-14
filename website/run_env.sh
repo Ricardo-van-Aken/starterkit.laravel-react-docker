@@ -12,9 +12,6 @@ if [ -z "$MODE" ]; then
   exit 1
 fi
 
-# Path to the main docker-compose file
-COMPOSE_FILE="docker/docker-compose.yml"
-
 # Select the appropriate .env file and docker-compose profile based on the mode
 case "$MODE" in
   dev-volume)
@@ -32,6 +29,16 @@ case "$MODE" in
     ENV_FILE="docker/.env.testing"
     PROFILE="testing"
     ;;
+  staging)
+    # For staging infrastructure
+    ENV_FILE=".env.staging"
+    PROFILE="staging"
+    ;;
+  production)
+    # For production infrastructure
+    ENV_FILE=".env.production"
+    PROFILE="production"
+    ;;
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"
@@ -40,11 +47,42 @@ case "$MODE" in
     ;;
 esac
 
-# Build the base laravel application image if it doesn't exist or Dockerfile.base has changed
-docker build -f docker/img_laravel/Dockerfile.laravel-base -t local/starterkit.laravel-react-docker:laravel-base.latest .
+# Remote environments
+if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
+  # Path to the main docker-compose file
+  COMPOSE_FILE="docker-compose.yml"
 
-# Remove all volumes associated with this compose file (clean start)
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+  echo "Winding down containers and removing volumes"
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE down -v
 
-# Run docker compose with the selected .env file and profile
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build
+  echo "Pulling latest versions of images from registry"
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
+
+  echo "Preparing SSL certificates"
+  # [TODO] We should pull certbot interactivity from environment variable
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE run --rm certbot init --non-interactive
+
+  echo "Running docker compose with the selected .env file and profile"
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d  
+# Local environments
+else
+  # Path to the main docker-compose file
+  COMPOSE_FILE="docker/docker-compose.yml"
+
+  # Read user's identifiers to resolve potential permission issues
+  LOCAL_UID="$(id -u)"
+  LOCAL_GID="$(id -g)"
+  
+  # Build the base laravel application image if it doesn't exist or Dockerfile.base has changed
+  docker build -f docker/img_laravel/Dockerfile.laravel-base \
+  -t local/starterkit.laravel-react-docker:laravel-base.latest \
+  --build-arg WWW_UID=$LOCAL_UID \
+  --build-arg WWW_GID=$LOCAL_GID \
+  .
+
+  # Remove all volumes associated with this compose file (clean start)
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+
+  # Run docker compose with the selected .env file and profile
+  docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE up -d --build
+fi

@@ -22,6 +22,7 @@ endpoints = {
 
 bucket  = "${bucket_name}"
 region  = "us-east-1"
+key     = "terraform.tfstate"
 
 # AWS-specific checks disabled for Spaces
 skip_credentials_validation = true

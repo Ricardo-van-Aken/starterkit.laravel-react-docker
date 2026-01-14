@@ -3,12 +3,15 @@
   hosts: all
   become: true
   gather_facts: true
+  vars:
+    docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
+    root: "{{ lookup('env', 'WORKSPACE') }}"
 
   tasks:
-    - name: Update apt cache (ensure package lists are fresh)
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
+    - name: Get docker user UID
+      ansible.builtin.command: id -u {{ docker_user }}
+      register: docker_uid
+      changed_when: false
 
     - name: Install Docker packages
       ansible.builtin.apt:
@@ -20,20 +23,70 @@
           - docker-compose-plugin
         state: present
 
-    - name: Ensure docker service is enabled and started
-      ansible.builtin.service:
-        name: docker
-        enabled: yes
-        state: started
+    - name: Disable and stop Docker service and socket (required for rootless)
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - docker.service
+        - docker.socket
 
-    - name: Wait for Docker socket to appear
-      ansible.builtin.wait_for:
+    - name: Remove Docker socket file if present (required for rootless)
+      ansible.builtin.file:
         path: /var/run/docker.sock
+        state: absent
+
+    - name: Install rootless docker
+      ansible.builtin.command: >
+        dockerd-rootless-setuptool.sh install
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+      args:
+          creates: "/home/{{ docker_user }}/.config/systemd/user/docker.service"
+
+    - name: Wait for rootless docker socket to appear
+      ansible.builtin.wait_for:
+        path: "/run/user/{{ docker_uid.stdout }}/docker.sock"
         state: present
         timeout: 30
 
-    - name: Run hello-world container to verify installation
-      ansible.builtin.command: docker run --rm hello-world
-      register: hello_result
-      changed_when: hello_result.rc == 0
-      failed_when: hello_result.rc != 0
+    - name: Verify Docker daemon is running rootless
+      ansible.builtin.command:
+        cmd: docker info --format '{{ "{{ .SecurityOptions }}" }}'
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      register: docker_info
+      changed_when: false
+      failed_when: "'rootless' not in docker_info.stdout"
+
+    - name: Find path to rootlesskit
+      ansible.builtin.command:
+        cmd: >
+          which rootlesskit
+      register: rootlesskit_path
+
+    - name: Set capabilities for rootlesskit binary
+      ansible.builtin.command:
+        cmd: >
+          setcap cap_net_bind_service=ep {{ rootlesskit_path.stdout }}
+
+    - name: Copy custom Docker daemon config to remote
+      become_user: "{{ docker_user  }}"
+      copy:
+        dest: "/home/{{ docker_user }}/.docker/daemon.json"
+        src: "{{ root  }}/deployment/ansible/playbooks/docker/files/daemon.json"
+        mode: '0600'
+
+    - name: Restart docker service for the current user
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        scope: user
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"

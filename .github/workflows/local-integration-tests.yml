@@ -90,6 +90,10 @@ jobs:
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
             tag: website-nginx.latest
+          - name: redis
+            context: website/docker/img_redis
+            file: website/docker/img_redis/Dockerfile.redis
+            tag: website-redis.latest
           - name: mysql-db
             context: website/docker/img_mysqldb
             file: website/docker/img_mysqldb/Dockerfile.mysql
@@ -170,8 +174,8 @@ jobs:
         run: |
           echo "Waiting for database service (container) to be ready..."
           timeout 50 sh -c 'until docker exec -u www-data laravel_app sh -c \
-            "mysqladmin --protocol=TCP --ssl=0 -h db ping --silent"; do \
-              echo ".. waiting for db"; \
+            "mysqladmin --protocol=TCP --ssl=0 -h mysql ping --silent"; do \
+              echo ".. waiting for mysql"; \
               sleep 2; \
             done'
 
