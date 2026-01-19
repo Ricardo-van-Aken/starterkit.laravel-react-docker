@@ -45,7 +45,7 @@ jobs:
         run: |
           if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}$"; then
             echo "Laravel base image is available locally"
-            docker images | grep "laravel-base.latest"
+            docker images | grep "laravel-base.${{ env.TAG_ADDITION }}"
           else
             echo "Laravel base image is NOT available locally"
             exit 1
