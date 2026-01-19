@@ -1,4 +1,4 @@
-name: Run local integration tests
+name: Run tests locally
 
 on:
   pull_request:
@@ -8,6 +8,7 @@ on:
 
 env:
   IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker
+  TAG_ADDITION: test
 
 jobs:
   build-laravel-image:
@@ -33,16 +34,16 @@ jobs:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel-base
           tags: |
-            ${{ env.IMAGE_REPO }}:laravel-base.latest
+            ${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}
           push: true
           load: true
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.latest.cache,mode=max
+            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache,mode=max
 
       - name: Verify Laravel base image is available locally
         run: |
-          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.latest$"; then
+          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}$"; then
             echo "Laravel base image is available locally"
             docker images | grep "laravel-base.latest"
           else
@@ -56,20 +57,20 @@ jobs:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel-volume
           build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.latest
+            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}
           tags: |
-            ${{ env.IMAGE_REPO }}:laravel-app.latest
+            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}
           push: true
-          pull: true
+          pull: false # Don't pull base image from Docker Hub (we just built it locally)
           load: true
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.latest.cache,mode=max
+            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache,mode=max
 
       - name: Save images
         run: |
           mkdir -p docker-images
-          docker save ${{ env.IMAGE_REPO }}:laravel-app.latest -o docker-images/laravel-app.tar
+          docker save ${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }} -o docker-images/laravel-app.tar
 
       - name: Upload images
         uses: actions/upload-artifact@v4
@@ -89,19 +90,19 @@ jobs:
           - name: nginx
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
-            tag: website-nginx.latest
+            tag: website-nginx.${{ env.TAG_ADDITION }}
           - name: redis
             context: website/docker/img_redis
             file: website/docker/img_redis/Dockerfile.redis
-            tag: website-redis.latest
+            tag: website-redis.${{ env.TAG_ADDITION }}
           - name: mysql-db
             context: website/docker/img_mysqldb
             file: website/docker/img_mysqldb/Dockerfile.mysql
-            tag: mysql-db.latest
+            tag: mysql-db.${{ env.TAG_ADDITION }}
           - name: cert-local
             context: website/docker/img_certlocal
             file: website/docker/img_certlocal/Dockerfile.cert-local
-            tag: cert-local.latest
+            tag: cert-local.${{ env.TAG_ADDITION }}
     
     steps:
       - name: Checkout code
@@ -179,21 +180,9 @@ jobs:
               sleep 2; \
             done'
 
-      - name: Run database migrations
+      - name: Run Laravel tests on main db in parallel
         run: |
-          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan migrate --force'
-
-      - name: Run Laravel tests on clone of the empty main database
-        run: |
-          docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
-
-      - name: Seed the main database with test data to simulate a real-world database
-        run: |
-          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/read-db-credentials.sh; php artisan db:seed --force'
-      
-      - name: Run Laravel tests on clone of the seeded main database
-        run: |
-          docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
+          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/test_parallel.sh'
 
       - name: Cleanup
         if: always()
