@@ -1,7 +1,7 @@
 services:
   # Laravel Application
   app:
-    image: ${IMAGE_REPO}:laravel-app.latest
+    image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
       context: ../
       dockerfile: docker/img_laravel/${DOCKERFILE}
@@ -33,7 +33,7 @@ services:
 
   # Nginx Web Server
   nginx:
-    image: ${IMAGE_REPO}:website-nginx.latest
+    image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
     build:
       context: ./img_nginx
       dockerfile: Dockerfile.nginx
@@ -45,7 +45,7 @@ services:
     volumes:
       - ${APP_FILES_DIR}:/var/www           # Volume or Bind mount: Application files to be served by nginx
       - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - ./secrets/letsencrypt:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
+      - certbot_certs:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
     depends_on:
       app:
         condition: service_started
@@ -56,7 +56,7 @@ services:
 
   # Redis for sessions and caching
   redis:
-    image: ${IMAGE_REPO}:website-redis.latest
+    image: ${IMAGE_REPO}:website-redis.${TAG_ADDITION}
     build:
       context: ./img_redis
       dockerfile: Dockerfile.redis
@@ -70,7 +70,7 @@ services:
 
   # Certbot for generating real SSL certificates
   certbot:
-    image: ${IMAGE_REPO}:website-certbot.latest
+    image: ${IMAGE_REPO}:website-certbot.${TAG_ADDITION}
     container_name: certbot
     build:
       context: ./img_certbot
@@ -83,16 +83,16 @@ services:
     restart: no
     volumes:
       - certbot_files:/var/www/certbot/:rw # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - ./secrets/letsencrypt:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
+      - certbot_certs:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
     profiles: ["all", "staging", "production"]
 
   # MySQL Database
   mysql_db:
-    image: ${IMAGE_REPO}:mysql-db.latest
+    image: ${IMAGE_REPO}:mysql-db.${TAG_ADDITION}
     build:
       context: ./img_mysqldb
       dockerfile: Dockerfile.mysql
-    container_name: mysql
+    container_name: mysql_db
     restart: unless-stopped
     secrets:
       - mysql_db_rootpass
@@ -114,16 +114,34 @@ services:
       retries: 55
     command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
     profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+  
+  # Local Certificate Generation Service
+  cert_local:
+    image: ${IMAGE_REPO}:cert-local.${TAG_ADDITION}
+    build:
+      context: ./img_certlocal
+      dockerfile: Dockerfile.cert-local
+    container_name: cert_local
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+    volumes:
+      - certbot_certs:/etc/letsencrypt/:rw  # Bind-mount: Share the generated SSL certificates with nginx
+    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
 
   # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
   phpmyadmin-admin:
-    image: phpmyadmin/phpmyadmin:latest
+    # Docker Official Image: phpmyadmin:latest. Jan 17, 2026 at 4:41 am
+    image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
     container_name: phpmyadmin-admin
     restart: unless-stopped
+    volumes:
+      - mysql-certs:/mysql-certs:ro
     environment:
-      PMA_HOST: mysql  # Must be the same as container_name of the db
+      PMA_HOST: mysql_db  # Must be the same as container_name of the db
       PMA_USER_FILE: /run/secrets/mysql_app_db_username
       PMA_PASSWORD_FILE: /run/secrets/mysql_app_db_password
+      PMA_SSL: 1
+      PMA_SSL_CA: /mysql-certs/ca.pem
     ports:
       - 8080:80
     depends_on:
@@ -132,15 +150,20 @@ services:
       - mysql_app_db_username
       - mysql_app_db_password
     profiles: ["all", "dev-bindmount", "dev-volume"]
-  
+  # PHPMyAdmin for inspecting the database, logged in as the admin-testing user used by Laravel for testing
   phpmyadmin-testing:
-    image: phpmyadmin/phpmyadmin:latest
+    # Docker Official Image: phpmyadmin:fpm-alpine. Jan 17, 2026 at 4:41 am
+    image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
     container_name: phpmyadmin-testing
     restart: unless-stopped
+    volumes:
+      - mysql-certs:/mysql-certs:ro
     environment:
-      PMA_HOST: mysql  # Must be the same as container_name of the db
+      PMA_HOST: mysql_db  # Must be the same as container_name of the db
       PMA_USER_FILE: /run/secrets/mysql_testing_db_username
       PMA_PASSWORD_FILE: /run/secrets/mysql_testing_db_password
+      PMA_SSL: 1
+      PMA_SSL_CA: /mysql-certs/ca.pem
     ports:
       - 8081:80
     depends_on:
@@ -150,18 +173,22 @@ services:
       - mysql_testing_db_password
     profiles: ["all", "dev-bindmount", "dev-volume"]
 
-  # Local Certificate Generation Service
-  cert_local:
-    image: ${IMAGE_REPO}:cert-local.latest
-    build:
-      context: ./img_certlocal
-      dockerfile: Dockerfile.cert-local
-    container_name: cert_local
+  # phpRedisAdmin for inspecting Redis data, similar to PHPMyAdmin
+  phpredisadmin:
+    # erikdubbelboer/phpredisadmin:latest. Dec 22, 2025 at 3:58 pm
+    image: erikdubbelboer/phpredisadmin@sha256:335e832bc713210011a326088f3e5eeefe8794799dbbfa32d2e04cbc180bdb44
+    container_name: phpredisadmin
+    restart: unless-stopped
     environment:
-      - APP_DOMAIN=${APP_DOMAIN}
-    volumes:
-      - ./secrets/letsencrypt:/etc/letsencrypt/:rw  # Bind-mount: Share the generated SSL certificates with nginx
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+      REDIS_1_HOST: redis
+      REDIS_1_PORT: 6379
+      REDIS_1_AUTH: redis_password
+      REDIS_1_NAME: "Redis Cache"
+    ports:
+      - 8082:80
+    depends_on:
+      - redis
+    profiles: ["all", "dev-bindmount", "dev-volume"]
 
 volumes:
   app_files:

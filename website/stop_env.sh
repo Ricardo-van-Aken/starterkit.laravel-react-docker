@@ -34,13 +34,13 @@ case "$MODE" in
     ;;
   staging)
     # For simulating production/testing
-    ENV_FILE=".env.staging"
+    ENV_FILE="docker/.env.staging"
     PROFILE="staging"
     COMPOSE_FILE="docker-compose.yml"
     ;;
   production)
     # For simulating production/testing
-    ENV_FILE=".env.production"
+    ENV_FILE="docker/.env.production"
     PROFILE="production"
     COMPOSE_FILE="docker-compose.yml"
     ;;
@@ -52,5 +52,9 @@ case "$MODE" in
     ;;
 esac
 
-# Remove all volumes associated with this compose file (clean start)
-docker compose -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down -v
+# Shut down existing containers
+echo "Removing existing containers and networks."
+docker compose -p $PROJECT_NAME -f $COMPOSE_FILE --env-file $ENV_FILE --profile all down
+
+echo "Removing the app_files volume to refresh the application files."
+docker volume rm ${PROJECT_NAME}_app_files || true # (|| true to avoid error if volume doesn't exist on first run)

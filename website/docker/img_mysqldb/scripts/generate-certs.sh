@@ -2,6 +2,7 @@
 set -e
 
 CERT_DIR="/mysql-certs"
+CONTAINER_NAME="mysql_db"
 
 # Only generate certs once
 if [ ! -f "$CERT_DIR/ca.pem" ]; then
@@ -23,7 +24,7 @@ if [ ! -f "$CERT_DIR/ca.pem" ]; then
   openssl req -new \
     -key "$CERT_DIR/server-key.pem" \
     -out "$CERT_DIR/server-req.pem" \
-    -subj "/CN=mysql"
+    -subj "/CN=$CONTAINER_NAME"
 
   openssl x509 -req -days 3650 \
     -in "$CERT_DIR/server-req.pem" \
