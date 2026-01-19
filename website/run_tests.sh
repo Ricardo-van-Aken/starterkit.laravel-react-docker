@@ -9,15 +9,6 @@ cd "$SCRIPT_DIR"
 # Start/refresh the testing environment containers
 ./run_env.sh dev-volume
 
-# Wait for MySQL to be ready and accepting connections from the app
-echo "Waiting for database service (container) to be ready..."
-
-timeout 50 sh -c 'until docker exec -u www-data laravel_app sh -c \
-  "mysqladmin --protocol=TCP --ssl=0 -h mysql_db ping --silent"; do \
-    echo ".. waiting for mysql_db"; \
-    sleep 2; \
-  done'
-
 # Run the Laravel test suite using the provided script inside the container
 echo "Running tests via clone_and_test.sh..."
 set +e
