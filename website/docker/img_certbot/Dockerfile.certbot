@@ -1,4 +1,5 @@
-FROM certbot/certbot:latest
+# certbot/certbot:latest. Dec 10, 2025 at 7:01 pm
+FROM certbot/certbot@sha256:5255405f241cd64b121f36ef0172711420816bbbd9c029674de53e5ed953182d
 
 # Copy your renewal script
 COPY scripts/certbot_renew.sh /certbot_renew.sh

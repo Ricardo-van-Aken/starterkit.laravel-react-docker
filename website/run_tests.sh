@@ -13,8 +13,8 @@ cd "$SCRIPT_DIR"
 echo "Waiting for database service (container) to be ready..."
 
 timeout 50 sh -c 'until docker exec -u www-data laravel_app sh -c \
-  "mysqladmin --protocol=TCP --ssl=0 -h mysql ping --silent"; do \
-    echo ".. waiting for mysql"; \
+  "mysqladmin --protocol=TCP --ssl=0 -h mysql_db ping --silent"; do \
+    echo ".. waiting for mysql_db"; \
     sleep 2; \
   done'
 

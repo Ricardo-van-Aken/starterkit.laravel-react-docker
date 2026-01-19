@@ -5,7 +5,8 @@ ARG BASE_IMAGE=local/starterkit.laravel-react-docker:laravel-base.latest
 ###   Node / front-end build stage.           ###
 ###                                           ###
 #################################################
-FROM node:20
+# Docker Official Image: node:20. Jan 15, 2026 at 2:38 am
+FROM node@sha256:3680462e16df266d30b103a3e38e2bc315bf917d0ab873fbddbee437bf0bd2d0
 
 # Set working directory
 WORKDIR /var/www
@@ -46,6 +47,9 @@ COPY --chown=www-data:www-data --from=0 /var/www/node_modules ./node_modules
 # Copy the Laravel application files(.dockerignore ignores the node_modules, public/build and vendorfolders)
 COPY --chown=www-data:www-data laravel_root/ .
 
+# Run composer scripts after all files are in place
+RUN composer run-script post-autoload-dump
+
 # Build main app assets into the public folder (currently using vite)
 RUN npm run build
 
@@ -56,6 +60,4 @@ RUN chown -R www-data:shared /var/www/storage/logs \
 RUN chown -R www-data:shared /var/www/storage/framework/views \
     && chmod -R 770 /var/www/storage/framework/views
 
-# Run composer scripts after all files are in place
-RUN composer run-script post-autoload-dump
 
