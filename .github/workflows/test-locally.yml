@@ -90,19 +90,19 @@ jobs:
           - name: nginx
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
-            tag: website-nginx.${{ env.TAG_ADDITION }}
+            tag: website-nginx
           - name: redis
             context: website/docker/img_redis
             file: website/docker/img_redis/Dockerfile.redis
-            tag: website-redis.${{ env.TAG_ADDITION }}
+            tag: website-redis
           - name: mysql-db
             context: website/docker/img_mysqldb
             file: website/docker/img_mysqldb/Dockerfile.mysql
-            tag: mysql-db.${{ env.TAG_ADDITION }}
+            tag: mysql-db
           - name: cert-local
             context: website/docker/img_certlocal
             file: website/docker/img_certlocal/Dockerfile.cert-local
-            tag: cert-local.${{ env.TAG_ADDITION }}
+            tag: cert-local
     
     steps:
       - name: Checkout code
@@ -123,20 +123,20 @@ jobs:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
           tags: |
-            ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}
+            ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}
           push: true
           load: true
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.cache
+            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}.cache
           cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.cache,mode=max
 
-      - name: Save ${{ matrix.image.tag }} image
+      - name: Save ${{ matrix.image.tag }}.${{ env.TAG_ADDITION }} image
         run: |
           mkdir -p docker-images
           filename=$(echo "${{ matrix.image.name }}" | tr '/:' '_' | sed 's/__*/_/g' | sed 's/^_\|_$//g')
-          docker save ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }} -o docker-images/${filename}.tar
+          docker save ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }} -o docker-images/${filename}.tar
 
-      - name: Upload ${{ matrix.image.tag }} image
+      - name: Upload ${{ matrix.image.tag }}.${{ env.TAG_ADDITION }} image
         uses: actions/upload-artifact@v4
         with:
           name: image-${{ matrix.image.name }}
@@ -169,6 +169,7 @@ jobs:
         working-directory: website
         run: |
           IMAGE_REPO="${{ env.IMAGE_REPO }}" \
+          TAG_ADDITION="${{ env.TAG_ADDITION }}" \
           docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d --no-build
 
       - name: Wait for services to be ready
