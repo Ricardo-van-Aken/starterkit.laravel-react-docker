@@ -3,10 +3,11 @@
 ###   PHP / Laravel Stage.                    ###
 ###                                           ###
 #################################################
-# Use the official PHP 8.2 FPM image (Laravel 12 requires PHP 8.1+)
-FROM php:8.2-fpm
+# Docker Official Image: php:8.3-fpm. Jan 17, 2026 at 3:57 am
+FROM php@sha256:37ab5e71c4f064723cef73abe87a52e1cc10d116da88f26a08444cd3fdbd75a0
 
-
+ARG WWW_UID=82
+ARG WWW_GID=82
 
 # --- Dependencies --- #
 
@@ -37,17 +38,16 @@ RUN pecl install redis && docker-php-ext-enable redis
 RUN npm install -g vite
 
 # Get latest Composer for project php dependencies
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Docker Official Image: composer:latest. Jan 17, 2026 at 6:13 am
+COPY --from=composer@sha256:ce78434db8122b0c3b0ec2056da0072551780d60e864943008c3f5a785db0900 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-
-
 # --- Users and Groups --- #
 
 # Set group ID and user ID for www-data user to 82. This user runs the laravel application
-RUN usermod -u 82 www-data && groupmod -g 82 www-data
+RUN usermod -u ${WWW_UID} www-data && groupmod -g ${WWW_GID} www-data
 
 # Add a testrunner user and group for running the db cloning script
 RUN groupadd -g 1002 testrunner
@@ -75,11 +75,15 @@ COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials-testing.sh   /usr/local/bin/r
 COPY ${DOCKERFILE_DIR}/scripts/read-redis-password.sh           /usr/local/bin/read-redis-password.sh
 COPY ${DOCKERFILE_DIR}/scripts/clone_db_for_testing.sh          /usr/local/bin/clone_db_for_testing.sh
 COPY ${DOCKERFILE_DIR}/scripts/clone_and_test.sh                /usr/local/bin/clone_and_test.sh
+COPY ${DOCKERFILE_DIR}/scripts/test_parallel.sh                 /usr/local/bin/test_parallel.sh
 
 # Set permissions
 RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh
+RUN chown root:www-data         /usr/local/bin/test_parallel.sh                 && chmod 550 /usr/local/bin/test_parallel.sh
+
 RUN chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh
 RUN chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh
+
 RUN chown root:testrunner       /usr/local/bin/clone_and_test.sh                && chmod 550 /usr/local/bin/clone_and_test.sh
 RUN chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
 

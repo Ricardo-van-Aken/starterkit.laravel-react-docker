@@ -1,0 +1,91 @@
+---
+- name: Add Docker GPG key and apt repository (Ubuntu)
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
+
+  tasks:
+    - name: Install required tools for (rootless) Docker
+      package:
+        name:
+          - uidmap
+        state: present
+
+    - name: Create dedicated app user for rootless docker
+      ansible.builtin.user:
+        name: "{{ docker_user  }}"
+        create_home: yes
+        shell: /bin/bash
+        state: present
+        groups: []
+        append: no
+        password_lock: yes
+
+    - name: Enable systemd lingering for the user
+      ansible.builtin.command:
+        cmd: loginctl enable-linger {{ docker_user  }}
+      args:
+        creates: "/var/lib/systemd/linger/{{ docker_user  }}"
+
+    - name: Make sure the ansible temp dir exists for each user
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/.ansible/tmp"
+        owner: "{{ docker_user }}"
+        state: directory
+        mode: '0700'
+
+    - name: Ensure /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Download Docker GPG key to /etc/apt/keyrings/docker.asc
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        owner: root
+        group: root
+        mode: "0644"   # same as chmod a+r, keeps owner write
+
+    - name: Get dpkg architecture (e.g. amd64)
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_arch
+      changed_when: false
+      check_mode: no
+
+    - name: Add Docker apt repository (creates /etc/apt/sources.list.d/docker.list)
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        filename: docker.list
+        state: present
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Ensure docker directory exists
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/docker"
+        state: directory
+        mode: '0775'  # rwxrwxr-x for directory
+        owner: "{{ docker_user }}"
+        group: "{{ docker_user }}"
+      become_user: "{{ docker_user }}"
+
+    - name: Ensure secrets directory exists
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/docker/secrets"
+        state: directory
+        mode: '0775'  # rwxrwxr-x for directory
+        owner: "{{ docker_user }}"
+        group: "{{ docker_user }}"
+      become_user: "{{ docker_user }}"

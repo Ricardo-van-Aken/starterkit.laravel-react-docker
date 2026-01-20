@@ -1,0 +1,57 @@
+name: Create bootstrapping resources
+description: Create or destroy bootstrap Terraform infrastructure
+
+inputs:
+  destroy:
+    description: "Create or destroy"
+    required: true
+    default: "false"
+  default_path:
+    description: "Terraform bootstrap path"
+    required: false
+    default: "deployment/terraform/bootstrap"
+
+outputs:
+  domain_id:
+    description: "Domain identifier"
+    value: ${{ steps.outputs.outputs.domain_id }}
+  project_id:
+    description: "Project identifier"
+    value: ${{ steps.outputs.outputs.project_id }}
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v3
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.default_path }}
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        terraform init -backend-config="backend.hcl" -backend-config="key=projects/${{ github.event.repository.name }}/infra-bootstrap/terraform.tfstate"
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          terraform apply -destroy -auto-approve
+        else
+          terraform apply -auto-approve
+        fi
+
+    - name: Capture outputs
+      id: outputs
+      shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          echo "project_id=" >> $GITHUB_OUTPUT
+          echo "domain_id=" >> $GITHUB_OUTPUT
+        else
+          echo "project_id=$(terraform output -raw project_id)" >> $GITHUB_OUTPUT
+          echo "domain_id=$(terraform output -raw domain_id)" >> $GITHUB_OUTPUT
+        fi

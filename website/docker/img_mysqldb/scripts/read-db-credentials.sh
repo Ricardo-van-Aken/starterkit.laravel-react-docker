@@ -20,6 +20,10 @@ if [ -f /run/secrets/mysql_app_db_database ]; then
   MYSQL_DATABASE=$(cat /run/secrets/mysql_app_db_database | tr -d '\r\n')
   export MYSQL_DATABASE
 fi
+if [ -f /run/secrets/mysql_app_db_ssl ]; then
+  MYSQL_ATTR_SSL_CA=$(cat /run/secrets/mysql_app_db_ssl | tr -d '\r\n')
+  export MYSQL_ATTR_SSL_CA
+fi
 
 # Source testing db credentials from split secrets
 if [ -f /run/secrets/mysql_testing_db_username ]; then

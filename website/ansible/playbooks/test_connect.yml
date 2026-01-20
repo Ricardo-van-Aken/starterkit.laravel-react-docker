@@ -1,7 +1,0 @@
----
-- name: Test connectivity to droplet
-  hosts: droplet
-  gather_facts: no
-  tasks:
-    - name: Ping the host
-      ansible.builtin.ping:
