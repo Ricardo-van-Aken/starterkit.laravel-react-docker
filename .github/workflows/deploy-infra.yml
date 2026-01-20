@@ -1,0 +1,227 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+          - all
+      action:
+        description: 'Terraform action'
+        required: true
+        type: choice
+        options:
+          - apply
+          - destroy
+          - plan
+
+env:
+  # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
+  TF_VAR_region: ${{ vars.DO_STATE_BUCKET_REGION }}
+  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}
+  AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
+
+  # Terraforms DigitalOcean provider authorization.
+  TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+  TF_VAR_spaces_access_id: ${{ secrets.DO_SPACES_ACCESS_ID }}
+  TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
+
+  DOCKER_USER: ${{ vars.DOCKER_USER }}
+  WORKSPACE: ${{ github.workspace }}
+
+jobs:
+  generate-backend-config:
+    name: Generate Backend Configuration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployment/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backend.hcl file
+        run: |
+          source ../scripts/common.sh
+          generate_backend_file "${{ vars.DO_STATE_BUCKET_REGION }}" "${{ vars.DO_STATE_BUCKET_NAME }}" "backend.hcl"
+
+      - name: Upload backend.hcl file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend.hcl
+          path: deployment/terraform/backend.hcl
+
+  terraform-ephemeral-create:
+    name: Create ephemerals
+    needs: generate-backend-config
+    runs-on: ubuntu-latest
+    outputs:
+      spaces_secret_key: ${{ steps.outputs.outputs.spaces_secret_key }}
+      spaces_access_id: ${{ steps.outputs.outputs.spaces_access_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/ephemeral
+        id: outputs
+        with:
+          destroy: false
+
+  terraform-bootstrap-create:
+    name: Create project resources
+    needs: generate-backend-config
+    runs-on: ubuntu-latest
+    outputs:
+      project_id: ${{ steps.outputs.outputs.project_id }}
+      domain_id: ${{ steps.outputs.outputs.domain_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/bootstrap
+        id: outputs
+        with:
+          destroy: false
+
+  terraform-plan:
+    name: Plan creation
+    needs:
+      - terraform-bootstrap-create
+      - terraform-ephemeral-create
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment != 'all'
+    outputs:
+      has_changes: ${{ steps.outputs.outputs.has_changes }}
+    env:
+      TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
+      TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
+      TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/environments/plan
+        id: outputs
+        with:
+          destroy: ${{ github.event.inputs.action == 'destroy' }}
+          environment: ${{ github.event.inputs.environment }}
+
+  terraform-apply:
+    name: Apply the plan
+    needs: terraform-plan
+    if: github.event.inputs.action != 'plan' && needs.terraform-plan.outputs.has_changes != 1
+    runs-on: ubuntu-latest
+    outputs:
+      droplet_ipv4: ${{ steps.outputs.outputs.droplet_ipv4 }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/environments/apply
+        id: outputs
+        with:
+          destroy: ${{ github.event.inputs.action == 'destroy' }}
+          environment: ${{ github.event.inputs.environment }}
+
+  docker-install:
+    name: Set up SSH connection and create dedicated docker user
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    if: github.event.inputs.action == 'apply'
+    env:
+      DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+      ANSIBLE_HOST_KEY_CHECKING: "True"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/ansible/install-docker
+        with:
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          droplet_ipv4: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
+
+  terraform-workspaces:
+    name: List active environment workspaces
+    needs: generate-backend-config
+    runs-on: ubuntu-latest
+    outputs:
+      json: ${{ steps.outputs.outputs.json }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: outputs
+        uses: ./.github/actions/terraform/utils/workspaces
+
+  terraform-destroy-all:
+    name: Destroy entire project infrastructure
+    if: github.event.inputs.environment == 'all' && github.event.inputs.action == 'destroy' && needs.terraform-workspaces.outputs.json != '[]'
+    needs:
+      - terraform-ephemeral-create
+      - terraform-bootstrap-create
+      - terraform-workspaces
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: ${{ fromJSON(needs.terraform-workspaces.outputs.json) }}
+    env:
+      TF_VAR_spaces_access_id: ${{ needs.terraform-ephemeral-create.outputs.spaces_access_id }}
+      TF_VAR_spaces_secret_key: ${{ needs.terraform-ephemeral-create.outputs.spaces_secret_key }}
+      TF_VAR_project_id: ${{ needs.terraform-bootstrap-create.outputs.project_id }}
+      TF_VAR_domain_id: ${{ needs.terraform-bootstrap-create.outputs.domain_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/environments/plan
+        id: outputs
+        with:
+          environment: ${{ matrix.env }}
+          destroy: true
+
+      - uses: ./.github/actions/terraform/environments/apply
+        with:
+          environment: ${{ matrix.env }}
+          destroy: true
+
+  terraform-bootstrap-destroy:
+    name: Destroy project resources
+    needs:
+      - terraform-bootstrap-create
+      - terraform-destroy-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/bootstrap
+        with:
+          destroy: true
+
+  terraform-ephemeral-destroy:
+    name: Destroy ephemerals
+    runs-on: ubuntu-latest
+    needs:
+      - terraform-apply
+      - terraform-destroy-all
+      - terraform-ephemeral-create
+    if: ${{ always() }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform/ephemeral
+        id: outputs
+        with:
+          destroy: true

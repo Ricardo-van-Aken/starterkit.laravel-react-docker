@@ -1,0 +1,61 @@
+name: Plan environment modification
+description: Plan creation or destruction of environment infrastructure
+
+inputs:
+  destroy:
+    description: "Create or destroy"
+    required: true
+    default: "false"
+  environment:
+    description: "Environment to modify"
+    required: true
+    default: "default"
+  default_path:
+    description: "Terraform environments path"
+    required: false
+    default: "deployment/terraform/environments/common"
+
+outputs:
+  has_changes:
+    description: Change affects resources
+    value: ${{ steps.plan.outputs.exitcode }}
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v3
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: backend.hcl
+        path: ${{ inputs.default_path }}
+
+    - shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        terraform init -backend-config="backend.hcl" -backend-config="workspace_key_prefix=projects/${{ github.event.repository.name }}/infra-environments"
+        terraform workspace select -or-create ${{ inputs.environment }}
+
+    - id: plan
+      continue-on-error: true
+      shell: bash
+      working-directory: ${{ inputs.default_path }}
+      run: |
+        if [ "${{ inputs.destroy }}" = "true" ]; then
+          terraform plan -destroy \
+          -var-file="../${{ inputs.environment }}/terraform.tfvars" \
+          -out=tfplan-${{ inputs.environment }} \
+          -detailed-exitcode
+        else
+          terraform plan \
+          -var-file="../${{ inputs.environment }}/terraform.tfvars" \
+          -out=tfplan-${{ inputs.environment }} \
+          -detailed-exitcode
+        fi
+
+    - name: Upload Plan Artifacts
+      uses: actions/upload-artifact@v4
+      if: steps.plan.outputs.exitcode != 1
+      with:
+        name: terraform-plan-${{ inputs.environment }}
+        path: ${{ inputs.default_path }}/tfplan-${{ inputs.environment }}

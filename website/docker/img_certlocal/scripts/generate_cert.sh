@@ -3,7 +3,7 @@ set -e
 
 : "${APP_DOMAIN:=localhost}"
 
-CERT_DIR="/etc/nginx/ssl/live/$APP_DOMAIN"
+CERT_DIR="/etc/letsencrypt/live/$APP_DOMAIN"
 mkdir -p "$CERT_DIR"
 
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \

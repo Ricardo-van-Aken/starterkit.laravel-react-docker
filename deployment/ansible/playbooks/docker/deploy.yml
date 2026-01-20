@@ -1,0 +1,102 @@
+---
+- name: Deploy Docker images with Github Actions
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
+    root: "{{ lookup('env', 'WORKSPACE') }}"
+    env_name: "{{ lookup('env', 'ENVIRONMENT') }}"
+
+  tasks:
+    - name: Get docker user UID
+      ansible.builtin.command: id -u {{ docker_user }}
+      register: docker_uid
+      changed_when: false
+
+    - name: Take down existing docker environment
+      ignore_errors: yes
+      block:
+      - name: Check if stop_env.sh exists (first ever deploy)
+        stat:
+          path: "/home/{{ docker_user  }}/stop_env.sh"
+        register: stop_env
+      
+      - name: Take down any containers using existing docker-compose.yml
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./stop_env.sh
+        become_user: "{{ docker_user }}"
+        environment:
+          XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+          DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+        changed_when: false
+        when: stop_env.stat.exists
+
+    - name: Copy all required files for running containers
+      become_user: "{{ docker_user  }}"
+      block:
+      - name: Copy *.sh files and add execution permissions
+        copy:
+          src: "{{ root  }}/website/{{ item }}"
+          dest: "/home/{{ docker_user  }}/{{ item }}"
+          mode: a+x
+        loop:
+          - run_env.sh
+          - stop_env.sh
+
+      - name: Copy docker files
+        copy:
+          src: "{{ root  }}/website/docker/{{ item }}"
+          dest: "/home/{{ docker_user  }}/docker/{{ item }}"
+        loop:
+          - ".env.{{ env_name  }}"
+          - docker-compose.yml
+
+      - name: Copy laravel environment file
+        copy:
+          src: "{{ root  }}/website/docker/img_laravel/.env"
+          dest: "/home/{{ docker_user  }}/docker/.env"
+
+    - name: Find all `secrets` files
+      ansible.builtin.find:
+        paths: "/home/{{ docker_user  }}/docker/secrets"
+        file_type: file
+      register: secret_files
+
+    - name: Ensure secret files are readable by the docker container
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        owner: "{{ docker_user  }}"
+        group: "{{ docker_user  }}"
+        mode: "0644"
+      loop: "{{ secret_files.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Deploy containers
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      block:
+      - name: Log into Docker
+        no_log: true
+        environment:
+          DOCKER_HUB_TOKEN: "{{ lookup('env', 'DOCKER_HUB_TOKEN')  }}"
+          DOCKER_HUB_USERNAME: "{{ lookup('env', 'DOCKER_HUB_USERNAME')  }}"
+        shell: |
+          echo "{{ lookup('env','DOCKER_HUB_TOKEN') }}" | docker login --username "{{ lookup('env','DOCKER_HUB_USERNAME') }}" --password-stdin
+
+      - name: Take down any containers using updated docker-compose.yml
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./stop_env.sh {{ env_name  }}
+        changed_when: false
+        when: stop_env.stat.exists
+
+      - name: Deploy images
+        shell:
+          chdir: /home/{{ docker_user }}
+          cmd: ./run_env.sh {{ env_name  }}
+        changed_when: false

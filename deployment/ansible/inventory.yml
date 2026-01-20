@@ -1,0 +1,5 @@
+all:
+  hosts:
+    droplet:
+      ansible_host: "{{ lookup('ansible.builtin.env','DROPLET_IP') }}"
+      ansible_user: root
