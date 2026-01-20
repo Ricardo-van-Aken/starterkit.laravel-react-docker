@@ -81,7 +81,6 @@ jobs:
           push: true
           file: ${{ matrix.image.file }}
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ github.sha }}
             ${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}.cache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}.cache,mode=max
@@ -110,10 +109,9 @@ jobs:
           push: true
           file: website/docker/img_laravel/Dockerfile.laravel-volume
           tags: |
-            ${{ env.IMAGE_NAME }}:laravel-app.${{ github.sha }}
             ${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}
           build-args: |
-            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ github.sha }}
+            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ env.ENVIRONMENT }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}.cache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}.cache,mode=max
 
