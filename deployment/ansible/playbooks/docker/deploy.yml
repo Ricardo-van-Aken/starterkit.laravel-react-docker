@@ -48,7 +48,7 @@
       - name: Copy docker files
         copy:
           src: "{{ root  }}/website/docker/{{ item }}"
-          dest: "/home/{{ docker_user  }}/{{ item }}"
+          dest: "/home/{{ docker_user  }}/docker/{{ item }}"
         loop:
           - ".env.{{ env_name  }}"
           - docker-compose.yml
