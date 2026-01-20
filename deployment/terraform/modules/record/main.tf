@@ -3,4 +3,5 @@ resource "digitalocean_record" "record" {
   type   = var.type
   name   = var.name
   value  = var.value
+  ttl    = 1800
 }

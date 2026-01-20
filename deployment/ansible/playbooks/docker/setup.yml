@@ -72,9 +72,18 @@
         update_cache: yes
         cache_valid_time: 3600
 
+    - name: Ensure docker directory exists
+      ansible.builtin.file:
+        path: "/home/{{ docker_user }}/docker"
+        state: directory
+        mode: '0775'  # rwxrwxr-x for directory
+        owner: "{{ docker_user }}"
+        group: "{{ docker_user }}"
+      become_user: "{{ docker_user }}"
+
     - name: Ensure secrets directory exists
       ansible.builtin.file:
-        path: "/home/{{ docker_user }}/secrets"
+        path: "/home/{{ docker_user }}/docker/secrets"
         state: directory
         mode: '0775'  # rwxrwxr-x for directory
         owner: "{{ docker_user }}"

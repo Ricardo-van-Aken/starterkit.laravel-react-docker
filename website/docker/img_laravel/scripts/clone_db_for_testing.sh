@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DB_HOST=mysql
+DB_HOST=mysql_db
 DB_PORT=3306
 
 # Source testing user DB credentials from Docker secrets
