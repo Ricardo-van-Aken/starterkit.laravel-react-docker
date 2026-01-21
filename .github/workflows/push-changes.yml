@@ -24,6 +24,7 @@ env:
   
   IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
+
 jobs:
   build-laravel-image:
     name: Build app image
@@ -126,6 +127,8 @@ jobs:
   deploy-builds:
     runs-on: ubuntu-latest
     needs: [build-compose-images, build-laravel-image]
+    env:
+      DOCKER_USER: docker-runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
