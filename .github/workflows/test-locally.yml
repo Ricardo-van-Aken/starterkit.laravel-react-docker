@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/starterkit.laravel-react-docker
+  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
   TAG_ADDITION: test
 
 jobs:
