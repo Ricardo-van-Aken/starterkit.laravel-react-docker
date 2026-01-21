@@ -20,9 +20,9 @@ on:
 
 env:
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
+  TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
   
   IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
-  TAG_ADDITION: ${{ env.ENVIRONMENT }}
 
 jobs:
   build-laravel-image:
@@ -141,6 +141,10 @@ jobs:
           # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
           AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
+          # Terraforms DigitalOcean provider authorization.
+          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+          # Terraform [TODO: description]
+          TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
         with:
           output_keys: "droplet_ipv4"
           working_dir: deployment/terraform/environments/common
