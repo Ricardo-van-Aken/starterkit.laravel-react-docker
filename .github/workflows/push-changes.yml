@@ -21,7 +21,7 @@ on:
 env:
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
   TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
-  
+
   IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
 
@@ -160,5 +160,6 @@ jobs:
           ANSIBLE_HOST_KEY_CHECKING: "True"
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME }}
+          WORKSPACE: ${{ github.workspace }} # Required in ansible step for finding files in repo
         with:
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
