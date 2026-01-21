@@ -125,7 +125,7 @@ jobs:
 
   deploy-builds:
     runs-on: ubuntu-latest
-    needs: build-app-image
+    needs: [build-compose-images, build-laravel-image]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
