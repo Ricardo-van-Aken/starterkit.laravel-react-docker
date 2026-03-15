@@ -1,6 +1,7 @@
 includes:
     - vendor/larastan/larastan/extension.neon
     - vendor/nesbot/carbon/extension.neon
+    - vendor/pestphp/pest/extension.neon
 
 parameters:
 
@@ -9,10 +10,15 @@ parameters:
         - config/
         - database/
         - routes/
-        - tests/
+#        - tests/ # TODO: enable this when phpstan is fully supported by pest
 
     # Level 10 is the highest level
     level: 10
+
+    stubFiles:
+        - vendor/pestphp/pest/stubs/Unit.php
+        - vendor/pestphp/pest/stubs/Feature.php
+        - vendor/pestphp/pest-plugin-laravel/stubs/Laravel/Pest.php
 
     #    ignoreErrors:
     #        - '#PHPDoc tag @var#'

@@ -16,6 +16,10 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        # User is always present as this request should be behind auth middleware
+        /** @var User $user */
+        $user = $this->user();
+
         return [
             'name' => ['required', 'string', 'max:255'],
 
@@ -25,7 +29,7 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                Rule::unique(User::class)->ignore($user->id),
             ],
         ];
     }

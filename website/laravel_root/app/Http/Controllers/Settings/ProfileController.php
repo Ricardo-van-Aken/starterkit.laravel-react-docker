@@ -18,8 +18,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        # User is always present as this controller is behind auth middleware
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -29,13 +33,17 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        # User is always present as this controller is behind auth middleware
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
         return to_route('profile.edit');
     }
@@ -49,6 +57,8 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
+        # User is always present as this controller should be behind auth middleware
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         Auth::logout();
