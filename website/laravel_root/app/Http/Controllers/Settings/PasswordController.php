@@ -30,8 +30,7 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        # User is always present as this controller should be behind auth middleware
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
         $user->update([

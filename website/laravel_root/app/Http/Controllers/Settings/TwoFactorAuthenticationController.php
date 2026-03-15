@@ -29,8 +29,7 @@ class TwoFactorAuthenticationController extends Controller implements HasMiddlew
     {
         $request->ensureStateIsValid();
 
-        # User is always present as this controller should be behind auth middleware
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
         return Inertia::render('settings/two-factor', [

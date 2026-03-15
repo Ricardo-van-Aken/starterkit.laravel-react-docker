@@ -16,8 +16,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        # User is always present as this request should be behind auth middleware
-        /** @var User $user */
+        /** @var User $user - User is always present as this request should be behind auth middleware */
         $user = $this->user();
 
         return [

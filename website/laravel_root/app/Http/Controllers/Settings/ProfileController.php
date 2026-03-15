@@ -18,8 +18,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        # User is always present as this controller is behind auth middleware
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
         return Inertia::render('settings/profile', [
@@ -57,8 +56,7 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
-        # User is always present as this controller should be behind auth middleware
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
         Auth::logout();
