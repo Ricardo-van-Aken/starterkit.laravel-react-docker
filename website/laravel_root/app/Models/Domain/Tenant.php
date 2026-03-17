@@ -2,7 +2,7 @@
 
 namespace App\Models\Domain;
 
-use App\Models\Domain\OrganisationUnits\OrganisationUnit;
+use App\Models\Domain\OrganisationUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;

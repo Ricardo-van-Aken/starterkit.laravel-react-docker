@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use App\Models\Domain\Role;
+use App\Models\Domain\Permission;
 use Illuminate\Database\Seeder;
 
 class OrganisationRoleSeeder extends Seeder

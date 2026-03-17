@@ -68,10 +68,6 @@ function resolveClasses(mixed $value): array
         }
     }
 
-    if (is_object($value)) {
-        return [$value];
-    }
-
     return is_array($value) ? $value : [$value];
 }
 

@@ -90,11 +90,27 @@ return new class extends Migration
             $table->index(['descendant_id', 'ancestor_id']);
         });
 
-        Schema::create('resources', function (Blueprint $table) {
+        Schema::create('iot_device_examples', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->string('type');
+            $table->string('device_id')->unique();
+            $table->string('device_secret');
+            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
+            $table->timestamps();
+        });
+
+        Schema::create('customer_examples', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
+            $table->string('type')->nullable();
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
@@ -111,7 +127,8 @@ return new class extends Migration
         Schema::dropIfExists('organisation_unit_user');
         Schema::dropIfExists('tenant_user');
         Schema::dropIfExists('resource_shares');
-        Schema::dropIfExists('resources');
+        Schema::dropIfExists('iot_device_examples');
+        Schema::dropIfExists('customer_examples');
         Schema::dropIfExists('organisation_unit_closure');
         Schema::dropIfExists('organisation_units');
         Schema::dropIfExists('tenants');
