@@ -30,6 +30,19 @@ expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
 
+/**
+ * Custom expectation to check if a model (or all models in a namespace) hides the 'id' field.
+ * This bridges the gap between Arch tests (static) and Runtime properties.
+ */
+expect()->extend('toHideId', function () {
+    foreach (resolveClasses($this->value) as $class) {
+        expect(new $class)->getHidden()
+            ->toContain('id');
+    }
+
+    return $this;
+});
+
 /*
 |--------------------------------------------------------------------------
 | Functions
@@ -40,6 +53,23 @@ expect()->extend('toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+/**
+ * Resolves a namespace, class name, or array of class names into a flat array of class names.
+ */
+function resolveClasses(mixed $value): array
+{
+    if (is_string($value) && !class_exists($value)) {
+        $path = app_path(str_replace(['App\\', '\\'], ['', DIRECTORY_SEPARATOR], $value));
+        if (is_dir($path)) {
+            return collect(Illuminate\Support\Facades\File::allFiles($path))
+                ->map(fn ($file) => $value . '\\' . $file->getFilenameWithoutExtension())
+                ->toArray();
+        }
+    }
+
+    return is_array($value) ? $value : [$value];
+}
 
 function something()
 {
