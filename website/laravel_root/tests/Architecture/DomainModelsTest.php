@@ -9,5 +9,5 @@ arch('domain models use HasUuids trait')
 arch('domain models hide the id field')
     ->expect('App\Models\Domain')
     ->classes()
-    ->toHideId()
+    ->toHideParams('id')
     ->ignoring('App\Models\Domain\OrganisationUnits');

@@ -1,5 +1,11 @@
 <?php
 
+use Illuminate\Database\Eloquent\Model;
+use Pest\Arch\Contracts\ArchExpectation;
+use PHPUnit\Architecture\Elements\ObjectDescription;
+use Pest\Arch\Support\FileLineFinder;
+use Pest\Arch\Expectations\Targeted;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -34,13 +40,45 @@ expect()->extend('toBeOne', function () {
  * Custom expectation to check if a model (or all models in a namespace) hides the 'id' field.
  * This bridges the gap between Arch tests (static) and Runtime properties.
  */
-expect()->extend('toHideId', function () {
-    foreach (resolveClasses($this->value) as $class) {
-        expect(new $class)->getHidden()
-            ->toContain('id');
-    }
+expect()->extend('toHideParams', function (string|array $params): ArchExpectation {
+    $params = (array) $params;
 
-    return $this;
+    return Targeted::make(
+        $this,
+        function (ObjectDescription $object) use ($params): bool {
+            // make sure class exists
+            if (! class_exists($object->name)) {
+                return false;
+            }
+
+            $reflection = $object->reflectionClass ?? new \ReflectionClass($object->name);
+
+            // only apply to Eloquent models
+            if (! $reflection->isSubclassOf(Model::class)) {
+                return false;
+            }
+
+            // instantiate model safely without triggering constructor
+            $model = $reflection->newInstanceWithoutConstructor();
+
+            $hidden = $model->getHidden();
+            $visible = $model->getVisible();
+
+            foreach ($params as $param) {
+                $isHidden = ! empty($visible)
+                    ? ! in_array($param, $visible, true)
+                    : in_array($param, $hidden, true);
+
+                if (! $isHidden) {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+        'to hide params [' . implode(', ', $params) . ']',
+        FileLineFinder::where(fn (string $line): bool => true),
+    );
 });
 
 /*
@@ -53,23 +91,6 @@ expect()->extend('toHideId', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
-
-/**
- * Resolves a namespace, class name, or array of class names into a flat array of class names.
- */
-function resolveClasses(mixed $value): array
-{
-    if (is_string($value) && !class_exists($value)) {
-        $path = app_path(str_replace(['App\\', '\\'], ['', DIRECTORY_SEPARATOR], $value));
-        if (is_dir($path)) {
-            return collect(Illuminate\Support\Facades\File::allFiles($path))
-                ->map(fn ($file) => $value . '\\' . $file->getFilenameWithoutExtension())
-                ->toArray();
-        }
-    }
-
-    return is_array($value) ? $value : [$value];
-}
 
 function something()
 {

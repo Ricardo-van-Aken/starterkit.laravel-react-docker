@@ -37,10 +37,10 @@ class OrganisationUnit extends Model
     ];
 
     protected static array $typeMap = [
-        OrganisationUnitType::BRANCH => 'branchUnit',
-        OrganisationUnitType::DEPARTMENT => 'departmentUnit',
-        OrganisationUnitType::TEAM => 'teamUnit',
-        OrganisationUnitType::OTHER => 'otherUnit',
+        OrganisationUnitType::BRANCH->value => 'branchUnit',
+        OrganisationUnitType::DEPARTMENT->value => 'departmentUnit',
+        OrganisationUnitType::TEAM->value => 'teamUnit',
+        OrganisationUnitType::OTHER->value => 'otherUnit',
     ];
 
     public function __construct(array $attributes = [])
