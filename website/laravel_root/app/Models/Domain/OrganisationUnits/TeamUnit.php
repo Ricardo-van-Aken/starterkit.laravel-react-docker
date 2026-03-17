@@ -1,39 +1,28 @@
 <?php
 
-namespace App\Models\Domain;
+namespace App\Models\Domain\OrganisationUnits;
 
-use App\Models\Domain\OrganisationUnits\OrganisationUnit;
-use App\Models\User;
+use App\Models\Domain\OrganisationUnits\Contracts\OrganisationUnitContract;
+use App\Models\Domain\OrganisationUnit;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Resource extends Model
+class TeamUnit extends Model implements OrganisationUnitContract
 {
     use HasUuids;
 
     protected $fillable = [
         'organisation_unit_id',
-        'type',
-        'created_by',
     ];
 
     protected $hidden = [
         'id',
+        'organisation_unit_id',
     ];
-
-    public function getRouteKeyName(): string
-    {
-        return 'uuid';
-    }
 
     public function organisationUnit(): BelongsTo
     {
         return $this->belongsTo(OrganisationUnit::class);
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 }

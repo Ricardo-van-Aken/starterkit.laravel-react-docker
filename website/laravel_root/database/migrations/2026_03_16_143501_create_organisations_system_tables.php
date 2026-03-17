@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrganisationUnitType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -34,7 +35,39 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('parent_id')->nullable()->constrained('organisation_units')->nullOnDelete();
             $table->string('name');
-            $table->string('type')->nullable(); // department, team, etc
+            $table->text('description')->nullable();
+            $table->enum('type', ['branch', 'department', 'team', 'other']);
+            $table->timestamps();
+        });
+
+        Schema::create('branch_units', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
+            $table->string('country')->nullable();
+            $table->string('city')->nullable();
+            $table->string('address')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('department_units', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
+            $table->timestamps();
+        });
+
+        Schema::create('team_units', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
+            $table->timestamps();
+        });
+
+        Schema::create('other_units', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->timestamps();
         });
 
@@ -72,6 +105,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('team_units');
+        Schema::dropIfExists('department_units');
+        Schema::dropIfExists('branch_units');
         Schema::dropIfExists('organisation_unit_user');
         Schema::dropIfExists('tenant_user');
         Schema::dropIfExists('resource_shares');
