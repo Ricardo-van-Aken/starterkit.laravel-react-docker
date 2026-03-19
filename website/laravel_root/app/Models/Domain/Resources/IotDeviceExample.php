@@ -38,11 +38,13 @@ class IotDeviceExample extends Model implements OrganisationResource
         return 'uuid';
     }
 
+    /** @return BelongsTo<OrganisationUnit, $this> */
     public function organisationUnit(): BelongsTo
     {
         return $this->belongsTo(OrganisationUnit::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

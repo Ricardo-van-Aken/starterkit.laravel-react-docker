@@ -11,6 +11,7 @@ class StoreTenantRequest extends FormRequest
         return true; // We will use Policies for finer control
     }
 
+    /** @return array<string, array<int, string>> */
     public function rules(): array
     {
         return [

@@ -21,6 +21,7 @@ class TeamUnit extends Model implements OrganisationUnitContract
         'organisation_unit_id',
     ];
 
+    /** @return BelongsTo<OrganisationUnit, $this> */
     public function organisationUnit(): BelongsTo
     {
         return $this->belongsTo(OrganisationUnit::class);

@@ -36,6 +36,7 @@ class OrganisationUnit extends Model
         'type' => OrganisationUnitType::class,
     ];
 
+    /** @var array<string, string> */
     protected static array $typeMap = [
         OrganisationUnitType::BRANCH->value => 'branchUnit',
         OrganisationUnitType::DEPARTMENT->value => 'departmentUnit',
@@ -56,46 +57,55 @@ class OrganisationUnit extends Model
         return 'uuid';
     }
 
+    /** @return BelongsTo<Tenant, $this> */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
+    /** @return BelongsTo<self, $this> */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /** @return HasMany<self, $this> */
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    /** @return BelongsToMany<User, $this> */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organisation_unit_user');
     }
 
+    /** @return HasOne<BranchUnit, $this> */
     public function branchUnit(): HasOne
     {
         return $this->hasOne(BranchUnit::class);
     }
 
+    /** @return HasOne<DepartmentUnit, $this> */
     public function departmentUnit(): HasOne
     {
         return $this->hasOne(DepartmentUnit::class);
     }
 
+    /** @return HasOne<TeamUnit, $this> */
     public function teamUnit(): HasOne
     {
         return $this->hasOne(TeamUnit::class);
     }
 
+    /** @return HasOne<OtherUnit, $this> */
     public function otherUnit(): HasOne
     {
         return $this->hasOne(OtherUnit::class);
     }
 
+    /** @return OrganisationUnitContract */
     public function getSubUnit(): OrganisationUnitContract
     {
         $relation = self::$typeMap[$this->type->value] ?? null;
@@ -106,8 +116,8 @@ class OrganisationUnit extends Model
 
         $subUnit = $this->{$relation};
 
-        if (!$subUnit) {
-            throw new \LogicException("OrganisationUnit {$this->id} has no associated subtype for type {$this->type}");
+        if (!$subUnit instanceof OrganisationUnitContract) {
+            throw new \LogicException("OrganisationUnit {$this->id} has no associated subtype for type {$this->type->value}");
         }
 
         return $subUnit;

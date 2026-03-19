@@ -60,11 +60,13 @@ class User extends Authenticatable
         return 'uuid';
     }
 
+    /** @return BelongsToMany<Tenant, $this> */
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class);
     }
 
+    /** @return BelongsToMany<OrganisationUnit, $this> */
     public function organisationUnits(): BelongsToMany
     {
         return $this->belongsToMany(OrganisationUnit::class, 'organisation_unit_user');
