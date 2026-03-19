@@ -26,11 +26,17 @@ class Tenant extends Model
         return 'uuid';
     }
 
+    /**
+     * @return HasMany<OrganisationUnit, $this>
+     */
     public function organisationUnits(): HasMany
     {
         return $this->hasMany(OrganisationUnit::class);
     }
 
+    /**
+     * @return BelongsToMany<User, $this>
+     */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class);
