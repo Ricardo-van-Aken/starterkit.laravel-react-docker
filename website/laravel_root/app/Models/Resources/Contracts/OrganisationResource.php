@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Domain\Resources\Contracts;
+namespace App\Models\Resources\Contracts;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,7 +12,7 @@ interface OrganisationResource
     /**
      * Get the organisation unit that owns the resource.
      *
-     * @return BelongsTo<\App\Models\Domain\OrganisationUnit, $this>
+     * @return BelongsTo<\App\Models\OrganisationUnit, $this>
      * @phpstan-ignore generics.notSubtype
      */
     public function organisationUnit(): BelongsTo;

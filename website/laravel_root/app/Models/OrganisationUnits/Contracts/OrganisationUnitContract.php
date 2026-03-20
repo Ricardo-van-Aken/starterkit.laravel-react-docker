@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Domain\OrganisationUnits\Contracts;
+namespace App\Models\OrganisationUnits\Contracts;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Domain\OrganisationUnit;
+use App\Models\OrganisationUnit;
 
 /**
  * @phpstan-require-extends \Illuminate\Database\Eloquent\Model

@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Models\Domain;
+namespace App\Models;
 
 use App\Enums\OrganisationUnitType;
 use App\Models\User;
-use App\Models\Domain\OrganisationUnits\BranchUnit;
-use App\Models\Domain\OrganisationUnits\DepartmentUnit;
-use App\Models\Domain\OrganisationUnits\TeamUnit;
-use App\Models\Domain\OrganisationUnits\OtherUnit;
-use App\Models\Domain\OrganisationUnits\Contracts\OrganisationUnitContract;
+use App\Models\OrganisationUnits\BranchUnit;
+use App\Models\OrganisationUnits\DepartmentUnit;
+use App\Models\OrganisationUnits\TeamUnit;
+use App\Models\OrganisationUnits\OtherUnit;
+use App\Models\OrganisationUnits\Contracts\OrganisationUnitContract;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -1,37 +1,32 @@
 <?php
 
-namespace App\Models\Domain\Resources;
+namespace App\Models\Resources;
 
-use App\Models\Domain\Resources\Contracts\OrganisationResource;
-use App\Models\Domain\OrganisationUnit;
+use App\Models\Resources\Contracts\OrganisationResource;
+use App\Models\OrganisationUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class IotDeviceExample extends Model implements OrganisationResource
+class CustomerExample extends Model implements OrganisationResource
 {
     use HasUuids;
 
     protected $fillable = [
         'organisation_unit_id',
         'type',
-        'device_id',
-        'device_secret',
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'notes',
         'created_by',
     ];
 
     protected $hidden = [
         'id',
-        'device_secret',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'device_secret' => 'encrypted',
-        ];
-    }
 
     public function getRouteKeyName(): string
     {

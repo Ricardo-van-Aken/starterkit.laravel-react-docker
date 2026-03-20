@@ -1,5 +1,5 @@
 <?php
 
-test('models in Domain/Resources implement OrganisationResource contract')
-    ->expect('App\Models\Domain\Resources')
-    ->toImplement('App\Models\Domain\Resources\Contracts\OrganisationResource');
+test('models in App\Models\Resources implement OrganisationResource contract')
+    ->expect('App\Models\Resources')
+    ->toImplement('App\Models\Resources\Contracts\OrganisationResource');

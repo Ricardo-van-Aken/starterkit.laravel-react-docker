@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Models\Domain\OrganisationUnits;
+namespace App\Models\OrganisationUnits;
 
-use App\Models\Domain\OrganisationUnits\Contracts\OrganisationUnitContract;
-use App\Models\Domain\OrganisationUnit;
+use App\Models\OrganisationUnits\Contracts\OrganisationUnitContract;
+use App\Models\OrganisationUnit;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class OtherUnit extends Model implements OrganisationUnitContract
+class TeamUnit extends Model implements OrganisationUnitContract
 {
     use HasUuids;
 

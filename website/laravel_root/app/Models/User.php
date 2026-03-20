@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Domain\Tenant;
-use App\Models\Domain\OrganisationUnit;
+use App\Models\Tenant;
+use App\Models\OrganisationUnit;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -26,6 +26,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'max_tenants',
     ];
 
     /**
@@ -84,5 +85,10 @@ class User extends Authenticatable
         setPermissionsTeamId($organisationUnit->id);
 
         return $this;
+    }
+
+    public function canCreateTenant(): bool
+    {
+        return $this->tenants()->count() < $this->max_tenants;
     }
 }

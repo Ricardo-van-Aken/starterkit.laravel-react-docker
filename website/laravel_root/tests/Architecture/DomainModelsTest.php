@@ -1,13 +1,13 @@
 <?php
 
-arch('domain models use HasUuids trait')
-    ->expect('App\Models\Domain')
+arch('front-facing models use HasUuids trait')
+    ->expect('App\Models')
     ->classes()
     ->toUseTrait('Illuminate\Database\Eloquent\Concerns\HasUuids')
-    ->ignoring('App\Models\Domain\OrganisationUnits');
+    ->ignoring(['App\Models\OrganisationUnits', 'App\Models\OrganisationUnitClosure']);
 
-arch('domain models hide the id field')
-    ->expect('App\Models\Domain')
+arch('front-facing models hide the id field')
+    ->expect('App\Models')
     ->classes()
     ->toHideParams('id')
-    ->ignoring('App\Models\Domain\OrganisationUnits');
+    ->ignoring(['App\Models\OrganisationUnits', 'App\Models\OrganisationUnitClosure']);

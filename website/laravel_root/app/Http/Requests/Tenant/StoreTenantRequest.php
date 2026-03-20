@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Tenant;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -8,7 +8,7 @@ class StoreTenantRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // We will use Policies for finer control
+        return $this->user()->can('create', \App\Models\Tenant::class);
     }
 
     /** @return array<string, array<int, string>> */

@@ -16,14 +16,5 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call(DefaultRolesAndPermissionsSeeder::class);
-
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => 'password',
-                'email_verified_at' => now(),
-            ]
-        );
     }
 }

@@ -19,7 +19,10 @@ use Pest\Arch\Expectations\Targeted;
 
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature')
+    ->beforeEach(function () {
+        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+    });
 
 /*
 |--------------------------------------------------------------------------

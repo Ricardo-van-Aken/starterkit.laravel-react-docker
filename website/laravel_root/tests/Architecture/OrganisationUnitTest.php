@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Domain\OrganisationUnits\Contracts\OrganisationUnitContract;
+use App\Models\OrganisationUnits\Contracts\OrganisationUnitContract;
 
-arch('models in OrganisationUnits implement OrganisationUnitContract')
-    ->expect('App\Models\Domain\OrganisationUnits')
+arch('models in App\Models\OrganisationUnits implement OrganisationUnitContract')
+    ->expect('App\Models\OrganisationUnits')
     ->toImplement(OrganisationUnitContract::class);

@@ -4,6 +4,10 @@ namespace App\Enums;
 
 enum TenantPermissionName: string
 {
+    // Tenant Properties
+    case UpdateTenantDetails = 'update_tenant_details';
+    case DeleteTenant = 'delete_tenant';
+
     // Organisation Unit Management
     case CreateOrganisationUnits = 'create_organisation_units';
     case ViewOrganisationUnits = 'view_organisation_units';
