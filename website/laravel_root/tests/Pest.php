@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Redis;
 use Pest\Arch\Contracts\ArchExpectation;
 use PHPUnit\Architecture\Elements\ObjectDescription;
 use Pest\Arch\Support\FileLineFinder;
@@ -22,6 +23,13 @@ pest()->extend(Tests\TestCase::class)
     ->in('Feature')
     ->beforeEach(function () {
         $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+        // Flush the entire Redis testing database (DB index 5) between tests.
+        // This clears all cache, sessions, and queued jobs, since these are configured to use DB 5 in
+        // phpunit.isolated.xml.
+        if (config('cache.default') === 'redis') {
+            Redis::connection('testing')->flushdb();
+        }
     });
 
 /*
