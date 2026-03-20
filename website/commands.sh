@@ -25,10 +25,10 @@ docker exec -u www-data laravel_app sh -c ". /usr/local/bin/read-db-credentials.
 ###
 
 # Run tests on a single thread (verifies standard SSL certificates)
-docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh'
+docker exec -u testrunner laravel_app sh -c 'bash /usr/local/bin/clone_and_test.sh'
 
 # Run tests on a single thread (allows self-signed SSL certificates for local dev)
-docker exec -u testrunner laravel_app sh -c '. /usr/local/bin/clone_and_test.sh --allow-self-signed-ssl'
+docker exec -u testrunner laravel_app sh -c 'bash /usr/local/bin/clone_and_test.sh --allow-self-signed-ssl'
 
 ###
 ## No DB Required
