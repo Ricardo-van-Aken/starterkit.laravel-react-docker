@@ -22,4 +22,9 @@ class Permission extends SpatiePermission
     {
         return 'uuid';
     }
+
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
 }

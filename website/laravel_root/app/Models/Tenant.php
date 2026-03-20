@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Models\OrganisationUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
-    use HasUuids;
+    use HasUuids, HasFactory;
 
     protected $fillable = [
         'name',
@@ -24,6 +25,11 @@ class Tenant extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
     }
 
     /**

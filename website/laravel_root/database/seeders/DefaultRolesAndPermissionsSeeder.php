@@ -6,7 +6,7 @@ use App\Enums\OrgUnitPermissionName;
 use App\Enums\OrgUnitRoleName;
 use App\Enums\TenantPermissionName;
 use App\Enums\TenantRoleName;
-use App\Models\Domain\Role;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;

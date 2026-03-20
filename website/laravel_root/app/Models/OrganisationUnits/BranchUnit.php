@@ -4,14 +4,11 @@ namespace App\Models\OrganisationUnits;
 
 use App\Models\OrganisationUnits\Contracts\OrganisationUnitContract;
 use App\Models\OrganisationUnit;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BranchUnit extends Model implements OrganisationUnitContract
 {
-    use HasUuids;
-
     protected $fillable = [
         'organisation_unit_id',
         'country',

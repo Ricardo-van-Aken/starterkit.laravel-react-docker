@@ -23,4 +23,9 @@ class Role extends SpatieRole
     {
         return 'uuid';
     }
+
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
 }

@@ -28,8 +28,8 @@ RUN apt-get update && apt-get install -y \
     # mysql-client for testrunning pipeline. Used by clone_db_for_testing.sh
     default-mysql-client
 
-# Laravels database drivers for MariaDB/mySQL
-RUN docker-php-ext-install pdo pdo_mysql
+# Laravels database drivers for MariaDB/mySQL and bcmath for laravel-lang
+RUN docker-php-ext-install pdo pdo_mysql bcmath
 
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis

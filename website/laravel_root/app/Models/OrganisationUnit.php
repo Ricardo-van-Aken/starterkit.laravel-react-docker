@@ -57,6 +57,11 @@ class OrganisationUnit extends Model
         return 'uuid';
     }
 
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
+
     /** @return BelongsTo<Tenant, $this> */
     public function tenant(): BelongsTo
     {

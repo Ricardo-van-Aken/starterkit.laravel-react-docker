@@ -38,6 +38,11 @@ class IotDeviceExample extends Model implements OrganisationResource
         return 'uuid';
     }
 
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
+
     /** @return BelongsTo<OrganisationUnit, $this> */
     public function organisationUnit(): BelongsTo
     {

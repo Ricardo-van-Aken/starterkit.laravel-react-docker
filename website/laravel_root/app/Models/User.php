@@ -61,6 +61,11 @@ class User extends Authenticatable
         return 'uuid';
     }
 
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
+
     /** @return BelongsToMany<Tenant, $this> */
     public function tenants(): BelongsToMany
     {

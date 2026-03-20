@@ -8,6 +8,7 @@ use App\Http\Requests\Tenant\DeleteTenantRequest;
 use App\Models\Tenant;
 use App\Enums\TenantRoleName;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class TenantController extends Controller
 {
@@ -16,16 +17,20 @@ class TenantController extends Controller
      */
     public function store(StoreTenantRequest $request): RedirectResponse
     {
-        $tenant = Tenant::create($request->validated());
+        $tenant = DB::transaction(function () use ($request) {
+            $tenant = Tenant::create($request->validated());
 
-        // Attach the currently authenticated user to the tenant
-        $request->user()->tenants()->attach($tenant->id);
+            // Attach the currently authenticated user to the tenant
+            $request->user()->tenants()->attach($tenant->id);
 
-        // Assign proper roles using spatie/laravel-permission
-        setPermissionsTeamId($tenant->id);
-        $request->user()->assignRole(TenantRoleName::Admin->value);
+            // Assign proper roles using spatie/laravel-permission
+            setPermissionsTeamId($tenant->id);
+            $request->user()->assignRole(TenantRoleName::Admin->value);
 
-        return redirect()->back()->with('status', 'tenant-created');
+            return $tenant;
+        });
+
+        return redirect()->back()->with('status', __('tenant.created'));
     }
 
     /**
@@ -35,7 +40,7 @@ class TenantController extends Controller
     {
         $tenant->update($request->validated());
 
-        return redirect()->back()->with('status', 'tenant-updated');
+        return redirect()->back()->with('status', __('tenant.updated'));
     }
 
     /**
@@ -45,6 +50,6 @@ class TenantController extends Controller
     {
         $tenant->delete();
 
-        return redirect()->route('dashboard')->with('status', 'tenant-deleted');
+        return redirect()->route('dashboard')->with('status', __('tenant.deleted'));
     }
 }

@@ -42,7 +42,6 @@ return new class extends Migration
 
         Schema::create('branch_units', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uuid')->unique();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->string('country')->nullable();
             $table->string('city')->nullable();
@@ -52,21 +51,18 @@ return new class extends Migration
 
         Schema::create('department_units', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uuid')->unique();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->timestamps();
         });
 
         Schema::create('team_units', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uuid')->unique();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->timestamps();
         });
 
         Schema::create('other_units', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uuid')->unique();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->timestamps();
         });
