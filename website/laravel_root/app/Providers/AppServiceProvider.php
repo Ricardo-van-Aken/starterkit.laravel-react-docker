@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Enforce Redis isolation during Parallel Testing
+        if (app()->runningUnitTests() && env('TEST_TOKEN')) {
+            config(['database.redis.options.prefix' => "test_" . env('TEST_TOKEN') . "_"]);
+        }
     }
 }

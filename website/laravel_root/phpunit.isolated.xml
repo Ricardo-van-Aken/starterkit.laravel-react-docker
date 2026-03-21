@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- This PHPUnit configuration file is used to run tests against the cloned Docker test database.
-     It expects DB credentials injected via environment variables from the Docker secrets scripts,
-     and uses in-memory/sync drivers to fully isolate the test run from production infrastructure. -->
+<!-- This PHPUnit configuration file is used to run tests with isolated storage (mysql db and redis) -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"

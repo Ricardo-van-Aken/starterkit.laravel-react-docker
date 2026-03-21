@@ -81,6 +81,7 @@ class User extends Authenticatable
     public function forTenant(Tenant $tenant): self
     {
         setPermissionsTeamId($tenant->id);
+        $this->guard_name = 'tenant';
 
         return $this;
     }
@@ -88,6 +89,7 @@ class User extends Authenticatable
     public function forOrganisationUnit(OrganisationUnit $organisationUnit): self
     {
         setPermissionsTeamId($organisationUnit->id);
+        $this->guard_name = 'organisation_unit';
 
         return $this;
     }

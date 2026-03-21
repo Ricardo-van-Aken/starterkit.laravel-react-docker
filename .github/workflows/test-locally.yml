@@ -133,29 +133,29 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Pull Docker Compose images
+      - name: Pull Docker Compose images needed to mock production
         working-directory: website
         run: |
           IMAGE_REPO="${{ env.IMAGE_REPO }}" \
           TAG_ADDITION="${{ env.RUN_ID }}" \
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing pull
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
 
-      - name: Start Docker services
+      - name: Start Docker services to mock production
         working-directory: website
         run: |
           IMAGE_REPO="${{ env.IMAGE_REPO }}" \
           TAG_ADDITION="${{ env.RUN_ID }}" \
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing up -d --no-build
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
 
-      - name: Run Laravel tests on main db in parallel
+      - name: Run Laravel tests on mock production in parallel
         run: |
-          docker exec -u www-data laravel_app sh -c '. /usr/local/bin/test_parallel.sh'
+          docker exec -u www-data laravel_app sh -c 'bash /usr/local/bin/test.sh --parallel'
 
       - name: Cleanup
         if: always()
         working-directory: website
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.testing --profile testing down -v
+          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
 
   static-analysis:
     name: Run static analysis

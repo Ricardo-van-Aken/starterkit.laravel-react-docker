@@ -7,8 +7,8 @@ use App\Enums\OrgUnitRoleName;
 use App\Enums\TenantPermissionName;
 use App\Enums\TenantRoleName;
 use App\Models\Role;
+use App\Models\Permission;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 class DefaultRolesAndPermissionsSeeder extends Seeder

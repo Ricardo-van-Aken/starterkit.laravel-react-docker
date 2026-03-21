@@ -20,7 +20,7 @@ test('user can create a tenant', function () {
     /* --- Assertions --- */
     $response->assertSessionHasNoErrors();
     $response->assertRedirect();
-    $response->assertSessionHas('status', 'tenant-created');
+    $response->assertSessionHas('status', __('tenant.created'));
     
     // Verify Database Insert
     $this->assertDatabaseHas('tenants', [
@@ -33,8 +33,7 @@ test('user can create a tenant', function () {
     expect($tenant->users->contains($user))->toBeTrue();
     
     // Verify 'Admin' Role Assignment
-    setPermissionsTeamId($tenant->id);
-    expect($user->hasRole(TenantRoleName::Admin->value))->toBeTrue();
+    expect($user->forTenant($tenant)->hasRole(TenantRoleName::Admin->value))->toBeTrue();
 });
 
 test('user cannot create more tenants than their limit', function () {
@@ -65,8 +64,7 @@ test('user can update a tenant they belong to and have permissions for', functio
     $user->tenants()->attach($tenant->id);
     
     // Assign permission using the role seeded by our Seeder
-    setPermissionsTeamId($tenant->id);
-    $user->givePermissionTo(TenantPermissionName::UpdateTenantDetails->value);
+    $user->forTenant($tenant)->givePermissionTo(TenantPermissionName::UpdateTenantDetails->value);
 
     /* --- Request --- */
     $response = $this->actingAs($user)->put(route('tenants.update', $tenant), [
@@ -113,8 +111,7 @@ test('user can delete a tenant they have DeleteTenant permission for', function 
     $user->tenants()->attach($tenant->id);
     
     // Assign role seeded by our Seeder
-    setPermissionsTeamId($tenant->id);
-    $user->givePermissionTo(TenantPermissionName::DeleteTenant->value);
+    $user->forTenant($tenant)->givePermissionTo(TenantPermissionName::DeleteTenant->value);
 
     /* --- Request --- */
     $response = $this->actingAs($user)->delete(route('tenants.destroy', $tenant));
@@ -157,8 +154,7 @@ test('user cannot update a tenant they belong to if they only have Admin permiss
     // Create a primary tenant and make the user an Admin of it
     $userTenant = Tenant::factory()->create(['name' => 'Users Own Tenant']);
     $user->tenants()->attach($userTenant->id);
-    setPermissionsTeamId($userTenant->id);
-    $user->assignRole(TenantRoleName::Admin->value);
+    $user->forTenant($userTenant)->assignRole(TenantRoleName::Admin->value);
 
     // Create a separate tenant that the user IS attached to, but has NO role in
     $otherTenant = Tenant::factory()->create(['name' => 'Other Persons Tenant']);

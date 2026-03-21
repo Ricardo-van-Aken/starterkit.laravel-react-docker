@@ -29,7 +29,7 @@ services:
         condition: service_healthy
         required: false
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
   # Nginx Web Server
   nginx:
@@ -52,7 +52,7 @@ services:
         required: false
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
   # Redis for sessions and caching
   redis:
@@ -66,7 +66,7 @@ services:
       - redis_password
     environment:
       REDIS_PASS_FILE: /run/secrets/redis_password
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing", "staging", "production"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
   # Certbot for generating real SSL certificates
   certbot:
@@ -113,7 +113,7 @@ services:
       timeout: 5s
       retries: 55
     command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod"]
   
   # Local Certificate Generation Service
   cert_local:
@@ -126,7 +126,7 @@ services:
       - APP_DOMAIN=${APP_DOMAIN}
     volumes:
       - certbot_certs:/etc/letsencrypt/:rw  # Bind-mount: Share the generated SSL certificates with nginx
-    profiles: ["all", "dev-bindmount", "dev-volume", "testing"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod"]
 
   # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
   phpmyadmin-admin:
@@ -149,7 +149,7 @@ services:
     secrets:
       - mysql_app_db_username
       - mysql_app_db_password
-    profiles: ["all", "dev-bindmount", "dev-volume"]
+    profiles: ["all", "local-bindmount", "local-volume"]
   # PHPMyAdmin for inspecting the database, logged in as the admin-testing user used by Laravel for testing
   phpmyadmin-testing:
     # Docker Official Image: phpmyadmin:fpm-alpine. Jan 17, 2026 at 4:41 am
@@ -171,7 +171,7 @@ services:
     secrets:
       - mysql_testing_db_username
       - mysql_testing_db_password
-    profiles: ["all", "dev-bindmount", "dev-volume"]
+    profiles: ["all", "local-bindmount", "local-volume"]
 
   # phpRedisAdmin for inspecting Redis data, similar to PHPMyAdmin
   phpredisadmin:
@@ -188,7 +188,7 @@ services:
       - 8082:80
     depends_on:
       - redis
-    profiles: ["all", "dev-bindmount", "dev-volume"]
+    profiles: ["all", "local-bindmount", "local-volume"]
 
 volumes:
   app_files:

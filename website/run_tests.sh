@@ -7,7 +7,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Start/refresh the testing environment containers
-./run_env.sh dev-volume
+./run_env.sh mock-prod
 
 # Run the Laravel test suite using the provided script inside the container
 echo "Running tests via clone_and_test.sh..."

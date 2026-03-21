@@ -24,8 +24,7 @@ class TenantController extends Controller
             $request->user()->tenants()->attach($tenant->id);
 
             // Assign proper roles using spatie/laravel-permission
-            setPermissionsTeamId($tenant->id);
-            $request->user()->assignRole(TenantRoleName::Admin->value);
+            $request->user()->forTenant($tenant)->assignRole(TenantRoleName::Admin->value);
 
             return $tenant;
         });

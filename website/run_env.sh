@@ -18,20 +18,20 @@ fi
 
 # Select the appropriate .env file and docker-compose profile based on the mode
 case "$MODE" in
-  dev-volume)
+  local-volume)
     # Local development with volume
-    ENV_FILE="docker/.env.dev-volume"
-    PROFILE="dev-volume"
+    ENV_FILE="docker/.env.local-volume"
+    PROFILE="local-volume"
     ;;
-  dev-bindmount)
+  local-bindmount)
     # Local development with bindmount
-    ENV_FILE="docker/.env.dev-bindmount"
-    PROFILE="dev-bindmount"
+    ENV_FILE="docker/.env.local-bindmount"
+    PROFILE="local-bindmount"
     ;;
-  testing)
+  mock-prod)
     # Simulates production locally for testing purposes
-    ENV_FILE="docker/.env.testing"
-    PROFILE="testing"
+    ENV_FILE="docker/.env.mock-prod"
+    PROFILE="mock-prod"
     ;;
   staging)
     # Staging, should be run on real infrastructure, as close to production as possible
@@ -46,7 +46,7 @@ case "$MODE" in
   *)
     # Invalid mode provided
     echo "Invalid mode: $MODE"
-    echo "Valid options: dev-volume, dev-bindmount, testing, staging, production"
+    echo "Valid options: local-volume, local-bindmount, mock-prod, staging, production"
     exit 1
     ;;
 esac
@@ -55,7 +55,7 @@ esac
 if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
   echo "Remote environment selected, pulling latest versions of images from registry..."
   docker compose -p $PROJECT_NAME -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
-elif [ "$MODE" = "dev-volume" ] || [ "$MODE" = "dev-bindmount" ] || [ "$MODE" = "testing" ]; then
+elif [ "$MODE" = "local-volume" ] || [ "$MODE" = "local-bindmount" ] || [ "$MODE" = "mock-prod" ]; then
   echo "Local environment selected, building images locally..."
 
   # Build the base image with the host user's identifiers for image www-data user. This will resolve potential

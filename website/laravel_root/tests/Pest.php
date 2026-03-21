@@ -23,12 +23,41 @@ pest()->extend(Tests\TestCase::class)
     ->in('Feature')
     ->beforeEach(function () {
         $this->seed(\Database\Seeders\DatabaseSeeder::class);
-
-        // Flush the entire Redis testing database (DB index 5) between tests.
-        // This clears all cache, sessions, and queued jobs, since these are configured to use DB 5 in
-        // phpunit.isolated.xml.
+    })
+    ->afterEach(function () {
+        // Clear the sandboxed Redis keys belonging to THIS parallel test process 
+        // by identifying active connections used by Cache, Session, and Queue.
+        $connections = [];
         if (config('cache.default') === 'redis') {
-            Redis::connection('testing')->flushdb();
+            $connections[] = config('cache.stores.redis.connection', 'default');
+        }
+        if (config('session.driver') === 'redis') {
+            $connections[] = config('session.connection', 'default');
+        }
+        if (config('queue.default') === 'redis') {
+            $connections[] = config('queue.connections.redis.connection', 'default');
+        }
+
+        $prefix = config('database.redis.options.prefix', '');
+        $prefixLength = strlen($prefix);
+
+        foreach (array_unique($connections) as $connection) {
+            $redis = Redis::connection($connection);
+            
+            // Note: `$redis->keys('*')` automatically takes only the keys with the prefix defined in
+            // config('database.redis.options.prefix', '')
+            if ($keys = $redis->keys('*')) {
+
+                // Remove prefix from all redis keys to get the actual key
+                if ($prefixLength > 0) {
+                    $keys = array_map(function ($key) use ($prefixLength) {
+                        return substr($key, $prefixLength);
+                    }, $keys);
+                }
+
+                // Remove all keys from the redis connection
+                $redis->del(...$keys);
+            }
         }
     });
 
