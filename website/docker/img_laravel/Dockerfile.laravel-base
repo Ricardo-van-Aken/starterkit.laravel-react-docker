@@ -28,8 +28,8 @@ RUN apt-get update && apt-get install -y \
     # mysql-client for testrunning pipeline. Used by clone_db_for_testing.sh
     default-mysql-client
 
-# Laravels database drivers for MariaDB/mySQL
-RUN docker-php-ext-install pdo pdo_mysql
+# Laravels database drivers for MariaDB/mySQL and bcmath for laravel-lang
+RUN docker-php-ext-install pdo pdo_mysql bcmath
 
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
@@ -74,16 +74,16 @@ COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials.sh           /usr/local/bin/r
 COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials-testing.sh   /usr/local/bin/read-db-credentials-testing.sh
 COPY ${DOCKERFILE_DIR}/scripts/read-redis-password.sh           /usr/local/bin/read-redis-password.sh
 COPY ${DOCKERFILE_DIR}/scripts/clone_db_for_testing.sh          /usr/local/bin/clone_db_for_testing.sh
-COPY ${DOCKERFILE_DIR}/scripts/clone_and_test.sh                /usr/local/bin/clone_and_test.sh
-COPY ${DOCKERFILE_DIR}/scripts/test_parallel.sh                 /usr/local/bin/test_parallel.sh
+COPY ${DOCKERFILE_DIR}/scripts/test_cloned_db.sh                /usr/local/bin/test_cloned_db.sh
+COPY ${DOCKERFILE_DIR}/scripts/test.sh                          /usr/local/bin/test.sh
 
 # Set permissions
 RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh
-RUN chown root:www-data         /usr/local/bin/test_parallel.sh                 && chmod 550 /usr/local/bin/test_parallel.sh
+RUN chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh
 
 RUN chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh
 RUN chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh
 
-RUN chown root:testrunner       /usr/local/bin/clone_and_test.sh                && chmod 550 /usr/local/bin/clone_and_test.sh
+RUN chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh
 RUN chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
 
