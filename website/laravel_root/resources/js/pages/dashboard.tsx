@@ -1,4 +1,4 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { PlaceholderPattern } from '@/components/starterkit/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
