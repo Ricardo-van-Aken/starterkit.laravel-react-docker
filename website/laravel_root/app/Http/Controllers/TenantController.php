@@ -20,11 +20,14 @@ class TenantController extends Controller
         $tenant = DB::transaction(function () use ($request) {
             $tenant = Tenant::create($request->validated());
 
-            // Attach the currently authenticated user to the tenant
-            $request->user()->tenants()->attach($tenant->id);
+            /** @var \App\Models\User $user */
+            $user = $request->user();
 
-            // Assign proper roles using spatie/laravel-permission
-            $request->user()->forTenant($tenant)->assignRole(TenantRoleName::Admin->value);
+            // Attach the currently authenticated user to the tenant
+            $user->tenants()->attach($tenant->id);
+
+            // Assign proper roles dynamically
+            $user->assignTenantRole($tenant, TenantRoleName::Admin);
 
             return $tenant;
         });

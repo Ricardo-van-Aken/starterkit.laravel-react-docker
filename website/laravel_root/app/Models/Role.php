@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
-    use HasUuids, HasFactory;
+    use HasUuids;
 
     protected $fillable = [
         'name',
@@ -25,6 +25,7 @@ class Role extends SpatieRole
         return 'uuid';
     }
 
+    /** @return array<int, string> */
     public function uniqueIds(): array
     {
         return ['uuid'];

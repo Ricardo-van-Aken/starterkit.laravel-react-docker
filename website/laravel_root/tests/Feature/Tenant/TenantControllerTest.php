@@ -33,7 +33,7 @@ test('user can create a tenant', function () {
     expect($tenant->users->contains($user))->toBeTrue();
     
     // Verify 'Admin' Role Assignment
-    expect($user->forTenant($tenant)->hasRole(TenantRoleName::Admin->value))->toBeTrue();
+    expect($user->hasTenantRole($tenant, TenantRoleName::Admin))->toBeTrue();
 });
 
 test('user cannot create more tenants than their limit', function () {
@@ -64,7 +64,8 @@ test('user can update a tenant they belong to and have permissions for', functio
     $user->tenants()->attach($tenant->id);
     
     // Assign permission using the role seeded by our Seeder
-    $user->forTenant($tenant)->givePermissionTo(TenantPermissionName::UpdateTenantDetails->value);
+    setPermissionsTeamId($tenant->id);
+    $user->givePermissionTo(\App\Models\Permission::findByName(TenantPermissionName::UpdateTenantDetails->value, 'tenant'));
 
     /* --- Request --- */
     $response = $this->actingAs($user)->put(route('tenants.update', $tenant), [
@@ -111,7 +112,7 @@ test('user can delete a tenant they have DeleteTenant permission for', function 
     $user->tenants()->attach($tenant->id);
     
     // Assign role seeded by our Seeder
-    $user->forTenant($tenant)->givePermissionTo(TenantPermissionName::DeleteTenant->value);
+    $user->assignTenantRole($tenant, TenantRoleName::Admin);
 
     /* --- Request --- */
     $response = $this->actingAs($user)->delete(route('tenants.destroy', $tenant));
@@ -154,7 +155,7 @@ test('user cannot update a tenant they belong to if they only have Admin permiss
     // Create a primary tenant and make the user an Admin of it
     $userTenant = Tenant::factory()->create(['name' => 'Users Own Tenant']);
     $user->tenants()->attach($userTenant->id);
-    $user->forTenant($userTenant)->assignRole(TenantRoleName::Admin->value);
+    $user->assignTenantRole($userTenant, TenantRoleName::Admin);
 
     // Create a separate tenant that the user IS attached to, but has NO role in
     $otherTenant = Tenant::factory()->create(['name' => 'Other Persons Tenant']);

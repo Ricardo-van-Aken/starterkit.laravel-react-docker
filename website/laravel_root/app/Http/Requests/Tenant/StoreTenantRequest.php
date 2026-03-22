@@ -8,7 +8,10 @@ class StoreTenantRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\Tenant::class);
+        /** @var \App\Models\User $user */
+        $user = $this->user();
+
+        return $user->can('create', \App\Models\Tenant::class);
     }
 
     /** @return array<string, array<int, string>> */

@@ -11,7 +11,10 @@ class DeleteTenantRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('delete', $this->route('tenant'));
+        /** @var \App\Models\User $user */
+        $user = $this->user();
+
+        return $user->can('delete', $this->route('tenant'));
     }
 
     /**

@@ -11,7 +11,10 @@ class UpdateTenantRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('tenant'));
+        /** @var \App\Models\User $user */
+        $user = $this->user();
+
+        return $user->can('update', $this->route('tenant'));
     }
 
     /**

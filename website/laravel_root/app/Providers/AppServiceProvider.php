@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -15,7 +16,8 @@ class AppServiceProvider extends ServiceProvider
         // We do this in register() so the prefix is bound BEFORE any packages (like Spatie) 
         // boot up and accidentally cache the original connection string.
         if ($this->app->environment('testing')) {
-            $prefix = env('TEST_TOKEN') ? "test_" . env('TEST_TOKEN') . "_" : "test_";
+            $token = ParallelTesting::token();
+            $prefix = $token ? "test_{$token}_" : "test_";
             config(['database.redis.options.prefix' => $prefix]);
         }
     }

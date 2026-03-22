@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {
+    /** @use HasFactory<\Database\Factories\TenantFactory> */
     use HasUuids, HasFactory;
 
     protected $fillable = [
@@ -27,6 +28,7 @@ class Tenant extends Model
         return 'uuid';
     }
 
+    /** @return array<int, string> */
     public function uniqueIds(): array
     {
         return ['uuid'];

@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 
 class Permission extends SpatiePermission
 {
-    use HasUuids, HasFactory;
+    use HasUuids;
 
     protected $fillable = [
         'name',
@@ -24,6 +24,7 @@ class Permission extends SpatiePermission
         return 'uuid';
     }
 
+    /** @return array<int, string> */
     public function uniqueIds(): array
     {
         return ['uuid'];

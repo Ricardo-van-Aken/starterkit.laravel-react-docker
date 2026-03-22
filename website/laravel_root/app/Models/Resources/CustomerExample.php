@@ -33,6 +33,7 @@ class CustomerExample extends Model implements OrganisationResource
         return 'uuid';
     }
 
+    /** @return array<int, string> */
     public function uniqueIds(): array
     {
         return ['uuid'];

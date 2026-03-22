@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Models\Tenant;
 use App\Models\OrganisationUnit;
+use App\Models\Role;
+use App\Enums\TenantRoleName;
+use App\Enums\OrgUnitRoleName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -61,6 +64,7 @@ class User extends Authenticatable
         return 'uuid';
     }
 
+    /** @return array<int, string> */
     public function uniqueIds(): array
     {
         return ['uuid'];
@@ -78,20 +82,40 @@ class User extends Authenticatable
         return $this->belongsToMany(OrganisationUnit::class, 'organisation_unit_user');
     }
 
-    public function forTenant(Tenant $tenant): self
+    public function assignTenantRole(Tenant $tenant, string|TenantRoleName $role): self
     {
+        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
         setPermissionsTeamId($tenant->id);
-        $this->guard_name = 'tenant';
+
+        $this->assignRole(Role::findByName($roleName, 'tenant'));
 
         return $this;
     }
 
-    public function forOrganisationUnit(OrganisationUnit $organisationUnit): self
+    public function assignOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): self
     {
-        setPermissionsTeamId($organisationUnit->id);
-        $this->guard_name = 'organisation_unit';
+        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
+        setPermissionsTeamId($orgUnit->id);
+
+        $this->assignRole(Role::findByName($roleName, 'organisation_unit'));
 
         return $this;
+    }
+
+    public function hasTenantRole(Tenant $tenant, string|TenantRoleName $role): bool
+    {
+        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
+        setPermissionsTeamId($tenant->id);
+
+        return $this->hasRole($roleName, 'tenant');
+    }
+
+    public function hasOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): bool
+    {
+        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
+        setPermissionsTeamId($orgUnit->id);
+
+        return $this->hasRole($roleName, 'organisation_unit');
     }
 
     public function canCreateTenant(): bool
