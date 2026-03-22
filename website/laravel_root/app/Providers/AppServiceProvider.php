@@ -11,7 +11,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Sandbox Redis securely for parallel and sequential testing runs.
+        // We do this in register() so the prefix is bound BEFORE any packages (like Spatie) 
+        // boot up and accidentally cache the original connection string.
+        if ($this->app->environment('testing')) {
+            $prefix = env('TEST_TOKEN') ? "test_" . env('TEST_TOKEN') . "_" : "test_";
+            config(['database.redis.options.prefix' => $prefix]);
+        }
     }
 
     /**
@@ -19,9 +25,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Enforce Redis isolation during Parallel Testing
-        if (app()->runningUnitTests() && env('TEST_TOKEN')) {
-            config(['database.redis.options.prefix' => "test_" . env('TEST_TOKEN') . "_"]);
-        }
+        //
     }
 }
