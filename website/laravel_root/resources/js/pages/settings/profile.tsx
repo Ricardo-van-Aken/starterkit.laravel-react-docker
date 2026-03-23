@@ -4,7 +4,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 
-import DeleteUser from '@/components/delete-user';
+import DeleteUser from '@/components/starterkit/delete-user';
 import HeadingSmall from '@/components/starterkit/heading-small';
 import InputError from '@/components/starterkit/input-error';
 import { Button } from '@/components/ui/button';
