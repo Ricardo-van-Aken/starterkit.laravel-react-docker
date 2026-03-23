@@ -1,5 +1,5 @@
 // Components
-import TextLink from '@/components/text-link';
+import TextLink from '@/components/starterkit/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';

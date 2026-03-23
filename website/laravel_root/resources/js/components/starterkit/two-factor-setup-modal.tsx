@@ -1,4 +1,4 @@
-import InputError from '@/components/input-error';
+import InputError from '@/components/starterkit/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
