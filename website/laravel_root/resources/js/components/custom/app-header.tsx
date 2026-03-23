@@ -25,7 +25,7 @@ export function AppHeader({ breadcrumbs, user }: AppHeaderProps) {
             <div className="flex items-center gap-2 px-4">
                 <LanguageSelector />
                 <ThemeSelector />
-                <div className="ml-1.5">
+                <div className="ml-2">
                     <UserMenuDropdown user={user} />
                 </div>
             </div>

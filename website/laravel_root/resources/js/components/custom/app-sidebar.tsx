@@ -1,7 +1,7 @@
 import AppLogo from '@/components/starterkit/app-logo';
 import { NavFooter } from '@/components/starterkit/nav-footer';
 import { NavMain } from '@/components/starterkit/nav-main';
-import { NavUser } from '@/components/starterkit/nav-user';
+import { TenantSelector } from '@/components/custom/tenant-selector';
 import {
     Sidebar,
     SidebarContent,
@@ -13,15 +13,21 @@ import {
     SidebarRail,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index } from '@/routes/tenants';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Building, Folder, LayoutGrid } from 'lucide-react';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Tenants',
+        href: index(),
+        icon: Building,
     },
 ];
 
@@ -60,7 +66,7 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
+                <TenantSelector />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

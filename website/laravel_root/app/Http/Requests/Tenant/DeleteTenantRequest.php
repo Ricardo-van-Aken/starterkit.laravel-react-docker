@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Services\TenantManager;
 
 class DeleteTenantRequest extends FormRequest
 {
@@ -14,7 +15,7 @@ class DeleteTenantRequest extends FormRequest
         /** @var \App\Models\User $user */
         $user = $this->user();
 
-        return $user->can('delete', $this->route('tenant'));
+        return $user->can('delete', app(TenantManager::class)->get());
     }
 
     /**

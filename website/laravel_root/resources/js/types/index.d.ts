@@ -3,6 +3,9 @@ import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
     user: User;
+    tenant: Tenant | null;
+    tenants: Tenant[];
+    roles: string[];
 }
 
 export interface BreadcrumbItem {
@@ -40,4 +43,13 @@ export interface User {
     created_at: string;
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
+}
+
+export interface Tenant {
+    id: number;
+    uuid: string;
+    name: string;
+    users_count?: number;
+    organization_units_count?: number;
+    created_at: string;
 }

@@ -17,9 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            \App\Http\Middleware\SetActiveTenant::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->alias([
+            'ensure.tenant' => \App\Http\Middleware\EnsureTenant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

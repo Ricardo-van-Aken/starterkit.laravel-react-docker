@@ -3,19 +3,16 @@
 namespace App\Http\Requests\Tenant;
 
 use Illuminate\Foundation\Http\FormRequest;
-use App\Services\TenantManager;
 
-class UpdateTenantRequest extends FormRequest
+class SwitchTenantRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        /** @var \App\Models\User $user */
-        $user = $this->user();
-
-        return $user->can('update', app(TenantManager::class)->get());
+        // Check if the user is associated with the tenant they are trying to switch to
+        return $this->user()->tenants()->where('uuid', $this->uuid)->exists();
     }
 
     /**
@@ -26,7 +23,7 @@ class UpdateTenantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'uuid' => ['required', 'string', 'exists:tenants,uuid'],
         ];
     }
 }
