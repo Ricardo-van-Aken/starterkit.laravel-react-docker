@@ -25,7 +25,7 @@ import { usePage, router, Link } from '@inertiajs/react';
 import { type SharedData } from '@/types';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import { CreateTenantDialog } from './dialogs/create-tenant-dialog';
-import { Avatar, AvatarIconFallback } from './avatar';
+import { TenantInfo } from '@/components/custom/tenant-info';
 
 export function TenantMenuDropdown() {
   const { auth } = usePage<SharedData>().props
@@ -78,13 +78,7 @@ export function TenantMenuDropdown() {
                             />
                         }
                     >
-                        <Avatar className="size-8 rounded-lg">
-                            <AvatarIconFallback seed={activeTenant.uuid} />
-                        </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">{activeTenant.name}</span>
-                            <span className="truncate text-xs">{auth.roles.join(', ')}</span>
-                        </div>
+                        <TenantInfo tenant={activeTenant} roles={auth.roles} />
                         <ChevronsUpDown className="ml-auto" />
                     </DropdownMenuTrigger>
 
@@ -131,10 +125,7 @@ export function TenantMenuDropdown() {
                                             onClick={() => handleSwitch(tenant.uuid)}
                                             className="gap-2 p-2"
                                         >
-                                            <Avatar size="sm" className="size-6 rounded-md">
-                                                <AvatarIconFallback seed={tenant.uuid} iconSize="size-3.5" variant="square" />
-                                            </Avatar>
-                                            <span className="flex-1 truncate">{tenant.name}</span>
+                                            <TenantInfo tenant={tenant} roles={auth.roles} />
                                             {activeTenant.uuid === tenant.uuid && (
                                                 <Check className="ml-auto size-4 text-primary" />
                                             )}

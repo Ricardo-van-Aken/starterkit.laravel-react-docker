@@ -61,7 +61,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                             data-test="logout-button"
                         />
                     }
-                    nativeButton={false}
+                    nativeButton={true}
                 >
                     <LogOut className="mr-2" />
                     Log out
