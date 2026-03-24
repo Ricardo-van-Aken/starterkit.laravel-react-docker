@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return Inertia::render('dashboard');
         })->name('dashboard');
 
+        Route::get('tenant/settings', [\App\Http\Controllers\TenantController::class, 'edit'])->name('tenant.edit');
         Route::put('tenant', [\App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
         Route::delete('tenant', [\App\Http\Controllers\TenantController::class, 'destroy'])
             ->middleware('password.confirm')

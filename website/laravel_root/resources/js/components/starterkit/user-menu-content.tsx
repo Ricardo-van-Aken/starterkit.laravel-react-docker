@@ -40,11 +40,11 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         <Link
                             className="block w-full"
                             href={edit()}
-                            as="button"
                             prefetch
                             onClick={cleanup}
                         />
                     }
+                    nativeButton={false}
                 >
                     <Settings className="mr-2" />
                     Settings
@@ -57,11 +57,11 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         <Link
                             className="block w-full"
                             href={logout()}
-                            as="button"
                             onClick={handleLogout}
                             data-test="logout-button"
                         />
                     }
+                    nativeButton={false}
                 >
                     <LogOut className="mr-2" />
                     Log out

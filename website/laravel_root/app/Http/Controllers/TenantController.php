@@ -61,6 +61,16 @@ class TenantController extends Controller
     }
 
     /**
+     * Show the form for editing the specified tenant.
+     */
+    public function edit(Request $request): Response
+    {
+        return Inertia::render('tenants/settings/edit', [
+            'tenant' => app(TenantManager::class)->get(),
+        ]);
+    }
+
+    /**
      * Update the specified tenant in storage.
      */
     public function update(UpdateTenantRequest $request): RedirectResponse

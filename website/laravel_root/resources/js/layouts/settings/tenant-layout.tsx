@@ -2,38 +2,40 @@ import Heading from '@/components/starterkit/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
-import { edit } from '@/routes/profile';
-import { show } from '@/routes/two-factor';
-import { edit as editPassword } from '@/routes/user-password';
+import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
-        href: edit(),
+        title: 'General',
+        href: TenantController.edit.url(),
         icon: null,
     },
     {
-        title: 'Password',
-        href: editPassword(),
+        title: 'Members',
+        href: '#',
         icon: null,
     },
     {
-        title: 'Two-Factor Auth',
-        href: show(),
+        title: 'Roles & Permissions',
+        href: '#',
         icon: null,
     },
     {
-        title: 'Appearance',
-        href: editAppearance(),
+        title: 'Security',
+        href: '#',
+        icon: null,
+    },
+    {
+        title: 'Billing & Subscription',
+        href: '#',
         icon: null,
     },
 ];
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
+export default function TenantSettingsLayout({ children }: PropsWithChildren) {
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
@@ -44,8 +46,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     return (
         <div className="px-4 py-6">
             <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
+                title="Tenant Settings"
+                description="Manage your tenant's information and members"
             />
 
             <div className="flex flex-col lg:flex-row lg:space-x-12">

@@ -1,7 +1,7 @@
 import AppLogo from '@/components/starterkit/app-logo';
 import { NavFooter } from '@/components/starterkit/nav-footer';
 import { NavMain } from '@/components/starterkit/nav-main';
-import { TenantSelector } from '@/components/custom/tenant-selector';
+import { TenantMenuDropdown } from '@/components/custom/tenant-menu-dropdown';
 import {
     Sidebar,
     SidebarContent,
@@ -66,7 +66,7 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
-                <TenantSelector />
+                <TenantMenuDropdown />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>
