@@ -29,7 +29,7 @@
 
         <!-- Cache: use Redis testing connection (DB index 11) to isolate from production data -->
         <env name="CACHE_STORE" value="redis"/>
-        <env name="REDIS_CACHE_STORE" value="cache_testing"/>
+        <env name="REDIS_CACHE_CONNECTION" value="cache_testing"/>
 
         <!-- Queues: use Redis testing connection (DB index 12) -->
         <env name="QUEUE_CONNECTION" value="redis"/>
