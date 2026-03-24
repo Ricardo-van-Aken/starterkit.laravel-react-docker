@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Services\TenantManager;
+use App\Services\ActiveTenant;
 
 class EnsureTenant
 {
@@ -16,7 +16,7 @@ class EnsureTenant
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!app(TenantManager::class)->hasActiveTenant()) {
+        if (!app(ActiveTenant::class)->hasActiveTenant()) {
             return redirect()->route('tenants.index');
         }
 

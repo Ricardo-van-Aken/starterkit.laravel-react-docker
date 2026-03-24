@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\ServiceProvider;
-use App\Services\TenantManager;
+use App\Services\ActiveTenant;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,8 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->scoped(TenantManager::class, function() {
-            return new TenantManager();
+        $this->app->scoped(ActiveTenant::class, function() {
+            return new ActiveTenant();
         });
 
         // Sandbox Redis securely for parallel and sequential testing runs.

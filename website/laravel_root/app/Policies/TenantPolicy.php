@@ -36,4 +36,32 @@ class TenantPolicy
         
         return $user->hasPermissionTo(TenantPermissionName::DeleteTenant->value, 'tenant');
     }
+
+    /**
+     * Determine whether the user can switch to the model.
+     */
+    public function switch(User $user, Tenant $tenant): bool
+    {
+        return $user->tenants()->where('tenants.id', $tenant->id)->exists();
+    }
+
+    /**
+     * Determine whether the user can view the tenant members.
+     */
+    public function viewMembers(User $user, Tenant $tenant): bool
+    {
+        setPermissionsTeamId($tenant->id);
+        
+        return $user->hasPermissionTo(TenantPermissionName::ViewTenantMembers->value, 'tenant');
+    }
+
+    /**
+     * Determine whether the user can invite new members.
+     */
+    public function inviteMember(User $user, Tenant $tenant): bool
+    {
+        setPermissionsTeamId($tenant->id);
+        
+        return $user->hasPermissionTo(TenantPermissionName::InviteTenantMembers->value, 'tenant');
+    }
 }

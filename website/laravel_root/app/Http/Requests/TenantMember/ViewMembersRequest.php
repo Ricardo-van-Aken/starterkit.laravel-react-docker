@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Tenant;
+namespace App\Http\Requests\TenantMember;
 
+use App\Services\ActiveTenant;
 use Illuminate\Foundation\Http\FormRequest;
 
-class SwitchTenantRequest extends FormRequest
+class ViewMembersRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,7 +15,7 @@ class SwitchTenantRequest extends FormRequest
         /** @var \App\Models\User $user */
         $user = $this->user();
 
-        return $user->can('switch', $this->route('tenant'));
+        return $user->can('viewMembers', app(ActiveTenant::class)->getOrFail());
     }
 
     /**

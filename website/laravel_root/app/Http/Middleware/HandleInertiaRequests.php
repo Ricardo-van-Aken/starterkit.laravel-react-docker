@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-use App\Services\TenantManager;
+use App\Services\ActiveTenant;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,7 +45,7 @@ class HandleInertiaRequests extends Middleware
 
         /** @var \App\Models\User|null $user */
         $user = $request->user();
-        $activeTenant = app(TenantManager::class)->get();
+        $activeTenant = app(ActiveTenant::class)->get();
         
         $roles = [];
         if ($user && $activeTenant) {

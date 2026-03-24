@@ -21,7 +21,6 @@ return new class extends Migration
 
         // Pivot table for tenants and users
         Schema::create('tenant_user', function (Blueprint $table) {
-            $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
@@ -69,7 +68,6 @@ return new class extends Migration
 
         // Pivot table for organisation units and users
         Schema::create('organisation_unit_user', function (Blueprint $table) {
-            $table->id();
             $table->foreignId('organisation_unit_id')->constrained('organisation_units')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();

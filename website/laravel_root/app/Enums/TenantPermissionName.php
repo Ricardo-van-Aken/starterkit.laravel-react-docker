@@ -26,6 +26,7 @@ enum TenantPermissionName: string
     case EditTenantRoles = 'edit_tenant_roles';
 
     // Tenant Member Management
+    case ViewTenantMembers = 'view_tenant_members';
     case InviteTenantMembers = 'invite_tenant_members';
     case UpdateTenantMembers = 'update_tenant_members';
     case DeleteTenantMembers = 'delete_tenant_members';

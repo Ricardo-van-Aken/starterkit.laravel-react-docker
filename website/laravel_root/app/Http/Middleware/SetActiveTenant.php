@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\Tenant;
-use App\Services\TenantManager;
+use App\Services\ActiveTenant;
 
 class SetActiveTenant
 {
@@ -38,7 +38,7 @@ class SetActiveTenant
         }
 
         if ($tenant) {
-            app(TenantManager::class)->set($tenant);
+            app(ActiveTenant::class)->set($tenant);
         }
 
         return $next($request);

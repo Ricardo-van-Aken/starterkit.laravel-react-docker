@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
+import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
@@ -15,7 +16,7 @@ const sidebarNavItems: NavItem[] = [
     },
     {
         title: 'Members',
-        href: '#',
+        href: TenantMemberController.index.url(),
         icon: null,
     },
     {

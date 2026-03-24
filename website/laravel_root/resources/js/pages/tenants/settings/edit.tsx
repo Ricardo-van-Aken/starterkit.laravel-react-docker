@@ -37,6 +37,7 @@ export default function TenantSettings({
                     />
 
                     <Form
+                        key={tenant.uuid}
                         {...TenantController.update.form()}
                         options={{
                             preserveScroll: true,

@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Tenant;
 
-class TenantManager
+class ActiveTenant
 {
     /**
      * The active tenant for the current request.
@@ -24,6 +24,20 @@ class TenantManager
      */
     public function get(): ?Tenant
     {
+        return $this->tenant;
+    }
+
+    /**
+     * Get the active tenant or fail.
+     *
+     * @throws \RuntimeException
+     */
+    public function getOrFail(): Tenant
+    {
+        if (!$this->tenant) {
+            throw new \RuntimeException('No active tenant set.');
+        }
+
         return $this->tenant;
     }
 

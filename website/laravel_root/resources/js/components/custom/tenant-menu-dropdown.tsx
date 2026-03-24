@@ -36,7 +36,7 @@ export function TenantMenuDropdown() {
   const tenants = auth.tenants || []
 
   const handleSwitch = (uuid: string) => {
-    router.post(TenantController.switch.url(), { uuid })
+    router.post(TenantController.switch({ tenant: uuid }).url)
   }
 
   if (!activeTenant) {

@@ -9,7 +9,7 @@ use App\Http\Requests\Tenant\UpdateTenantRequest;
 use App\Http\Requests\Tenant\DeleteTenantRequest;
 use App\Models\Tenant;
 use App\Enums\TenantRoleName;
-use App\Services\TenantManager;
+use App\Services\ActiveTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -20,9 +20,9 @@ class TenantController extends Controller
     /**
      * Switch the active tenant in the session.
      */
-    public function switch(SwitchTenantRequest $request): RedirectResponse
+    public function switch(SwitchTenantRequest $request, Tenant $tenant): RedirectResponse
     {
-        $request->session()->put('active_tenant_uuid', $request->uuid);
+        $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
         return redirect()->back()->with('status', 'Tenant switched successfully.');
     }
@@ -32,8 +32,11 @@ class TenantController extends Controller
      */
     public function index(Request $request): Response
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         return Inertia::render('tenants/index', [
-            'tenants' => $request->user()->tenants()->get(),
+            'tenants' => $user->tenants()->get(),
         ]);
     }
 
@@ -66,7 +69,7 @@ class TenantController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('tenants/settings/edit', [
-            'tenant' => app(TenantManager::class)->get(),
+            'tenant' => app(ActiveTenant::class)->getOrFail(),
         ]);
     }
 
@@ -75,7 +78,8 @@ class TenantController extends Controller
      */
     public function update(UpdateTenantRequest $request): RedirectResponse
     {
-        $tenant = app(TenantManager::class)->get();
+        $tenant = app(ActiveTenant::class)->getOrFail();
+
         $tenant->update($request->validated());
 
         return redirect()->back()->with('status', __('tenant.updated'));
@@ -86,7 +90,8 @@ class TenantController extends Controller
      */
     public function destroy(DeleteTenantRequest $request): RedirectResponse
     {
-        $tenant = app(TenantManager::class)->get();
+        $tenant = app(ActiveTenant::class)->getOrFail();
+
         $tenant->delete();
 
         return redirect()->route('dashboard')->with('status', __('tenant.deleted'));
