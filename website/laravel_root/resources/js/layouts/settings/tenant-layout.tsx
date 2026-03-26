@@ -4,39 +4,59 @@ import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberController';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type NavItem, SharedData } from '@/types';
+import { TenantPermissionName } from '@/types/enums';
+import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const sidebarNavItems: NavItem[] = [
+interface TenantNavItem extends NavItem {
+    permission?: string;
+}
+
+const sidebarNavItems: TenantNavItem[] = [
     {
         title: 'General',
         href: TenantController.edit.url(),
         icon: null,
+        permission: TenantPermissionName.UpdateTenantDetails,
     },
     {
         title: 'Members',
         href: TenantMemberController.index.url(),
         icon: null,
+        permission: TenantPermissionName.ViewTenantMembers,
     },
     {
         title: 'Roles & Permissions',
         href: '#',
         icon: null,
+        permission: TenantPermissionName.ViewTenantRoles,
     },
     {
         title: 'Security',
         href: '#',
         icon: null,
+        permission: TenantPermissionName.UpdateTenantDetails,
     },
     {
         title: 'Billing & Subscription',
         href: '#',
         icon: null,
+        permission: TenantPermissionName.ViewBillingInformation,
+    },
+    {
+        title: 'Advanced Settings',
+        href: '#',
+        icon: null,
+        permission: 'non_existing_permission',
     },
 ];
 
 export default function TenantSettingsLayout({ children }: PropsWithChildren) {
+    const { auth } = usePage<SharedData>().props;
+    const permissions = auth.active_tenant?.permissions ?? [];
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
@@ -53,28 +73,50 @@ export default function TenantSettingsLayout({ children }: PropsWithChildren) {
 
             <div className="flex flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
-                    <nav className="flex flex-col space-y-1 space-x-0">
-                        {sidebarNavItems.map((item, index) => (
-                            <Button
-                                key={`${resolveUrl(item.href)}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                render={<Link href={item.href} />}
-                                nativeButton={false}
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': isSameUrl(
-                                        currentPath,
-                                        item.href,
-                                    ),
-                                })}
-                            >
-                                {item.icon && (
-                                    <item.icon className="h-4 w-4" />
-                                )}
-                                {item.title}
-                            </Button>
-                        ))}
-                    </nav>
+                    <TooltipProvider>
+                        <nav className="flex flex-col space-y-1 space-x-0">
+                            {sidebarNavItems.map((item, index) => {
+                                const disabled = !!(item.permission && !permissions.includes(item.permission));
+                                const isActive = !disabled && isSameUrl(currentPath, item.href);
+                                
+                                const button = (
+                                    <Button
+                                        key={`${resolveUrl(item.href)}-${index}`}
+                                        size="sm"
+                                        variant="ghost"
+                                        render={!disabled ? <Link href={item.href} /> : undefined}
+                                        nativeButton={disabled}
+                                        disabled={disabled}
+                                        className={cn('w-full justify-start', {
+                                            'bg-muted': isActive,
+                                        })}
+                                    >
+                                        {item.icon && (
+                                            <item.icon className="h-4 w-4" />
+                                        )}
+                                        {item.title}
+                                    </Button>
+                                );
+
+                                if (disabled) {
+                                    return (
+                                        <Tooltip key={index}>
+                                            <TooltipTrigger>
+                                                <div className="w-full cursor-not-allowed">
+                                                    {button}
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                You don't have permission to access {item.title}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    );
+                                }
+
+                                return button;
+                            })}
+                        </nav>
+                    </TooltipProvider>
                 </aside>
 
                 <Separator className="my-6 lg:hidden" />

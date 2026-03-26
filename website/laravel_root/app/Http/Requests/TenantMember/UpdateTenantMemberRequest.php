@@ -21,12 +21,7 @@ class UpdateTenantMemberRequest extends FormRequest
         /** @var \App\Models\User $memberUser */
         $memberUser = $this->route('user');
 
-        // Check if user to be updated is a member of the tenant
-        if (! $tenant->users()->where('users.id', $memberUser->id)->exists()) {
-            abort(404, 'User not found in this tenant.');
-        }
-
-        return $user->can('update', [TenantMemberPolicy::class, $memberUser, $tenant]);
+        return $user->can('update', [TenantMemberPolicy::class, $memberUser, $tenant, $this->input('roles', [])]);
     }
 
     /**

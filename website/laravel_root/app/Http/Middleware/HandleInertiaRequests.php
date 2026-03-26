@@ -45,12 +45,30 @@ class HandleInertiaRequests extends Middleware
 
         /** @var \App\Models\User|null $user */
         $user = $request->user();
-        $activeTenant = app(ActiveTenant::class)->get();
-        
-        $roles = [];
-        if ($user && $activeTenant) {
-            setPermissionsTeamId($activeTenant->id);
-            $roles = $user->getRoleNames()->toArray();
+
+        // Get all tenants the user has access to
+        $tenants = collect();
+        if ($user) {
+            $tenants = $user->tenants()->get()->map(function ($tenant) use ($user) {
+                setPermissionsTeamId($tenant->id);
+                $tenant->roles = $user->getRoleNames()->toArray();
+                return $tenant;
+            });
+        }
+
+        // Get the active tenant
+        $activeTenant = null;
+        if ($tenant = app(ActiveTenant::class)->get()) {
+            // Restore context for the active tenant
+            setPermissionsTeamId($tenant->id);
+
+            // Try to find the active tenant in the already-mapped collection
+            $activeTenant = $tenants->firstWhere('uuid', $tenant->uuid);
+
+            // Pass users permissions with the active tenant
+            if ($activeTenant) {
+                $activeTenant->permissions = $user->getAllPermissions()->pluck('name')->toArray();
+            }
         }
 
         return [
@@ -59,9 +77,8 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $user,
-                'tenant' => $activeTenant,
-                'tenants' => $user ? $user->tenants()->get() : [],
-                'roles' => $roles,
+                'active_tenant' => $activeTenant,
+                'tenants' => $tenants, 
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

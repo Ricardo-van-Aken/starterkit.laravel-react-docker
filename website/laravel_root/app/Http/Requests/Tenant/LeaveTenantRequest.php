@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Requests\TenantMember;
+namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant;
 use App\Models\User;
-use App\Policies\TenantMemberPolicy;
-use App\Services\ActiveTenant;
+use App\Policies\TenantPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
-class DestroyTenantMemberRequest extends FormRequest
+class LeaveTenantRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -16,12 +16,10 @@ class DestroyTenantMemberRequest extends FormRequest
     {
         /** @var User $user */
         $user = $this->user();
-        $tenant = app(ActiveTenant::class)->getOrFail();
+        /** @var Tenant $tenant */
+        $tenant = $this->route('tenant');
 
-        /** @var User $memberUser */
-        $memberUser = $this->route('user');
-
-        return $user->can('delete', [TenantMemberPolicy::class, $memberUser, $tenant]);
+        return $user->can('leave', $tenant);
     }
 
     /**

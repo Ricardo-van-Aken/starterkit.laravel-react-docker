@@ -45,4 +45,11 @@ class TenantPolicy
         return $user->tenants()->where('tenants.id', $tenant->id)->exists();
     }
 
+    /**
+     * Determine whether the user can leave the tenant.
+     */
+    public function leave(User $user, Tenant $tenant): bool
+    {
+        return $user->tenants()->where('tenants.id', $tenant->id)->exists();
+    }
 }

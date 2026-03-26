@@ -10,8 +10,8 @@ use App\Http\Requests\TenantMember\UpdateTenantMemberRequest;
 use App\Http\Requests\TenantMember\IndexTenantMembersRequest;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
-use App\Policies\TenantMemberPolicy;
 use App\Services\ActiveTenant;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -53,22 +53,17 @@ class TenantMemberController extends Controller
      */
     public function update(UpdateTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var \App\Models\Tenant $tenant */
+        /** @var Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         /** @var array<int, string> $roles */
-        $roles = $request->validated()['roles'];
+        $roles = $request->validated('roles');
         /** @var array<int, string> $permissions */
-        $permissions = $request->validated()['permissions'];
+        $permissions = $request->validated('permissions');
 
-        $this->updateTenantMemberAction->handle(
-            $tenant,
-            $user,
-            $roles,
-            $permissions
-        );
+        $this->updateTenantMemberAction->handle($tenant, $user, $roles, $permissions);
 
-        return redirect()->back()->with('success', 'Member updated.');
+        return redirect()->back()->with('status', __('actions.member_updated'));
     }
 
     /**
@@ -76,11 +71,11 @@ class TenantMemberController extends Controller
      */
     public function destroy(DestroyTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var \App\Models\Tenant $tenant */
+        /** @var Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         $this->removeTenantMemberAction->handle($tenant, $user);
 
-        return redirect()->back()->with('success', 'Member removed from tenant.');
+        return redirect()->back()->with('status', __('actions.member_removed'));
     }
 }

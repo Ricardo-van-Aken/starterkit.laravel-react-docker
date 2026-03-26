@@ -1,4 +1,4 @@
-import { TenantCard } from '@/components/custom/tenant-card';
+import { TenantCard } from '@/components/custom/cards/tenant-card';
 import AppLayout from '@/layouts/app-layout';
 import { index as tenantsIndex } from '@/routes/tenants';
 import { type BreadcrumbItem, type Tenant } from '@/types';

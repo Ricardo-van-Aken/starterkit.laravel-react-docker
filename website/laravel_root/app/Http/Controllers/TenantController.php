@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests\Tenant\LeaveTenantRequest;
+use App\Actions\Tenant\LeaveTenantAction;
 use App\Http\Requests\Tenant\StoreTenantRequest;
 use App\Http\Requests\Tenant\SwitchTenantRequest;
 use App\Http\Requests\Tenant\UpdateTenantRequest;
@@ -26,6 +28,16 @@ class TenantController extends Controller
         $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
         return redirect()->back()->with('status', 'Tenant switched successfully.');
+    }
+
+    /**
+     * Remove the authenticated user from the tenant.
+     */
+    public function leave(LeaveTenantRequest $request, Tenant $tenant, LeaveTenantAction $action): RedirectResponse
+    {
+        $action->handle($request->user(), $tenant);
+
+        return redirect()->route('dashboard')->with('status', __('tenant.left'));
     }
 
     /**

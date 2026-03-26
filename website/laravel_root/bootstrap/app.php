@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             \App\Http\Middleware\SetActiveTenant::class,
+
+            // Framework middleware
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -28,5 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // We register custom exceptions here
+        $exceptions->render(function (\App\Exceptions\LastAdminSafeGuardException $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        });
+
     })->create();

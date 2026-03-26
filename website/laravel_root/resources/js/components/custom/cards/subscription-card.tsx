@@ -19,7 +19,7 @@ import { Users2, Network, Cpu } from "lucide-react"
 
 export function SubscriptionCard({ className }: { className?: string }) {
     const { auth } = usePage<SharedData>().props
-    const tenant = auth.tenant
+    const tenant = auth.active_tenant
 
     // Placeholder limits (for demo purposes)
     const limits = {
