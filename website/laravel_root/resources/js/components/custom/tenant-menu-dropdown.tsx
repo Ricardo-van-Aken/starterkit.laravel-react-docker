@@ -145,56 +145,39 @@ export function TenantMenuDropdown() {
                         <ChevronsUpDown className="ml-auto" />
                     </DropdownMenuTrigger>
 
-                    <DropdownMenuContent
-                        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                        align="start"
-                        side={isMobile ? "bottom" : "right"}
-                        sideOffset={4}
-                    >
-                        {/* Navigation Links */}
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                render={
-                                    <Link
-                                        href={dashboard().url}
-                                        className="flex items-center gap-2"
-                                    />
-                                }
-                                nativeButton={false}
-                            >
-                                <LayoutGrid className="size-4" />
-                                <span>Dashboard</span>
-                            </DropdownMenuItem>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <div className={cn("w-full", !canViewSettings && "cursor-not-allowed")}>
-                                            <DropdownMenuItem
-                                                render={
-                                                    canViewSettings ? (
-                                                        <Link
-                                                            href={TenantController.edit.url()}
-                                                            className="flex items-center gap-2"
-                                                        />
-                                                    ) : undefined
-                                                }
-                                                nativeButton={!canViewSettings}
-                                                disabled={!canViewSettings}
-                                                className={cn("flex items-center gap-2 w-full", !canViewSettings && "opacity-50 pointer-events-none")}
-                                            >
-                                                <Settings className="size-4" />
-                                                <span>Settings</span>
-                                            </DropdownMenuItem>
-                                        </div>
-                                    </TooltipTrigger>
-                                    {!canViewSettings && (
-                                        <TooltipContent side="right">
-                                            You don't have permission to access settings
-                                        </TooltipContent>
-                                    )}
-                                </Tooltip>
-                            </TooltipProvider>
-                        </DropdownMenuGroup>
+                        <DropdownMenuContent
+                            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                            align="start"
+                            side={isMobile ? "bottom" : "right"}
+                            sideOffset={4}
+                        >
+                            {/* Navigation Links */}
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                    render={
+                                        <Link
+                                            href={dashboard().url}
+                                            className="flex items-center gap-2"
+                                        />
+                                    }
+                                    nativeButton={false}
+                                >
+                                    <LayoutGrid className="size-4" />
+                                    <span>Dashboard</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    render={
+                                        <Link
+                                            href={TenantController.edit.url()}
+                                            className="flex items-center gap-2"
+                                        />
+                                    }
+                                    nativeButton={false}
+                                >
+                                    <Settings className="size-4" />
+                                    <span>Settings</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
 
                         <DropdownMenuSeparator />
 
@@ -216,7 +199,7 @@ export function TenantMenuDropdown() {
                             </DropdownMenuSub>
                         </DropdownMenuGroup>
 
-                    </DropdownMenuContent>
+                        </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>

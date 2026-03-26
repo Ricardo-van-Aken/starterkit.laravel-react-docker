@@ -1,3 +1,4 @@
+import * as React from 'react';
 import Heading from '@/components/starterkit/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -7,7 +8,6 @@ import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberC
 import { type NavItem, SharedData } from '@/types';
 import { TenantPermissionName } from '@/types/enums';
 import { Link, usePage } from '@inertiajs/react';
-import { type PropsWithChildren } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TenantNavItem extends NavItem {
@@ -19,7 +19,6 @@ const sidebarNavItems: TenantNavItem[] = [
         title: 'General',
         href: TenantController.edit.url(),
         icon: null,
-        permission: TenantPermissionName.UpdateTenantDetails,
     },
     {
         title: 'Members',
@@ -53,7 +52,7 @@ const sidebarNavItems: TenantNavItem[] = [
     },
 ];
 
-export default function TenantSettingsLayout({ children }: PropsWithChildren) {
+export default function TenantSettingsLayout({ children }: React.PropsWithChildren) {
     const { auth } = usePage<SharedData>().props;
     const permissions = auth.active_tenant?.permissions ?? [];
 
@@ -75,6 +74,7 @@ export default function TenantSettingsLayout({ children }: PropsWithChildren) {
                 <aside className="w-full max-w-xl lg:w-48">
                     <TooltipProvider>
                         <nav className="flex flex-col space-y-1 space-x-0">
+                            
                             {sidebarNavItems.map((item, index) => {
                                 const disabled = !!(item.permission && !permissions.includes(item.permission));
                                 const isActive = !disabled && isSameUrl(currentPath, item.href);
@@ -101,11 +101,13 @@ export default function TenantSettingsLayout({ children }: PropsWithChildren) {
                                 if (disabled) {
                                     return (
                                         <Tooltip key={index}>
-                                            <TooltipTrigger>
-                                                <div className="w-full cursor-not-allowed">
-                                                    {button}
-                                                </div>
-                                            </TooltipTrigger>
+                                            <TooltipTrigger
+                                                render={
+                                                    <div className="w-full cursor-not-allowed">
+                                                        {button}
+                                                    </div>
+                                                }
+                                            />
                                             <TooltipContent>
                                                 You don't have permission to access {item.title}
                                             </TooltipContent>

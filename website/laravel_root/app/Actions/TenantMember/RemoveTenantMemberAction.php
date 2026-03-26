@@ -28,8 +28,8 @@ class RemoveTenantMemberAction
         if ($user->hasTenantRole($tenant, TenantRoleName::Admin)) {
             $adminCount = $tenant->users()
                 ->whereHas('roles', function ($query) use ($tenant) {
-                    $query->where('name', TenantRoleName::Admin->value)
-                        ->where('team_id', $tenant->id);
+                    $query->where('roles.name', TenantRoleName::Admin->value)
+                        ->where('roles.team_id', $tenant->id);
                 })
                 ->count();
 
