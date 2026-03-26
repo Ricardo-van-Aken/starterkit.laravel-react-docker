@@ -24,17 +24,9 @@ class SetActiveTenant
         $tenantUuid = $request->session()->get('active_tenant_uuid');
         $tenant = null;
 
-        // Priority 1: Use tenant from session
+        // Use tenant from session
         if ($tenantUuid) {
             $tenant = $request->user()->tenants()->where('uuid', $tenantUuid)->first();
-        }
-
-        // Priority 2: Use first tenant
-        if (!$tenant) {
-            $tenant = $request->user()->tenants()->first();
-            if ($tenant) {
-                $request->session()->put('active_tenant_uuid', $tenant->uuid);
-            }
         }
 
         if ($tenant) {

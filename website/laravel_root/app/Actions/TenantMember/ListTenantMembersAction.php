@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  *     permissions: Collection<int|string, mixed>
  * }
  */
-class ListMembersAction
+class ListTenantMembersAction
 {
     /**
      * Execute the action to list tenant members.

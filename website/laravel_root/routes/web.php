@@ -19,6 +19,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('tenant/settings', [\App\Http\Controllers\TenantController::class, 'edit'])->name('tenant.edit');
         Route::get('tenant/members', [\App\Http\Controllers\TenantMemberController::class, 'index'])->name('tenant.members');
+        Route::put('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'update'])->name('tenant.members.update');
+        Route::delete('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'destroy'])->name('tenant.members.destroy');
         Route::put('tenant', [\App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
         Route::delete('tenant', [\App\Http\Controllers\TenantController::class, 'destroy'])
             ->middleware('password.confirm')
@@ -28,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tenants', [\App\Http\Controllers\TenantController::class, 'index'])->name('tenants.index');
     Route::post('tenants', [\App\Http\Controllers\TenantController::class, 'store'])->name('tenants.store');
 
-    Route::post('tenants/switch/{tenant:uuid}', [\App\Http\Controllers\TenantController::class, 'switch'])->name('tenants.switch');
+    Route::post('tenants/switch/{tenant}', [\App\Http\Controllers\TenantController::class, 'switch'])->name('tenants.switch');
 });
 
 require __DIR__.'/settings.php';

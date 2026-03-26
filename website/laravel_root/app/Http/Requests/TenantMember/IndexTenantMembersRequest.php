@@ -1,21 +1,24 @@
 <?php
 
-namespace App\Http\Requests\Tenant;
+namespace App\Http\Requests\TenantMember;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Models\User;
+use App\Policies\TenantMemberPolicy;
 use App\Services\ActiveTenant;
+use Illuminate\Foundation\Http\FormRequest;
 
-class DeleteTenantRequest extends FormRequest
+class IndexTenantMembersRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $this->user();
+        $tenant = app(ActiveTenant::class)->get();
 
-        return $user->can('delete', app(ActiveTenant::class)->getOrFail());
+        return $user->can('viewAny', [TenantMemberPolicy::class, $tenant]);
     }
 
     /**

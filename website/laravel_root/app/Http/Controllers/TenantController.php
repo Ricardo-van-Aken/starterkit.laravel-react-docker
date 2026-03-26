@@ -6,12 +6,13 @@ use Illuminate\Http\Request;
 use App\Http\Requests\Tenant\StoreTenantRequest;
 use App\Http\Requests\Tenant\SwitchTenantRequest;
 use App\Http\Requests\Tenant\UpdateTenantRequest;
-use App\Http\Requests\Tenant\DeleteTenantRequest;
+use App\Http\Requests\Tenant\DestroyTenantRequest;
 use App\Models\Tenant;
-use App\Enums\TenantRoleName;
 use App\Services\ActiveTenant;
+use App\Actions\Tenant\CreateTenantAction;
+use App\Actions\Tenant\UpdateTenantAction;
+use App\Actions\Tenant\DeleteTenantAction;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,29 +42,6 @@ class TenantController extends Controller
     }
 
     /**
-     * Store a newly created tenant in storage.
-     */
-    public function store(StoreTenantRequest $request): RedirectResponse
-    {
-        $tenant = DB::transaction(function () use ($request) {
-            $tenant = Tenant::create($request->validated());
-
-            /** @var \App\Models\User $user */
-            $user = $request->user();
-
-            // Attach the currently authenticated user to the tenant
-            $user->tenants()->attach($tenant->id);
-
-            // Assign proper roles dynamically
-            $user->assignTenantRole($tenant, TenantRoleName::Admin);
-
-            return $tenant;
-        });
-
-        return redirect()->back()->with('status', __('tenant.created'));
-    }
-
-    /**
      * Show the form for editing the specified tenant.
      */
     public function edit(Request $request): Response
@@ -74,13 +52,27 @@ class TenantController extends Controller
     }
 
     /**
+     * Store a newly created tenant in storage.
+     */
+    public function store(StoreTenantRequest $request, CreateTenantAction $action): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $action->handle($user, $request->validated());
+
+        return redirect()->back()->with('status', __('tenant.created'));
+    }
+
+    /**
      * Update the specified tenant in storage.
      */
-    public function update(UpdateTenantRequest $request): RedirectResponse
+    public function update(UpdateTenantRequest $request, UpdateTenantAction $action): RedirectResponse
     {
-        $tenant = app(ActiveTenant::class)->getOrFail();
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = app(ActiveTenant::class)->get();
 
-        $tenant->update($request->validated());
+        $action->handle($tenant, $request->validated());
 
         return redirect()->back()->with('status', __('tenant.updated'));
     }
@@ -88,11 +80,12 @@ class TenantController extends Controller
     /**
      * Remove the specified tenant from storage.
      */
-    public function destroy(DeleteTenantRequest $request): RedirectResponse
+    public function destroy(DestroyTenantRequest $request, DeleteTenantAction $action): RedirectResponse
     {
-        $tenant = app(ActiveTenant::class)->getOrFail();
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = app(ActiveTenant::class)->get();
 
-        $tenant->delete();
+        $action->handle($tenant);
 
         return redirect()->route('dashboard')->with('status', __('tenant.deleted'));
     }

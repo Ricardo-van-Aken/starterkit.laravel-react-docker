@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\TenantMember;
+namespace App\Http\Requests\Tenant;
 
-use App\Services\ActiveTenant;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Services\ActiveTenant;
 
-class ViewMembersRequest extends FormRequest
+class DestroyTenantRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,7 +15,7 @@ class ViewMembersRequest extends FormRequest
         /** @var \App\Models\User $user */
         $user = $this->user();
 
-        return $user->can('viewMembers', app(ActiveTenant::class)->getOrFail());
+        return $user->can('delete', app(ActiveTenant::class)->getOrFail());
     }
 
     /**
