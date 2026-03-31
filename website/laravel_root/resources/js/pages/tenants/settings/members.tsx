@@ -7,16 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import TenantSettingsLayout from '@/layouts/settings/tenant-layout';
-import { type BreadcrumbItem, type Tenant, type User } from '@/types';
-import { Head } from '@inertiajs/react';
+import { type BreadcrumbItem, type SharedData, type Tenant, type User, type Abilities } from '@/types';
+import { Head, usePage } from '@inertiajs/react';
 
 
 interface MembersPageProps {
-    tenant: Tenant;
     members: Member[];
     invitations: Invitation[];
     available_roles: string[];
     available_permissions: string[];
+    abilities: Abilities;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -30,7 +30,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function MembersPage({ tenant, members, invitations, available_roles, available_permissions }: MembersPageProps) {
+export default function MembersPage({ members, invitations, available_roles, available_permissions, abilities }: MembersPageProps) {
+    const { auth } = usePage<SharedData>().props;
+    const tenant = auth.active_tenant!;
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tenant Members" />

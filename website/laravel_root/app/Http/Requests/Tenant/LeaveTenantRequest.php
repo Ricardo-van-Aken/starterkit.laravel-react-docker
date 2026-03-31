@@ -2,9 +2,6 @@
 
 namespace App\Http\Requests\Tenant;
 
-use App\Models\Tenant;
-use App\Models\User;
-use App\Policies\TenantPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LeaveTenantRequest extends FormRequest
@@ -14,12 +11,7 @@ class LeaveTenantRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        /** @var User $user */
-        $user = $this->user();
-        /** @var Tenant $tenant */
-        $tenant = $this->route('tenant');
-
-        return $user->can('leave', $tenant);
+        return true;
     }
 
     /**

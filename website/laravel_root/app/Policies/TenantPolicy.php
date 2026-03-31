@@ -21,7 +21,6 @@ class TenantPolicy
      */
     public function update(User $user, Tenant $tenant): bool
     {
-        // Use spatie/laravel-permission to check if user has permission in this tenant
         setPermissionsTeamId($tenant->id);
 
         return $user->hasPermissionTo(TenantPermissionName::UpdateTenantDetails->value, 'tenant');
@@ -41,14 +40,6 @@ class TenantPolicy
      * Determine whether the user can switch to the model instance.
      */
     public function switch(User $user, Tenant $tenant): bool
-    {
-        return $user->tenants()->where('tenants.id', $tenant->id)->exists();
-    }
-
-    /**
-     * Determine whether the user can leave the tenant.
-     */
-    public function leave(User $user, Tenant $tenant): bool
     {
         return $user->tenants()->where('tenants.id', $tenant->id)->exists();
     }

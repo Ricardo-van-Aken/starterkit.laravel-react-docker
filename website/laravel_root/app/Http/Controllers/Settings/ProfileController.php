@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Actions\User\DeleteUserAction;
+use App\Exceptions\LastAdminSafeGuardException;
 
 class ProfileController extends Controller
 {
@@ -58,10 +60,16 @@ class ProfileController extends Controller
 
         /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
+        
+        $forceDelete = $request->boolean('force_delete_tenants');
+
+        try {
+            app(DeleteUserAction::class)->handle($user, $forceDelete);
+        } catch (LastAdminSafeGuardException $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
 
         Auth::logout();
-
-        $user->delete();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

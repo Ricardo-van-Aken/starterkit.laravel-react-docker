@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { usePage } from "@inertiajs/react"
 import { 
     Card, 
     CardContent, 
@@ -14,13 +13,10 @@ import {
     ProgressLabel, 
     ProgressValue 
 } from "@/components/ui/progress"
-import { type SharedData } from "@/types"
+import { type TenantDashboardItem } from "@/types"
 import { Users2, Network, Cpu } from "lucide-react"
 
-export function SubscriptionCard({ className }: { className?: string }) {
-    const { auth } = usePage<SharedData>().props
-    const tenant = auth.active_tenant
-
+export function SubscriptionCard({ tenant, className }: { tenant: TenantDashboardItem; className?: string }) {
     // Placeholder limits (for demo purposes)
     const limits = {
         users: 5,
@@ -32,14 +28,14 @@ export function SubscriptionCard({ className }: { className?: string }) {
         {
             label: "Users",
             icon: Users2,
-            value: tenant?.users_count ?? 0,
+            value: tenant.users_count,
             max: limits.users,
             color: "bg-blue-500"
         },
         {
             label: "Org Units",
             icon: Network,
-            value: tenant?.organization_units_count ?? 0,
+            value: tenant.organisation_units_count,
             max: limits.orgUnits,
             color: "bg-emerald-500"
         },
@@ -81,3 +77,4 @@ export function SubscriptionCard({ className }: { className?: string }) {
         </Card>
     )
 }
+

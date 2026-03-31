@@ -6,12 +6,11 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberController';
 import { type NavItem, SharedData } from '@/types';
-import { TenantPermissionName } from '@/types/enums';
 import { Link, usePage } from '@inertiajs/react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TenantNavItem extends NavItem {
-    permission?: string;
+    ability?: string;
 }
 
 const sidebarNavItems: TenantNavItem[] = [
@@ -24,37 +23,35 @@ const sidebarNavItems: TenantNavItem[] = [
         title: 'Members',
         href: TenantMemberController.index.url(),
         icon: null,
-        permission: TenantPermissionName.ViewTenantMembers,
+        ability: 'view_members',
     },
     {
         title: 'Roles & Permissions',
         href: '#',
         icon: null,
-        permission: TenantPermissionName.ViewTenantRoles,
+        ability: 'view_roles',
     },
     {
         title: 'Security',
         href: '#',
         icon: null,
-        permission: TenantPermissionName.UpdateTenantDetails,
+        ability: 'update',
     },
     {
         title: 'Billing & Subscription',
         href: '#',
         icon: null,
-        permission: TenantPermissionName.ViewBillingInformation,
+        ability: 'view_billing',
     },
     {
         title: 'Advanced Settings',
         href: '#',
         icon: null,
-        permission: 'non_existing_permission',
     },
 ];
 
 export default function TenantSettingsLayout({ children }: React.PropsWithChildren) {
-    const { auth } = usePage<SharedData>().props;
-    const permissions = auth.active_tenant?.permissions ?? [];
+    const { abilities } = usePage<SharedData & { abilities?: Record<string, boolean> }>().props;
 
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
@@ -76,17 +73,17 @@ export default function TenantSettingsLayout({ children }: React.PropsWithChildr
                         <nav className="flex flex-col space-y-1 space-x-0">
                             
                             {sidebarNavItems.map((item, index) => {
-                                const disabled = !!(item.permission && !permissions.includes(item.permission));
-                                const isActive = !disabled && isSameUrl(currentPath, item.href);
+                                const enabled = !item.ability || abilities?.[item.ability] === true;
+                                const isActive = enabled && isSameUrl(currentPath, item.href);
                                 
                                 const button = (
                                     <Button
                                         key={`${resolveUrl(item.href)}-${index}`}
                                         size="sm"
                                         variant="ghost"
-                                        render={!disabled ? <Link href={item.href} /> : undefined}
-                                        nativeButton={disabled}
-                                        disabled={disabled}
+                                        render={enabled ? <Link href={item.href} /> : undefined}
+                                        nativeButton={!enabled}
+                                        disabled={!enabled}
                                         className={cn('w-full justify-start', {
                                             'bg-muted': isActive,
                                         })}
@@ -98,7 +95,7 @@ export default function TenantSettingsLayout({ children }: React.PropsWithChildr
                                     </Button>
                                 );
 
-                                if (disabled) {
+                                if (!enabled) {
                                     return (
                                         <Tooltip key={index}>
                                             <TooltipTrigger

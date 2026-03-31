@@ -33,5 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantMemberPolicy::class, \App\Policies\TenantMemberPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantRolePolicy::class, \App\Policies\TenantRolePolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantBillingPolicy::class, \App\Policies\TenantBillingPolicy::class);
     }
 }

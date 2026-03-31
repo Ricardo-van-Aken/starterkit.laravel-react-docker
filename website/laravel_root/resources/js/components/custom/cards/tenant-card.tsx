@@ -1,61 +1,78 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { type Tenant } from '@/types';
-import { Building2, Users, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { SquareAvatar, SquareAvatarIconFallback } from '@/components/custom/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Field, FieldLabel, FieldContent } from '@/components/ui/field';
+import { TenantMembersField } from '@/components/custom/fields/tenant-members-field';
+import { TenantOrgUnitsField } from '@/components/custom/fields/tenant-org-units-field';
+
+import { type User, type Abilities, type TenantIndexItem } from '@/types';
 
 interface TenantCardProps {
-    tenant: Tenant;
-    size?: 'sm' | 'md' | 'lg';
+    tenant: TenantIndexItem;
+    users?: User[];
+    abilities?: Abilities;
     className?: string;
 }
 
-export function TenantCard({ tenant, size = 'md', className }: TenantCardProps) {
-    const sizeClasses = {
-        sm: 'p-3 gap-2',
-        md: 'p-5 gap-4',
-        lg: 'p-8 gap-6',
-    };
-
-    const iconSizes = {
-        sm: 'h-4 w-4',
-        md: 'h-5 w-5',
-        lg: 'h-6 w-6',
-    };
-
-    const titleSizes = {
-        sm: 'text-sm',
-        md: 'text-lg',
-        lg: 'text-2xl',
-    };
-
+export function TenantCard({ tenant, users, abilities, className }: TenantCardProps) {
     return (
-        <Card className={cn('group relative overflow-hidden transition-all hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}>
-            <CardHeader className={cn('pb-2', size === 'sm' && 'p-3', size === 'lg' && 'p-8 pb-4')}>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className={cn("flex items-center justify-center rounded-lg bg-primary/10 text-primary", iconSizes[size])}>
-                            <Building2 className={cn(iconSizes[size], "p-1")} />
-                        </div>
-                        <CardTitle className={cn('font-bold tracking-tight', titleSizes[size])}>
+        <Card className={cn(
+            "group relative w-full max-w-[400px] h-full overflow-hidden border-sidebar-border/70 dark:border-sidebar-border transition-all duration-300 hover:bg-muted/40 hover:border-primary/30 hover:shadow-md cursor-pointer",
+            className
+        )}>
+                <CardHeader className="flex flex-row items-start gap-4 pb-4">
+                    <div className="shrink-0">
+                        <SquareAvatar className="size-12">
+                            <SquareAvatarIconFallback seed={tenant.uuid} iconSize="size-6" />
+                        </SquareAvatar>
+                    </div>
+
+                    <div className="flex flex-col flex-1 gap-0.5 text-left">
+                        <CardTitle className="truncate text-xl transition-colors group-hover:text-primary">
                             {tenant.name}
                         </CardTitle>
+                        <CardDescription className="text-xs font-medium text-muted-foreground/80">
+                            Pro Plan
+                        </CardDescription>
                     </div>
-                    {size !== 'sm' && (
-                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent className={cn('flex items-center gap-4', size === 'sm' && 'p-3 pt-0', size === 'lg' && 'p-8 pt-0')}>
-                <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                    <Users className="h-4 w-4" />
-                    <span>{tenant.users_count ?? 0}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                    <Building2 className="h-4 w-4" />
-                    <span>{tenant.organization_units_count ?? 0}</span>
-                </div>
-            </CardContent>
-        </Card>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground/30 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary mt-1" />
+                </CardHeader>
+
+                <Separator />
+
+                <CardContent className="pt-6 pb-5">
+                    <div className="grid grid-cols-2 gap-4">
+                        <TenantMembersField 
+                            users={users} 
+                            totalCount={tenant.users_count} 
+                            showUsers={!!abilities?.view_members} 
+                        />
+                        <TenantOrgUnitsField count={tenant.organisation_units_count} />
+                    </div>
+                </CardContent>
+
+                <CardFooter className="pt-0 pb-6">
+                    <Field>
+                        <FieldLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">User Roles</FieldLabel>
+                        <FieldContent className="flex-row flex-wrap gap-2">
+                            {tenant.roles && tenant.roles.length > 0 ? (
+                                tenant.roles.map((role) => (
+                                    <Badge key={role} variant="secondary" className="capitalize text-[10px] font-bold bg-primary/5 text-primary border-none py-0.5">
+                                        {role.replace('_', ' ')}
+                                    </Badge>
+                                ))
+                            ) : (
+                                <Badge variant="outline" className="text-[10px] font-medium border-muted-foreground/20 py-0.5">
+                                    Member
+                                </Badge>
+                            )}
+                        </FieldContent>
+                    </Field>
+                </CardFooter>
+            </Card>
     );
 }

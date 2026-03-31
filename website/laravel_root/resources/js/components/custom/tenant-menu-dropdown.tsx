@@ -25,7 +25,6 @@ import { usePage, router, Link } from '@inertiajs/react';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type SharedData } from '@/types';
-import { TenantPermissionName } from '@/types/enums';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import { CreateTenantDialog } from './dialogs/create-tenant-dialog';
 import { TenantInfo } from '@/components/custom/tenant-info';
@@ -40,14 +39,6 @@ export function TenantMenuDropdown() {
 
   const activeTenant = auth.active_tenant
   const tenants = auth.tenants || []
-  const permissions = activeTenant?.permissions ?? []
-
-  const canViewSettings = [
-    TenantPermissionName.UpdateTenantDetails,
-    TenantPermissionName.ViewTenantMembers,
-    TenantPermissionName.ViewTenantRoles,
-    TenantPermissionName.ViewBillingInformation,
-  ].some(permission => permissions.includes(permission))
 
   const handleSwitch = (uuid: string) => {
     router.post(TenantController.switch({ tenant: uuid }).url)

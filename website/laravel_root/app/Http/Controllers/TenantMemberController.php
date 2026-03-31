@@ -12,6 +12,9 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Policies\TenantMemberPolicy;
+use App\Policies\TenantRolePolicy;
+use App\Policies\TenantBillingPolicy;
 use App\Services\ActiveTenant;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -29,11 +32,12 @@ class TenantMemberController extends Controller
      */
     public function index(IndexTenantMembersRequest $request, ListTenantMembersAction $listMembersAction): Response
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
         
         return Inertia::render('tenants/settings/members', [
-            'tenant' => $tenant,
             'members' => $listMembersAction->handle($tenant),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
@@ -44,6 +48,12 @@ class TenantMemberController extends Controller
                     'status' => 'Pending',
                     'expires_at' => now()->addDays(7)->toDateTimeString(),
                 ]
+            ],
+            'abilities' => [
+                'update'        => $user->can('update', $tenant),
+                'view_members'  => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),
+                'view_roles'    => $user->can('viewAny', [TenantRolePolicy::class, $tenant]),
+                'view_billing'  => $user->can('viewAny', [TenantBillingPolicy::class, $tenant]),
             ],
         ]);
     }

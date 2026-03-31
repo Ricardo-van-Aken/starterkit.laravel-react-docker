@@ -62,13 +62,8 @@ class HandleInertiaRequests extends Middleware
             // Restore context for the active tenant
             setPermissionsTeamId($tenant->id);
 
-            // Try to find the active tenant in the already-mapped collection
+            // Find the active tenant in the already-mapped collection
             $activeTenant = $tenants->firstWhere('uuid', $tenant->uuid);
-
-            // Pass users permissions with the active tenant
-            if ($activeTenant) {
-                $activeTenant->permissions = $user->getAllPermissions()->pluck('name')->toArray();
-            }
         }
 
         return [
@@ -78,7 +73,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'active_tenant' => $activeTenant,
-                'tenants' => $tenants, 
+                'tenants' => $tenants,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

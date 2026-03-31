@@ -4,10 +4,10 @@ namespace App\Actions\TenantMember;
 
 use App\Enums\TenantRoleName;
 use App\Exceptions\LastAdminSafeGuardException;
+use App\Exceptions\TenantMemberNotFoundException;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UpdateTenantMemberAction
 {
@@ -17,13 +17,13 @@ class UpdateTenantMemberAction
      * @param array<int, string> $roles
      * @param array<int, string> $permissions
      * @throws LastAdminSafeGuardException if the user whose roles are being updated is the last admin being demoted
-     * @throws NotFoundHttpException if the user whose roles are being updated is not an actual member of the tenant
+     * @throws TenantMemberNotFoundException if the user whose roles are being updated is not an actual member of the tenant
      */
     public function handle(Tenant $tenant, User $user, array $roles, array $permissions): void
     {
         // Verify that member to be updated is an actual member of the tenant
         if (!$tenant->users()->where('users.id', $user->id)->exists()) {
-            throw new NotFoundHttpException(__('tenant.not_a_member'));
+            throw new TenantMemberNotFoundException();
         }
  
         // Check if the user who is getting their roles updated is the last admin being demoted

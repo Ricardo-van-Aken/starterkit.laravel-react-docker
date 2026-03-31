@@ -1,5 +1,5 @@
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
-import { type BreadcrumbItem, type SharedData, type Tenant } from '@/types';
+import { type Abilities, type BreadcrumbItem, type SharedData, type Tenant } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
 
@@ -18,16 +18,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-import { LogOut } from 'lucide-react';
+import { LogOut, Trash2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { TenantPermissionName } from '@/types/enums';
 
 import { ConfirmPasswordDialog } from '@/components/custom/dialogs/confirm-password-dialog';
 
-export default function TenantSettings({ tenant }: { tenant: Tenant }) {
+interface TenantSettingsProps {
+    abilities: Abilities;
+}
+
+export default function TenantSettings({ abilities }: TenantSettingsProps) {
     const { auth } = usePage<SharedData>().props;
-    const permissions = auth.active_tenant?.permissions ?? [];
-    const canUpdateTenant = permissions.includes(TenantPermissionName.UpdateTenantDetails);
+    const tenant = auth.active_tenant!;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -35,7 +37,7 @@ export default function TenantSettings({ tenant }: { tenant: Tenant }) {
 
             <TenantSettingsLayout>
                 <div className="space-y-6">
-                    {canUpdateTenant && (
+                    {abilities.update && (
                         <>
                             <HeadingSmall
                                 title="Tenant information"
@@ -126,6 +128,40 @@ export default function TenantSettings({ tenant }: { tenant: Tenant }) {
                             />
                         </div>
                     </div>
+
+                    {abilities.delete && (
+                        <>
+                            <Separator />
+                            <div className="space-y-6">
+                                <HeadingSmall
+                                    title="Delete Tenant"
+                                    description="Permanently delete this tenant and all of its data"
+                                />
+                                <div className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20 rounded-lg border p-4">
+                                    <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
+                                        This action is irreversible. All data associated with this tenant, including members, organisation units, and settings, will be permanently deleted.
+                                    </p>
+
+                                    <ConfirmPasswordDialog
+                                        title="Are you sure you want to delete this tenant?"
+                                        description="Please enter your password to confirm permanently deleting the tenant and all its data."
+                                        confirmText="Delete Tenant"
+                                        variant="destructive"
+                                        form={TenantController.destroy.form()}
+                                        trigger={
+                                            <>
+                                                <Trash2 className="size-4" />
+                                                Delete Tenant
+                                            </>
+                                        }
+                                        triggerProps={{
+                                            className: "gap-2"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </TenantSettingsLayout>
         </AppLayout>

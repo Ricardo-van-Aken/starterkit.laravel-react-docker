@@ -10,7 +10,11 @@ use App\Http\Requests\Tenant\SwitchTenantRequest;
 use App\Http\Requests\Tenant\UpdateTenantRequest;
 use App\Http\Requests\Tenant\DestroyTenantRequest;
 use App\Models\Tenant;
+use App\Policies\TenantMemberPolicy;
+use App\Policies\TenantRolePolicy;
+use App\Policies\TenantBillingPolicy;
 use App\Services\ActiveTenant;
+use App\Actions\Tenant\PrepareTenantListingAction;
 use App\Actions\Tenant\CreateTenantAction;
 use App\Actions\Tenant\UpdateTenantAction;
 use App\Actions\Tenant\DeleteTenantAction;
@@ -27,6 +31,10 @@ class TenantController extends Controller
     {
         $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
+        if ($request->has('redirect_to')) {
+            return redirect($request->query('redirect_to'))->with('status', 'Tenant switched successfully.');
+        }
+
         return redirect()->back()->with('status', 'Tenant switched successfully.');
     }
 
@@ -37,19 +45,21 @@ class TenantController extends Controller
     {
         $action->handle($request->user(), $tenant);
 
-        return redirect()->route('dashboard')->with('status', __('tenant.left'));
+        $request->session()->forget('active_tenant_uuid');
+
+        return redirect()->route('tenants.index')->with('status', __('tenant.left'));
     }
 
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, PrepareTenantListingAction $action): Response
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
 
         return Inertia::render('tenants/index', [
-            'tenants' => $user->tenants()->get(),
+            'tenants' => $action->handle($user),
         ]);
     }
 
@@ -58,8 +68,19 @@ class TenantController extends Controller
      */
     public function edit(Request $request): Response
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = app(ActiveTenant::class)->get();
+
         return Inertia::render('tenants/settings/edit', [
-            'tenant' => app(ActiveTenant::class)->getOrFail(),
+            'abilities' => [
+                'update'        => $user->can('update', $tenant),
+                'delete'        => $user->can('delete', $tenant),
+                'view_members'  => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),
+                'view_roles'    => $user->can('viewAny', [TenantRolePolicy::class, $tenant]),
+                'view_billing'  => $user->can('viewAny', [TenantBillingPolicy::class, $tenant]),
+            ],
         ]);
     }
 
@@ -101,6 +122,8 @@ class TenantController extends Controller
 
         $action->handle($tenant);
 
-        return redirect()->route('dashboard')->with('status', __('tenant.deleted'));
+        $request->session()->forget('active_tenant_uuid');
+
+        return redirect()->route('tenants.index')->with('status', __('tenant.deleted'));
     }
 }

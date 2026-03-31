@@ -1,18 +1,18 @@
 import { TenantCard } from '@/components/custom/cards/tenant-card';
 import AppLayout from '@/layouts/app-layout';
-import { index as tenantsIndex } from '@/routes/tenants';
-import { type BreadcrumbItem, type Tenant } from '@/types';
-import { Head } from '@inertiajs/react';
+import tenantRoutes from '@/routes/tenants';
+import { type BreadcrumbItem, type TenantIndexItem } from '@/types';
+import { Head, Link } from '@inertiajs/react';
 import { Building2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Tenants',
-        href: tenantsIndex().url,
+        href: tenantRoutes.index.url(),
     },
 ];
 
-export default function Index({ tenants = [] }: { tenants: Tenant[] }) {
+export default function Index({ tenants = [] }: { tenants: TenantIndexItem[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tenants" />
@@ -21,14 +21,26 @@ export default function Index({ tenants = [] }: { tenants: Tenant[] }) {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Your Tenants</h2>
                     <p className="text-muted-foreground mt-1 text-base">
-                        Select a tenant to manage its organization units and users.
+                        Select a tenant to manage its organisation units and users.
                     </p>
                 </div>
 
                 {tenants.length > 0 ? (
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {tenants.map((tenant) => (
-                            <TenantCard key={tenant.uuid} tenant={tenant} size="md" />
+                            <Link 
+                                key={tenant.uuid}
+                                href={tenantRoutes.switch.url(tenant, { query: { redirect_to: '/tenant/dashboard' } })}
+                                method="post"
+                                className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+                            >
+                                <TenantCard 
+                                    tenant={tenant} 
+                                    users={tenant.users}
+                                    abilities={tenant.abilities}
+                                    className="h-full focus-visible:ring-0" 
+                                />
+                            </Link>
                         ))}
                     </div>
                 ) : (

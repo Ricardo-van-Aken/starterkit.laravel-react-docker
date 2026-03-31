@@ -2,6 +2,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import HeadingSmall from '@/components/starterkit/heading-small';
 import { Button } from '@/components/ui/button';
 import { ConfirmPasswordDialog } from '@/components/custom/dialogs/confirm-password-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function DeleteUser() {
     return (
@@ -28,8 +29,27 @@ export default function DeleteUser() {
                     triggerProps={{
                         "data-test": "delete-user-button",
                     }}
-                />
+                >
+                    <div className="flex items-center space-x-2 rounded-md border p-3 bg-muted/50 border-destructive/20 text-destructive/80 mt-2">
+                        <Checkbox 
+                            id="force_delete_tenants" 
+                            name="force_delete_tenants" 
+                            value="true"
+                            className="border-destructive/30 data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground focus-visible:ring-destructive"
+                        />
+                        <label
+                            htmlFor="force_delete_tenants"
+                            className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            <span className="block mb-0.5">Force delete orphaned tenants</span>
+                            <span className="font-normal text-xs text-muted-foreground block text-foreground/80">
+                                Automatically delete any tenants where I am the last administrator. If unchecked, my account deletion will be blocked if I leave orphaned tenants.
+                            </span>
+                        </label>
+                    </div>
+                </ConfirmPasswordDialog>
             </div>
         </div>
     );
 }
+

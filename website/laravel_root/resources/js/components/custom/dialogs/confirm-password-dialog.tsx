@@ -24,6 +24,7 @@ interface ConfirmPasswordDialogProps {
     form: any // The result of Inertia useForm() or similar
     trigger: React.ReactNode
     triggerProps?: any
+    children?: React.ReactNode
 }
 
 export function ConfirmPasswordDialog({
@@ -35,6 +36,7 @@ export function ConfirmPasswordDialog({
     form,
     trigger,
     triggerProps,
+    children,
 }: ConfirmPasswordDialogProps) {
     const passwordInput = React.useRef<HTMLInputElement>(null)
 
@@ -73,6 +75,12 @@ export function ConfirmPasswordDialog({
                         <>
                             <InputError message={errors.error} />
 
+                            {children && (
+                                <div className="grid gap-2">
+                                    {children}
+                                </div>
+                            )}
+
                             <div className="grid gap-2">
                                 <Label htmlFor="password" title="Password" className="sr-only">
                                     Password
@@ -110,3 +118,4 @@ export function ConfirmPasswordDialog({
         </Dialog>
     )
 }
+

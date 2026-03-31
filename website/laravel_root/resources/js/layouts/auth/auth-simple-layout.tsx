@@ -1,4 +1,5 @@
 import AppLogoIcon from '@/components/starterkit/app-logo-icon';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
@@ -15,7 +16,8 @@ export default function AuthSimpleLayout({
     description,
 }: PropsWithChildren<AuthLayoutProps>) {
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+        <TooltipProvider delay={300}>
+            <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
             <div className="w-full max-w-sm">
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
@@ -40,5 +42,6 @@ export default function AuthSimpleLayout({
                 </div>
             </div>
         </div>
+    </TooltipProvider>
     );
 }
