@@ -39,8 +39,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tenant/members', [\App\Http\Controllers\TenantMemberController::class, 'index'])->name('tenant.members');
         Route::put('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'update'])->name('tenant.members.update');
         Route::delete('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'destroy'])->name('tenant.members.destroy');
-
     });
+
+    // Account Deletion Hold Area
+    Route::get('deletion-notice', [\App\Http\Controllers\Auth\AccountDeletionNoticeController::class, 'show'])->name('deletion.notice');
+    Route::post('deletion-restore', [\App\Http\Controllers\Auth\AccountDeletionNoticeController::class, 'restore'])->name('deletion.restore');
 
 });
 

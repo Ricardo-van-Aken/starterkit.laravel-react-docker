@@ -11,9 +11,4 @@ class LastAdminSafeGuardException extends DomainException
     {
         parent::__construct($message ?: __('tenant.last_admin_safeguard'));
     }
-
-    public function render(Request $request): never
-    {
-        back()->withErrors(['error' => $this->getMessage()])->throwResponse();
-    }
 }

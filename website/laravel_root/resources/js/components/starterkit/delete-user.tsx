@@ -34,7 +34,7 @@ export default function DeleteUser() {
                         <Checkbox 
                             id="force_delete_tenants" 
                             name="force_delete_tenants" 
-                            value="true"
+                            value="1"
                             className="border-destructive/30 data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground focus-visible:ring-destructive"
                         />
                         <label

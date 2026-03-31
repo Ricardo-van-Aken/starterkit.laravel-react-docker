@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             \App\Http\Middleware\SetActiveTenant::class,
+            \App\Http\Middleware\EnsureAccountNotDeleting::class,
 
             // Framework middleware
             HandleAppearance::class,
@@ -30,5 +31,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->dontReport([
+            \DomainException::class,
+        ]);
+
+        $exceptions->render(function (\DomainException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->withErrors([
+                'error' => $e->getMessage(),
+            ]);
+        });
     })->create();

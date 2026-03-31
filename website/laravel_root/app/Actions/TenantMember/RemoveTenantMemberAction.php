@@ -24,16 +24,9 @@ class RemoveTenantMemberAction
             throw new TenantMemberNotFoundException();
         }
 
-        // Check if the user to be removed from the tenant is the last admin
+        // Check if removing this user would leave the tenant with 0 active admins
         if ($user->hasTenantRole($tenant, TenantRoleName::Admin)) {
-            $adminCount = $tenant->users()
-                ->whereHas('roles', function ($query) use ($tenant) {
-                    $query->where('roles.name', TenantRoleName::Admin->value)
-                        ->where('roles.team_id', $tenant->id);
-                })
-                ->count();
-
-            if ($adminCount <= 1) {
+            if ($tenant->activeAdminsCount($user) === 0) {
                 throw new LastAdminSafeGuardException();
             }
         }
