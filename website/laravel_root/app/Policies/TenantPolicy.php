@@ -13,7 +13,7 @@ class TenantPolicy
      */
     public function create(User $user): bool
     {
-        return $user->canCreateTenant();
+        return true;
     }
 
     /**

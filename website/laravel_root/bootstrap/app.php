@@ -30,9 +30,5 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // We register custom exceptions here
-        $exceptions->render(function (\App\Exceptions\LastAdminSafeGuardException $e) {
-            return back()->withErrors(['error' => $e->getMessage()]);
-        });
-
+        //
     })->create();

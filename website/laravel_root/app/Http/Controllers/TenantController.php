@@ -71,7 +71,9 @@ class TenantController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $action->handle($user, $request->validated());
+        $tenant = $action->handle($user, $request->validated());
+
+        $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
         return redirect()->back()->with('status', __('tenant.created'));
     }

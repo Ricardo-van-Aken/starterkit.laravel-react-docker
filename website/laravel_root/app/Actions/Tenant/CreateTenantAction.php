@@ -16,6 +16,10 @@ class CreateTenantAction
      */
     public function handle(User $user, array $data): Tenant
     {
+        if (!$user->canCreateTenant()) {
+            throw new \App\Exceptions\TenantLimitReachedException();
+        }
+
         return DB::transaction(function () use ($user, $data) {
             $tenant = Tenant::create($data);
 

@@ -41,6 +41,8 @@ export function CreateTenantDialog({ open, onOpenChange }: CreateTenantDialogPro
                             </DialogHeader>
 
                             <FieldGroup className="py-4">
+                                <InputError message={errors.error} />
+
                                 <Field>
                                     <Label htmlFor="name">Tenant Name</Label>
                                     <Input id="name" name="name" placeholder="e.g. Acme Corp" required autoFocus />

@@ -15,7 +15,7 @@ class LeaveTenantAction
     /**
      * Execute the action to allow a user to leave a tenant.
      *
-     * @throws \RuntimeException if the user is the last admin (handled by RemoveTenantMemberAction)
+     * @throws \App\Exceptions\LastAdminSafeGuardException if the user is the last admin (handled by RemoveTenantMemberAction)
      */
     public function handle(User $user, Tenant $tenant): void
     {

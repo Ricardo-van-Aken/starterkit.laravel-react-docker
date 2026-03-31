@@ -1,12 +1,11 @@
 // Components
 import TextLink from '@/components/starterkit/text-link';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { logout } from '@/routes';
-import { edit as editProfile } from '@/routes/profile';
 import { send } from '@/routes/verification';
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
     return (
@@ -30,13 +29,6 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             {processing && <Spinner />}
                             Resend verification email
                         </Button>
-
-                        <TextLink
-                            href={editProfile()}
-                            className="mx-auto block text-sm"
-                        >
-                            Settings
-                        </TextLink>
 
                         <TextLink
                             href={logout()}
