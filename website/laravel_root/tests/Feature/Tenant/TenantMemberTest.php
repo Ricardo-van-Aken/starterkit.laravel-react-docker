@@ -61,6 +61,7 @@ describe('Member Management Constraints', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->managerUser)
+            ->from(route('tenant.members'))
             ->put(route('tenant.members.update', $anotherAdmin), [
                 'roles' => [TenantRoleName::Manager->value],
                 'permissions' => [],
@@ -68,9 +69,9 @@ describe('Member Management Constraints', function () {
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
 
         /* --- Assert HTTP response message/error --- */
-        expect(session('errors'))->not->toBeNull();
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
         /* --- Assert DB state --- */
@@ -83,6 +84,7 @@ describe('Member Management Constraints', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->adminUser)
+            ->from(route('tenant.members'))
             ->put(route('tenant.members.update', $anotherAdmin), [
                 'roles' => [TenantRoleName::Manager->value],
                 'permissions' => [],
@@ -90,6 +92,8 @@ describe('Member Management Constraints', function () {
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
 
         /* --- Assert HTTP response message/error --- */
         expect(session('status'))->toBe(__('actions.member_updated'));
@@ -105,13 +109,14 @@ describe('Member Management Constraints', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->managerUser)
+            ->from(route('tenant.members'))
             ->delete(route('tenant.members.destroy', $anotherAdmin));
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
 
         /* --- Assert HTTP response message/error --- */
-        expect(session('errors'))->not->toBeNull();
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
         /* --- Assert DB state --- */
@@ -124,10 +129,13 @@ describe('Member Management Constraints', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->adminUser)
+            ->from(route('tenant.members'))
             ->delete(route('tenant.members.destroy', $anotherAdmin));
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
         
         /* --- Assert HTTP response message/error --- */
         expect(session('status'))->toBe(__('actions.member_removed'));
@@ -149,12 +157,14 @@ describe('Leave Tenant Safeguards', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->adminUser)
+            ->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302); // Redirect back with errors
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
         
         /* --- Assert HTTP response message/error --- */
         expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
@@ -169,12 +179,14 @@ describe('Leave Tenant Safeguards', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->adminUser)
+            ->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
         expect($response->getTargetUrl())->toBe(route('tenants.index'));
 
         /* --- Assert HTTP response message/error --- */
@@ -191,12 +203,14 @@ describe('Leave Tenant Safeguards', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->adminUser)
+            ->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
         
         /* --- Assert HTTP response message/error --- */
         expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));

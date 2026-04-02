@@ -29,7 +29,9 @@ describe('Tenant Creation', function () {
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('tenant.dashboard'));
         
         /* --- Assert HTTP response message/error --- */
         expect(session('status'))->toBe(__('tenant.created'));
@@ -55,15 +57,17 @@ describe('Tenant Creation', function () {
         $this->user->tenants()->attach($tenant->id);
 
         /* --- Request --- */
-        $response = $this->post(route('tenants.store'), [
-            'name' => 'Second Tenant',
-        ]);
+        $response = $this->from(route('tenants.index'))
+            ->post(route('tenants.store'), [
+                'name' => 'Second Tenant',
+            ]);
 
         /* --- Assert HTTP response status --- */
-        $response->assertStatus(302);
+        expect($response->status())->toBe(302);
+        expect($response->getTargetUrl())->toBe(route('tenants.index'));
         
         /* --- Assert HTTP response message/error --- */
-        expect(session('errors')->get('error')[0])->toBe(__('tenant.status.limit_reached'));
+        expect(session('errors')->get('error'))->toContain(__('tenant.status.limit_reached'));
         
         /* --- Assert DB State --- */
         expect($this->user->tenants()->count())->toBe(1);
@@ -98,7 +102,9 @@ describe('Tenant Management Actions', function () {
                 ]);
 
             /* --- Assert HTTP response status --- */
-            $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+            expect($response->status())->toBe(302);
+            expect(session('errors'))->toBeNull();
+            expect($response->getTargetUrl())->toBe(route('tenants.index'));
             
             /* --- Assert HTTP response message/error --- */
             expect(session('status'))->toBe(__('tenant.updated'));
@@ -112,12 +118,14 @@ describe('Tenant Management Actions', function () {
 
         test('user cannot update a tenant they belong to but do not have permissions for', function () {
             /* --- Request --- */
-            $response = $this->put(route('tenant.update'), [
-                'name' => 'New Name',
-            ]);
+            $response = $this->from(route('tenants.index'))
+                ->put(route('tenant.update'), [
+                    'name' => 'New Name',
+                ]);
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
+            expect($response->getTargetUrl())->toBe(route('tenants.index'));
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
             
             /* --- Assert DB State --- */
@@ -139,10 +147,13 @@ describe('Tenant Management Actions', function () {
             $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
 
             /* --- Request --- */
-            $response = $this->delete(route('tenant.destroy'));
+            $response = $this->from(route('tenants.index'))
+                ->delete(route('tenant.destroy'));
 
             /* --- Assert HTTP response status --- */
-            $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+            expect($response->status())->toBe(302);
+            expect(session('errors'))->toBeNull();
+            expect($response->getTargetUrl())->toBe(route('tenants.index'));
             
             /* --- Assert HTTP response message/error --- */
             expect(session('status'))->toBe(__('tenant.deleted'));
@@ -155,10 +166,12 @@ describe('Tenant Management Actions', function () {
 
         test('user cannot delete a tenant they do not have DeleteTenant permission for', function () {
             /* --- Request --- */
-            $response = $this->delete(route('tenant.destroy'));
+            $response = $this->from(route('tenants.index'))
+                ->delete(route('tenant.destroy'));
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
+            expect($response->getTargetUrl())->toBe(route('tenants.index'));
 
             /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
@@ -189,13 +202,15 @@ describe('Tenant Contextual Authorization', function () {
         $this->user->tenants()->attach($otherTenant->id);
 
         /* --- Request --- */
-        $response = $this->withSession(['active_tenant_uuid' => $otherTenant->uuid])
+        $response = $this->from(route('tenants.index'))
+            ->withSession(['active_tenant_uuid' => $otherTenant->uuid])
             ->put(route('tenant.update'), [
                 'name' => 'New Name',
             ]);
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
+        expect($response->getTargetUrl())->toBe(route('tenants.index'));
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
         
         /* --- Assert DB State --- */

@@ -96,7 +96,7 @@ class TenantController extends Controller
 
         $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
-        return redirect()->back()->with('status', __('tenant.created'));
+        return redirect()->route('tenant.dashboard')->with('status', __('tenant.created'));
     }
 
     /**

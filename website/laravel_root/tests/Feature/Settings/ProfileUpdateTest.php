@@ -48,15 +48,16 @@ describe('Profile Information', function () {
         /* --- Request --- */
         $response = $this
             ->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
 
         /* --- Assert DB state --- */
         $this->user->refresh();
@@ -72,15 +73,16 @@ describe('Profile Information', function () {
         /* --- Request --- */
         $response = $this
             ->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->patch(route('profile.update'), [
                 'name' => 'New Name',
                 'email' => $this->user->email,
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
 
         /* --- Assert DB state --- */
         expect($this->user->refresh()->email_verified_at)->not->toBeNull();
@@ -97,14 +99,15 @@ describe('Account Deletion', function () {
         /* --- Request --- */
         $response = $this
             ->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('deletion.notice'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
@@ -120,9 +123,9 @@ describe('Account Deletion', function () {
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
+        expect($response->status())->toBe(302);
+        $response->assertSessionHasErrors('password');
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
@@ -144,16 +147,18 @@ describe('Account Deletion Safeguards', function () {
     test('last admin cannot delete their account without forcing tenant removal', function () {
         /* --- Request --- */
         $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
                 'password' => 'password',
                 'force_delete_tenants' => false,
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response->assertStatus(302); // Redirect back with errors
+        expect($response->status())->toBe(302); // Redirect back with errors
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
         
         /* --- Assert HTTP response message/error --- */
-        expect(session('errors')->get('error')[0])->toBe(__('tenant.last_admin_safeguard'));
+        expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
@@ -165,14 +170,15 @@ describe('Account Deletion Safeguards', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('deletion.notice'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
@@ -185,15 +191,17 @@ describe('Account Deletion Safeguards', function () {
 
         /* --- Request --- */
         $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
                 'password' => 'password',
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response->assertStatus(302); // Redirect back with errors
+        expect($response->status())->toBe(302); // Redirect back with errors
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
         
         /* --- Assert HTTP response message/error --- */
-        expect(session('errors')->get('error')[0])->toBe(__('tenant.last_admin_safeguard'));
+        expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
@@ -202,13 +210,16 @@ describe('Account Deletion Safeguards', function () {
     test('admin can force delete account even if last admin', function () {
         /* --- Request --- */
         $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
             ->delete(route('profile.destroy'), [
                 'password' => 'password',
                 'force_delete_tenants' => true,
             ]);
 
         /* --- Assert HTTP response status --- */
-        $response->assertRedirect(route('deletion.notice'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
 
         /* --- Assert DB state --- */
         expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
@@ -231,7 +242,11 @@ describe('Account Restoration', function () {
             ->post(route('deletion.restore'));
 
         /* --- Assert HTTP response status --- */
-        $response->assertRedirect(route('dashboard'));
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('dashboard'));
+
+        /* --- Assert HTTP response message/error --- */
         expect(session('status'))->toBe('Account restored successfully.');
 
         /* --- Assert DB state --- */
