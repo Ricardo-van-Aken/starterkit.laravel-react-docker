@@ -8,7 +8,6 @@ use App\Services\ActiveTenant;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        abort(404);
         return Inertia::render('dashboard');
     })->name('dashboard');
 
@@ -30,9 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tenant/dashboard', \App\Http\Controllers\TenantDashboardController::class)->name('tenant.dashboard');
 
         Route::put('tenant', [\App\Http\Controllers\TenantController::class, 'update'])->name('tenant.update');
-        Route::delete('tenant', [\App\Http\Controllers\TenantController::class, 'destroy'])
-            ->middleware('password.confirm')
-            ->name('tenant.destroy');
+        Route::delete('tenant', [\App\Http\Controllers\TenantController::class, 'destroy'])->name('tenant.destroy');
 
         Route::get('tenant/settings', [\App\Http\Controllers\TenantController::class, 'edit'])->name('tenant.edit');
 

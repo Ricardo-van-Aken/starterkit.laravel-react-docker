@@ -1,7 +1,10 @@
 <?php
 
-it('returns a successful response', function () {
+it('redirects to the login page when unauthenticated', function () {
+    /* --- Request --- */
     $response = $this->get('/');
 
-    $response->assertStatus(200);
+    /* --- Assert HTTP response status --- */
+    $response->assertStatus(302);
+    $response->assertRedirect(route('login'));
 });

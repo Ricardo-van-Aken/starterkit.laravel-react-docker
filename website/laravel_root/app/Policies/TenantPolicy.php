@@ -22,6 +22,8 @@ class TenantPolicy
     public function update(User $user, Tenant $tenant): bool
     {
         setPermissionsTeamId($tenant->id);
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
 
         return $user->hasPermissionTo(TenantPermissionName::UpdateTenantDetails->value, 'tenant');
     }

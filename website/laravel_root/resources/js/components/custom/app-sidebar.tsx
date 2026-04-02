@@ -15,7 +15,7 @@ import {
     SidebarGroupLabel,
     SidebarGroupAction,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes/tenant';
+import { dashboard } from '@/routes';
 import { index as tenantsIndex } from '@/routes/tenants';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';

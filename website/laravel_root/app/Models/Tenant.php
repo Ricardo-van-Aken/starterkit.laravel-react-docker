@@ -59,7 +59,7 @@ class Tenant extends Model
             ->whereNull('users.scheduled_for_deletion_at')
             ->whereHas('roles', function ($q) {
                 $q->where('roles.name', \App\Enums\TenantRoleName::Admin->value)
-                  ->where('roles.team_id', $this->id);
+                  ->where(config('permission.table_names.model_has_roles') . '.team_id', $this->id);
             });
 
         if ($excludeUser) {

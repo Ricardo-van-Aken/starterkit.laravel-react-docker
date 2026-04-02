@@ -22,7 +22,7 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature')
     ->beforeEach(function () {
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+        $this->seed(\Database\Seeders\RequiredDataSeeder::class);
     })
     ->afterEach(function () {
         // Clear the sandboxed Redis keys belonging to THIS parallel test process 

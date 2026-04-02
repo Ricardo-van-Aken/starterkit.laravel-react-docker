@@ -6,172 +6,202 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Enums\TenantPermissionName;
 use App\Enums\TenantRoleName;
-use Spatie\Permission\Models\Role;
 
-test('user can create a tenant', function () {
-    /* --- Setup --- */
-    $user = User::factory()->create(['max_tenants' => 5]);
-
-    /* --- Request --- */
-    $response = $this->actingAs($user)->post(route('tenants.store'), [
-        'name' => 'Test Tenant',
-    ]);
-
-    /* --- Assertions --- */
-    $response->assertSessionHasNoErrors();
-    $response->assertRedirect();
-    $response->assertSessionHas('status', __('tenant.created'));
-    
-    // Verify Database Insert
-    $this->assertDatabaseHas('tenants', [
-        'name' => 'Test Tenant',
-    ]);
-
-    $tenant = Tenant::where('name', 'Test Tenant')->first();
-    
-    // Verify Pivot Attachment
-    expect($tenant->users->contains($user))->toBeTrue();
-    
-    // Verify 'Admin' Role Assignment
-    expect($user->hasTenantRole($tenant, TenantRoleName::Admin))->toBeTrue();
+beforeEach(function () {
+    $this->user = User::factory()->create();
+    $this->actingAs($this->user);
 });
 
-test('user cannot create more tenants than their limit', function () {
-    /* --- Setup --- */
-    $user = User::factory()->create(['max_tenants' => 1]);
-    $tenant = Tenant::factory()->create(['name' => 'First Tenant']);
-    $user->tenants()->attach($tenant->id);
+/*
+|--------------------------------------------------------------------------
+| Tenant Creation
+|--------------------------------------------------------------------------
+*/
+describe('Tenant Creation', function () {
+    test('user can create a tenant', function () {
+        /* --- Setup --- */
+        $this->user->update(['max_tenants' => 5]);
 
-    /* --- Request --- */
-    $response = $this->actingAs($user)->post(route('tenants.store'), [
-        'name' => 'Second Tenant',
-    ]);
+        /* --- Request --- */
+        $response = $this->from(route('tenants.index'))
+            ->post(route('tenants.store'), [
+                'name' => 'Test Tenant',
+            ]);
 
-    /* --- Assertions --- */
-    $response->assertForbidden(); // Should be blocked by authorize() in StoreTenantRequest
-    
-    // Verify Database
-    expect($user->tenants()->count())->toBe(1);
-    $this->assertDatabaseMissing('tenants', [
-        'name' => 'Second Tenant',
-    ]);
+        /* --- Assert HTTP response status --- */
+        $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+        
+        /* --- Assert HTTP response message/error --- */
+        expect(session('status'))->toBe(__('tenant.created'));
+        
+        /* --- Assert DB State --- */
+        $this->assertDatabaseHas('tenants', [
+            'name' => 'Test Tenant',
+        ]);
+
+        $tenant = Tenant::where('name', 'Test Tenant')->first();
+        
+        // Verify Pivot Attachment
+        expect($tenant->users->contains($this->user))->toBeTrue();
+        
+        // Verify 'Admin' Role Assignment
+        expect($this->user->fresh()->hasTenantRole($tenant, TenantRoleName::Admin))->toBeTrue();
+    });
+
+    test('user cannot create more tenants than their limit', function () {
+        /* --- Setup --- */
+        $this->user->update(['max_tenants' => 1]);
+        $tenant = Tenant::factory()->create(['name' => 'First Tenant']);
+        $this->user->tenants()->attach($tenant->id);
+
+        /* --- Request --- */
+        $response = $this->post(route('tenants.store'), [
+            'name' => 'Second Tenant',
+        ]);
+
+        /* --- Assert HTTP response status --- */
+        $response->assertStatus(302);
+        
+        /* --- Assert HTTP response message/error --- */
+        expect(session('errors')->get('error')[0])->toBe(__('tenant.status.limit_reached'));
+        
+        /* --- Assert DB State --- */
+        expect($this->user->tenants()->count())->toBe(1);
+        $this->assertDatabaseMissing('tenants', [
+            'name' => 'Second Tenant',
+        ]);
+    });
 });
 
-test('user can update a tenant they belong to and have permissions for', function () {
-    /* --- Setup --- */
-    $user = User::factory()->create();
-    $tenant = Tenant::factory()->create(['name' => 'Old Name']);
-    $user->tenants()->attach($tenant->id);
-    
-    // Assign permission using the role seeded by our Seeder
-    setPermissionsTeamId($tenant->id);
-    $user->givePermissionTo(\App\Models\Permission::findByName(TenantPermissionName::UpdateTenantDetails->value, 'tenant'));
+/*
+|--------------------------------------------------------------------------
+| Tenant Update & Deletion Helper Setup
+|--------------------------------------------------------------------------
+*/
+describe('Tenant Management Actions', function () {
+    beforeEach(function () {
+        $this->tenant = Tenant::factory()->create();
+        $this->user->tenants()->attach($this->tenant->id);
+        $this->withSession(['active_tenant_uuid' => $this->tenant->uuid]);
+    });
 
-    /* --- Request --- */
-    $response = $this->actingAs($user)->put(route('tenants.update', $tenant), [
-        'name' => 'New Name',
-    ]);
+    /* --- Update --- */
+    describe('Update', function () {
+        test('user can update a tenant they belong to and have permissions for', function () {
+            /* --- Setup --- */
+            $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
 
-    /* --- Assertions --- */
-    $response->assertSessionHasNoErrors();
-    $response->assertRedirect();
+            /* --- Request --- */
+            $response = $this->from(route('tenants.index'))
+                ->put(route('tenant.update'), [
+                    'name' => 'New Name',
+                ]);
 
-    $this->assertDatabaseHas('tenants', [
-        'id' => $tenant->id,
-        'name' => 'New Name',
-    ]);
+            /* --- Assert HTTP response status --- */
+            $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+            
+            /* --- Assert HTTP response message/error --- */
+            expect(session('status'))->toBe(__('tenant.updated'));
+            
+            /* --- Assert DB State --- */
+            $this->assertDatabaseHas('tenants', [
+                'id' => $this->tenant->id,
+                'name' => 'New Name',
+            ]);
+        });
+
+        test('user cannot update a tenant they belong to but do not have permissions for', function () {
+            /* --- Request --- */
+            $response = $this->put(route('tenant.update'), [
+                'name' => 'New Name',
+            ]);
+
+            /* --- Assert HTTP response status --- */
+            expect($response->status())->toBe(302);
+            expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+            
+            /* --- Assert DB State --- */
+            $this->assertDatabaseMissing('tenants', [
+                'id' => $this->tenant->id,
+                'name' => 'New Name',
+            ]);
+        });
+    });
+
+    /* --- Deletion --- */
+    describe('Deletion', function () {
+        beforeEach(function () {
+            $this->withSession(['auth.password_confirmed_at' => time()]);
+        });
+
+        test('user can delete a tenant they have DeleteTenant permission for', function () {
+            /* --- Setup --- */
+            $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
+
+            /* --- Request --- */
+            $response = $this->delete(route('tenant.destroy'));
+
+            /* --- Assert HTTP response status --- */
+            $response->assertStatus(302)->assertRedirect(route('tenants.index'));
+            
+            /* --- Assert HTTP response message/error --- */
+            expect(session('status'))->toBe(__('tenant.deleted'));
+
+            // Side Effects (DB state)
+            $this->assertDatabaseMissing('tenants', [
+                'id' => $this->tenant->id,
+            ]);
+        });
+
+        test('user cannot delete a tenant they do not have DeleteTenant permission for', function () {
+            /* --- Request --- */
+            $response = $this->delete(route('tenant.destroy'));
+
+            /* --- Assert HTTP response status --- */
+            expect($response->status())->toBe(302);
+
+            /* --- Assert HTTP response message/error --- */
+            expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+
+            /* --- Assert DB State --- */
+            $this->assertDatabaseHas('tenants', [
+                'id' => $this->tenant->id,
+            ]);
+        });
+    });
 });
 
-test('user cannot update a tenant they do not have permissions for', function () {
-    /* --- Setup --- */
-    $user = User::factory()->create();
-    $tenant = Tenant::factory()->create(['name' => 'Old Name']);
-    // user is attached but has no permissions
-    $user->tenants()->attach($tenant->id);
+/*
+|--------------------------------------------------------------------------
+| Tenant Contextual Authorization
+|--------------------------------------------------------------------------
+*/
+describe('Tenant Contextual Authorization', function () {
+    test('user cannot update a tenant they belong to if they only have Admin permissions in a different tenant', function () {
+        /* --- Setup --- */
+        // Create a primary tenant and make the user an Admin of it
+        $userTenant = Tenant::factory()->create(['name' => 'Users Own Tenant']);
+        $this->user->tenants()->attach($userTenant->id);
+        $this->user->assignTenantRole($userTenant, TenantRoleName::Admin);
 
-    /* --- Request --- */
-    $response = $this->actingAs($user)->put(route('tenants.update', $tenant), [
-        'name' => 'New Name',
-    ]);
+        // Create a separate tenant that the user IS attached to, but has NO role in
+        $otherTenant = Tenant::factory()->create(['name' => 'Other Persons Tenant']);
+        $this->user->tenants()->attach($otherTenant->id);
 
-    /* --- Assertions --- */
-    $response->assertForbidden();
-    $this->assertDatabaseMissing('tenants', [
-        'id' => $tenant->id,
-        'name' => 'New Name',
-    ]);
-});
+        /* --- Request --- */
+        $response = $this->withSession(['active_tenant_uuid' => $otherTenant->uuid])
+            ->put(route('tenant.update'), [
+                'name' => 'New Name',
+            ]);
 
-test('user can delete a tenant they have DeleteTenant permission for', function () {
-    /* --- Setup --- */
-    // Need to pre-confirm password for the delete route
-    $this->withSession(['auth.password_confirmed_at' => time()]);
-    
-    $user = User::factory()->create();
-    $tenant = Tenant::factory()->create(['name' => 'To Be Deleted']);
-    $user->tenants()->attach($tenant->id);
-    
-    // Assign role seeded by our Seeder
-    $user->assignTenantRole($tenant, TenantRoleName::Admin);
-
-    /* --- Request --- */
-    $response = $this->actingAs($user)->delete(route('tenants.destroy', $tenant));
-
-    /* --- Assertions --- */
-    $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('dashboard'));
-
-    $this->assertDatabaseMissing('tenants', [
-        'id' => $tenant->id,
-    ]);
-});
-
-test('user cannot delete a tenant they do not have DeleteTenant permission for', function () {
-    /* --- Setup --- */
-    // Pre-confirm password so we truly test the Authorization Policy, not the Password Middleware
-    $this->withSession(['auth.password_confirmed_at' => time()]);
-
-    $user = User::factory()->create();
-    $tenant = Tenant::factory()->create(['name' => 'Cannot Delete Me']);
-    $user->tenants()->attach($tenant->id);
-    
-    // User is attached but does not have the DeleteTenant permission
-
-    /* --- Request --- */
-    $response = $this->actingAs($user)->delete(route('tenants.destroy', $tenant));
-
-    /* --- Assertions --- */
-    $response->assertForbidden();
-
-    $this->assertDatabaseHas('tenants', [
-        'id' => $tenant->id,
-    ]);
-});
-
-test('user cannot update a tenant they belong to if they only have Admin permissions in a different tenant', function () {
-    /* --- Setup --- */
-    $user = User::factory()->create();
-    
-    // Create a primary tenant and make the user an Admin of it
-    $userTenant = Tenant::factory()->create(['name' => 'Users Own Tenant']);
-    $user->tenants()->attach($userTenant->id);
-    $user->assignTenantRole($userTenant, TenantRoleName::Admin);
-
-    // Create a separate tenant that the user IS attached to, but has NO role in
-    $otherTenant = Tenant::factory()->create(['name' => 'Other Persons Tenant']);
-    $user->tenants()->attach($otherTenant->id);
-
-    /* --- Request --- */
-    // The user attempts to update the isolated tenant
-    $response = $this->actingAs($user)->put(route('tenants.update', $otherTenant), [
-        'name' => 'New Name',
-    ]);
-
-    /* --- Assertions --- */
-    $response->assertForbidden();
-
-    $this->assertDatabaseHas('tenants', [
-        'id' => $otherTenant->id,
-        'name' => 'Other Persons Tenant', // Verify original name remains untouched
-    ]);
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+        
+        /* --- Assert DB State --- */
+        $this->assertDatabaseHas('tenants', [
+            'id' => $otherTenant->id,
+            'name' => 'Other Persons Tenant', 
+        ]);
+    });
 });

@@ -31,14 +31,7 @@ class UpdateTenantMemberAction
         $willBeAdmin = in_array(TenantRoleName::Admin->value, $roles);
 
         if ($isCurrentAdmin && ! $willBeAdmin) {
-            $adminCount = $tenant->users()
-                ->whereHas('roles', function ($query) use ($tenant) {
-                    $query->where('name', TenantRoleName::Admin->value)
-                        ->where('team_id', $tenant->id);
-                })
-                ->count();
-
-            if ($adminCount <= 1) {
+            if ($tenant->activeAdminsCount() <= 1) {
                 throw new LastAdminSafeGuardException();
             }
         }
@@ -46,8 +39,20 @@ class UpdateTenantMemberAction
         DB::transaction(function () use ($tenant, $user, $roles, $permissions) {
             setPermissionsTeamId($tenant->id);
 
-            $user->syncRoles($roles);
-            $user->syncPermissions($permissions);
+            $roleModels = \App\Models\Role::whereIn('name', $roles)
+                ->where('guard_name', 'tenant')
+                ->where(function ($q) use ($tenant) {
+                    $q->where('team_id', $tenant->id)
+                      ->orWhereNull('team_id');
+                })
+                ->get();
+
+            $permissionModels = \App\Models\Permission::whereIn('name', $permissions)
+                ->where('guard_name', 'tenant')
+                ->get();
+
+            $user->syncRoles($roleModels);
+            $user->syncPermissions($permissionModels);
         });
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Auth\Access\AuthorizationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -39,12 +40,41 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => $e->getMessage(),
-                    'error' => $e->getMessage(),
                 ], 422);
             }
 
             return back()->withErrors([
                 'error' => $e->getMessage(),
+            ]);
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, \Illuminate\Http\Request $request) {
+            // We only want to return a specific error for actions that are not GET requests,
+            // so we can show them in a toast
+            if ($request->isMethod('GET')) {
+                return null;
+            }
+
+            // Error message fallback
+            $fallback = __('permissions.access_denied');
+            if ($e->getPrevious() instanceof AuthorizationException) {
+                $fallback = __('permissions.unauthorized');
+            }
+
+            // Replace the default error message with our own localised one
+            $message = $e->getMessage();
+            if (empty($message) || $message === "This action is unauthorized.") {
+                $message = $fallback;
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                ], 403);
+            }
+
+            return back()->withErrors([
+                'error' => $message,
             ]);
         });
     })->create();
