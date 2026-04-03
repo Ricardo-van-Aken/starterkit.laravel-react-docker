@@ -10,5 +10,7 @@ class OrganisationUnitClosure extends Model
 
     public $timestamps = false;
 
+    protected $hidden = ['id'];
+
     protected $fillable = ['ancestor_id', 'descendant_id', 'depth'];
 }
