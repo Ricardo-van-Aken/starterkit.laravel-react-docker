@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class ProcessScheduledDeletions extends Command
+class ProcessScheduledDeletionsCommand extends Command
 {
     /**
      * The name and signature of the console command.
