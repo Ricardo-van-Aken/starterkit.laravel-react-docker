@@ -78,44 +78,45 @@ if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
 elif [ "$MODE" = "local-volume" ] || [ "$MODE" = "local-bindmount" ] || [ "$MODE" = "mock-prod" ]; then
   echo "Local environment selected, building images locally..."
 
+  # Define log files
+  LOG_APP="build_app.log"
+  LOG_COMPOSE="build_compose.log"
+  > "$LOG_APP"
+  > "$LOG_COMPOSE"
+
   # -----------------------------
   # THREAD A: laravel-base + app image
   # -----------------------------
   (
     set -e
 
-    echo "==> Building laravel-base"
-
     # Read Dockerfile param from .env file. This param is used to decide which dockerfile will be used for laravel-app image
     DOCKERFILE=$(grep '^DOCKERFILE=' "$ENV_FILE" | cut -d '=' -f2-)
     if [ -z "$DOCKERFILE" ]; then
-      echo "Error: DOCKERFILE not found in $ENV_FILE"
+      echo "Error: DOCKERFILE not found in $ENV_FILE" >> "$LOG_APP"
       exit 1
     fi
 
-    # Build the base image with the host user's identifiers for image www-data user. This will resolve potential
-    # permission issues when mounting host application files into the container.
+    # Build the base image
     LOCAL_UID="$(id -u)"
     LOCAL_GID="$(id -g)"
+    echo "==> Building laravel-base" >> "$LOG_APP"
     docker build \
       -f docker/img_laravel/Dockerfile.laravel-base \
       -t local/starterkit.laravel-react-docker:laravel-base.latest \
       --build-arg WWW_UID=$LOCAL_UID \
       --build-arg WWW_GID=$LOCAL_GID \
-      . \
-      2>&1 | log "laravel-base" "$GREEN"
+      . >> "$LOG_APP" 2>&1
 
-    echo "==> Building laravel-app"
-
+    echo "==> Building laravel-app" >> "$LOG_APP"
     # Build the app image using the base image and the selected Dockerfile
     docker build \
       -f docker/img_laravel/$DOCKERFILE \
       -t local/starterkit.laravel-react-docker:laravel-app.latest \
       --build-arg BASE_IMAGE=local/starterkit.laravel-react-docker:laravel-base.latest \
-      . \
-      2>&1 | log "laravel-app" "$BLUE"
+      . >> "$LOG_APP" 2>&1
   ) &
-  APP_CHAIN_PID=$!
+  PID_APP_BUILD=$!
 
   # -----------------------------
   # THREAD B: compose services (parallel)
@@ -136,13 +137,80 @@ elif [ "$MODE" = "local-volume" ] || [ "$MODE" = "local-bindmount" ] || [ "$MODE
       cert_local \
       phpmyadmin-admin \
       phpmyadmin-testing \
-      phpredisadmin \
-      2>&1 | log "compose" "$YELLOW"
+      phpredisadmin >> "$LOG_COMPOSE" 2>&1
   ) &
-  COMPOSE_PID=$!
+  PID_COMPOSE_BUILD=$!
 
-  wait $APP_CHAIN_PID || exit 1
-  wait $COMPOSE_PID || exit 1
+
+
+  # -----------------------------
+  # LIVE UPDATE LOOP
+  # -----------------------------
+
+  # Initialize state variables
+  EXIT_APP=""
+  EXIT_COMPOSE=""
+  STATUS_APP="${BLUE}[laravel-app]${RESET} Pending..."
+  STATUS_COMPOSE="${BLUE}[compose]${RESET} Pending..."
+
+  # RESET variable for ANSI codes
+  RESET="\033[0m"
+
+  # Print placeholders for the status lines
+  echo ""
+  echo ""
+
+  # Live update loop
+  while [ -z "$EXIT_APP" ] || [ -z "$EXIT_COMPOSE" ]; do
+    printf "\033[2A" # Back up 2 lines
+
+    COLS=$(tput cols 2>/dev/null || echo 80)
+
+    # Update app build status
+    if [ -z "$EXIT_APP" ]; then
+      if kill -0 $PID_APP_BUILD 2>/dev/null; then
+        LINE_A=$(grep -E "^#[0-9]+ \[" "$LOG_APP" 2>/dev/null | tail -n 1 | cut -c1-$((COLS - 20)))
+        STATUS_APP="${BLUE}[laravel-app]${RESET} ${LINE_A}"
+      else
+        wait $PID_APP_BUILD
+        EXIT_APP=$?
+        if [ "$EXIT_APP" -eq 0 ]; then
+          STATUS_APP="${GREEN}[laravel-app]${RESET} Success!"
+        else
+          STATUS_APP="${RED}[laravel-app]${RESET} Failed! Check $LOG_APP"
+        fi
+      fi
+    fi
+
+    # Update compose build status
+    if [ -z "$EXIT_COMPOSE" ]; then
+      if kill -0 $PID_COMPOSE_BUILD 2>/dev/null; then
+        LINE_B=$(grep -E "^#[0-9]+ \[" "$LOG_COMPOSE" 2>/dev/null | tail -n 1 | cut -c1-$((COLS - 20)))
+        STATUS_COMPOSE="${BLUE}[compose]${RESET} ${LINE_B}"
+      else
+        wait $PID_COMPOSE_BUILD
+        EXIT_COMPOSE=$?
+        if [ "$EXIT_COMPOSE" -eq 0 ]; then
+          STATUS_COMPOSE="${GREEN}[compose]${RESET} Success!"
+        else
+          STATUS_COMPOSE="${RED}[compose]${RESET} Failed! Check $LOG_COMPOSE"
+        fi
+      fi
+    fi
+
+    printf "\033[2K${STATUS_APP}\n"
+    printf "\033[2K${STATUS_COMPOSE}\n"
+
+    # Exit loop if both are finished
+    [ -n "$EXIT_APP" ] && [ -n "$EXIT_COMPOSE" ] && break
+
+    sleep 0.2
+  done
+
+  # Exit with error code if either failed
+  if [ "$EXIT_APP" -ne 0 ] || [ "$EXIT_COMPOSE" -ne 0 ]; then
+    exit 1
+  fi
 
 fi
 

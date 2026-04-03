@@ -22,10 +22,12 @@ arch('models')
     ->toExtend('Illuminate\Database\Eloquent\Model')
     ->ignoring([
         'App\Models\User',
-        'App\Models\Pivot',
-        'App\Models\Resources\Contracts',
-        'App\Models\OrganisationUnits\Contracts',
+        '*\Contracts',
     ]);
+
+arch('contracts')
+    ->expect('App\Models\*\Contracts')
+    ->toBeInterfaces();
 
 arch('controllers')
     ->expect('App\Http\Controllers')
@@ -44,3 +46,7 @@ arch('exceptions')
 arch('service providers')
     ->expect('App\Providers')
     ->toExtend('Illuminate\Support\ServiceProvider');
+
+arch('actions')
+    ->expect('App\Actions')
+    ->toBeInvokable();
