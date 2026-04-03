@@ -32,7 +32,9 @@ class TenantController extends Controller
         $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
         if ($request->has('redirect_to')) {
-            return redirect($request->query('redirect_to'))->with('status', 'Tenant switched successfully.');
+            /** @var string $url */
+            $url = (string) $request->query('redirect_to');
+            return redirect()->to($url)->with('status', 'Tenant switched successfully.');
         }
 
         return redirect()->back()->with('status', 'Tenant switched successfully.');
@@ -43,7 +45,10 @@ class TenantController extends Controller
      */
     public function leave(LeaveTenantRequest $request, Tenant $tenant, LeaveTenantAction $action): RedirectResponse
     {
-        $action->handle($request->user(), $tenant);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $action->handle($user, $tenant);
 
         $request->session()->forget('active_tenant_uuid');
 

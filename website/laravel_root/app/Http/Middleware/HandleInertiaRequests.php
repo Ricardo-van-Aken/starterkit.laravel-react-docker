@@ -49,9 +49,9 @@ class HandleInertiaRequests extends Middleware
         // Get all tenants the user has access to
         $tenants = collect();
         if ($user) {
-            $tenants = $user->tenants()->get()->map(function ($tenant) use ($user) {
+            $tenants = $user->tenants()->get()->map(function (\App\Models\Tenant $tenant) use ($user) {
                 setPermissionsTeamId($tenant->id);
-                $tenant->roles = $user->getRoleNames()->toArray();
+                $tenant->setAttribute('roles', $user->getRoleNames()->toArray());
                 return $tenant;
             });
         }

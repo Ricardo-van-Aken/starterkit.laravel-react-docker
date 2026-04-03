@@ -14,6 +14,7 @@ class TenantDashboardController extends Controller
      */
     public function __invoke(Request $request): Response
     {
+        /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         // Load counts specifically for the dashboard subscription card

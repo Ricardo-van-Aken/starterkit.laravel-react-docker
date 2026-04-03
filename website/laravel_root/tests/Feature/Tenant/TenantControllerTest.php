@@ -126,6 +126,8 @@ describe('Tenant Management Actions', function () {
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
             expect($response->getTargetUrl())->toBe(route('tenants.index'));
+
+            /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
             
             /* --- Assert DB State --- */
@@ -211,6 +213,8 @@ describe('Tenant Contextual Authorization', function () {
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
         expect($response->getTargetUrl())->toBe(route('tenants.index'));
+
+        /* --- Assert HTTP response message/error --- */
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
         
         /* --- Assert DB State --- */

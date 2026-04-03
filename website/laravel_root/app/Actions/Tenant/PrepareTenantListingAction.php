@@ -2,6 +2,7 @@
 
 namespace App\Actions\Tenant;
 
+use App\Models\Tenant;
 use App\Models\User;
 use App\Policies\TenantMemberPolicy;
 use App\Services\ActiveTenant;
@@ -15,6 +16,8 @@ class PrepareTenantListingAction
      *
      * This is intentionally distinct from a generic tenant fetch — it attaches
      * user-specific permission context and eager-loads member previews for display.
+     *
+     * @return Collection<int, Tenant>
      */
     public function handle(User $user): Collection
     {
@@ -22,23 +25,24 @@ class PrepareTenantListingAction
             ->withCount(['users', 'organisationUnits'])
             ->get();
 
-        $tenants->each(function ($tenant) use ($user) {
+        $tenants->each(function (Tenant $tenant) use ($user) {
             setPermissionsTeamId($tenant->id);
 
             // Attach user's roles within this tenant
-            $tenant->roles = $user->getRoleNames()->toArray();
+            $tenant->setAttribute('roles', $user->getRoleNames()->toArray());
 
             // Attach user's abilities within this tenant
-            $tenant->abilities = [
+            $tenant->setAttribute('abilities', [
                 'view_members' => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),
-            ];
+            ]);
+
+            /** @var Tenant&object{roles: array<int, string>, abilities: array{view_members: bool}} $tenant */
 
             // Attach the first 4 members with their roles (if user has permission)
             if ($tenant->abilities['view_members']) {
-                $tenant->load(['users' => fn($q) => $q->take(4)]);
-                $tenant->users->each(function ($member) {
-                    /** @var \App\Models\User $member */
-                    $member->tenant_roles = $member->getRoleNames()->toArray();
+                $tenant->load(['users' => fn(\Illuminate\Database\Eloquent\Relations\BelongsToMany $q) => $q->take(4)]);
+                $tenant->users->each(function (User $member) {
+                    $member->setAttribute('tenant_roles', $member->getRoleNames()->toArray());
                 });
             }
         });
