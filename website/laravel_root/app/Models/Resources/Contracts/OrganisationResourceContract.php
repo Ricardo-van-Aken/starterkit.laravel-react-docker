@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @phpstan-require-extends \Illuminate\Database\Eloquent\Model
  */
-interface OrganisationResource
+interface OrganisationResourceContract
 {
     /**
      * Get the organisation unit that owns the resource.
