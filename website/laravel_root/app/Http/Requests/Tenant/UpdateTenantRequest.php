@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Services\ActiveTenant;
 
 class UpdateTenantRequest extends FormRequest
 {
@@ -14,7 +15,7 @@ class UpdateTenantRequest extends FormRequest
         /** @var \App\Models\User $user */
         $user = $this->user();
 
-        return $user->can('update', $this->route('tenant'));
+        return $user->can('update', app(ActiveTenant::class)->getOrFail());
     }
 
     /**

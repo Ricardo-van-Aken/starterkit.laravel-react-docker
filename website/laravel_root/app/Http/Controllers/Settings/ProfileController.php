@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\User\ScheduleUserDeletionAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -22,7 +23,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail, // @phpstan-ignore-line
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -50,22 +51,20 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, ScheduleUserDeletionAction $action): RedirectResponse
     {
         $request->validate([
             'password' => ['required', 'current_password'],
+            'force_delete_tenants' => ['nullable', 'boolean'],
         ]);
 
         /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
-        Auth::logout();
+        $forceDelete = $request->boolean('force_delete_tenants');
 
-        $user->delete();
+        $action->handle($user, $forceDelete);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
+        return redirect()->route('deletion.notice');
     }
 }

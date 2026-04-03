@@ -13,7 +13,7 @@ class TenantPolicy
      */
     public function create(User $user): bool
     {
-        return $user->canCreateTenant();
+        return true;
     }
 
     /**
@@ -21,9 +21,10 @@ class TenantPolicy
      */
     public function update(User $user, Tenant $tenant): bool
     {
-        // Use spatie/laravel-permission to check if user has permission in this tenant
         setPermissionsTeamId($tenant->id);
-        
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
+
         return $user->hasPermissionTo(TenantPermissionName::UpdateTenantDetails->value, 'tenant');
     }
 
@@ -33,7 +34,15 @@ class TenantPolicy
     public function delete(User $user, Tenant $tenant): bool
     {
         setPermissionsTeamId($tenant->id);
-        
+
         return $user->hasPermissionTo(TenantPermissionName::DeleteTenant->value, 'tenant');
+    }
+
+    /**
+     * Determine whether the user can switch to the model instance.
+     */
+    public function switch(User $user, Tenant $tenant): bool
+    {
+        return $user->tenants()->where('tenants.id', $tenant->id)->exists();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\ServiceProvider;
+use App\Services\ActiveTenant;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,6 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->scoped(ActiveTenant::class, function() {
+            return new ActiveTenant();
+        });
+
         // Sandbox Redis securely for parallel and sequential testing runs.
         // We do this in register() so the prefix is bound BEFORE any packages (like Spatie) 
         // boot up and accidentally cache the original connection string.
@@ -27,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantMemberPolicy::class, \App\Policies\TenantMemberPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantRolePolicy::class, \App\Policies\TenantRolePolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Policies\TenantBillingPolicy::class, \App\Policies\TenantBillingPolicy::class);
     }
 }
