@@ -3,6 +3,25 @@
 # This script runs docker-compose.yml with a selected profile and .env file.
 # Usage: ./run_env_profile.sh [dev-volume|dev-bindmount|testing|staging|production]
 
+log() {
+  NAME="$1"
+  COLOR="$2"
+
+  awk -v name="$NAME" -v color="$COLOR" '
+  BEGIN {
+    reset="\033[0m"
+  }
+  {
+    print color "[" name "]" reset " " $0
+  }'
+}
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+CYAN="\033[36m"
+MAGENTA="\033[35m"
+
 # Get the mode from the first argument
 MODE="$1"
 PROJECT_NAME="laravel-starterkit"
@@ -55,21 +74,76 @@ esac
 if [ "$MODE" = "staging" ] || [ "$MODE" = "production" ]; then
   echo "Remote environment selected, pulling latest versions of images from registry..."
   docker compose -p $PROJECT_NAME -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE pull
+
 elif [ "$MODE" = "local-volume" ] || [ "$MODE" = "local-bindmount" ] || [ "$MODE" = "mock-prod" ]; then
   echo "Local environment selected, building images locally..."
 
-  # Build the base image with the host user's identifiers for image www-data user. This will resolve potential
-  # permission issues when mounting host application files into the container.
-  LOCAL_UID="$(id -u)"
-  LOCAL_GID="$(id -g)"
-  docker build \
-    -f docker/img_laravel/Dockerfile.laravel-base \
-    -t local/starterkit.laravel-react-docker:laravel-base.latest \
-    --build-arg WWW_UID=$LOCAL_UID \
-    --build-arg WWW_GID=$LOCAL_GID \
-    .
+  # -----------------------------
+  # THREAD A: laravel-base + app image
+  # -----------------------------
+  (
+    set -e
 
-  docker compose -p $PROJECT_NAME -f $COMPOSE_FILE --env-file $ENV_FILE --profile $PROFILE build
+    echo "==> Building laravel-base"
+
+    # Read Dockerfile param from .env file. This param is used to decide which dockerfile will be used for laravel-app image
+    DOCKERFILE=$(grep '^DOCKERFILE=' "$ENV_FILE" | cut -d '=' -f2-)
+    if [ -z "$DOCKERFILE" ]; then
+      echo "Error: DOCKERFILE not found in $ENV_FILE"
+      exit 1
+    fi
+
+    # Build the base image with the host user's identifiers for image www-data user. This will resolve potential
+    # permission issues when mounting host application files into the container.
+    LOCAL_UID="$(id -u)"
+    LOCAL_GID="$(id -g)"
+    docker build \
+      -f docker/img_laravel/Dockerfile.laravel-base \
+      -t local/starterkit.laravel-react-docker:laravel-base.latest \
+      --build-arg WWW_UID=$LOCAL_UID \
+      --build-arg WWW_GID=$LOCAL_GID \
+      . \
+      2>&1 | log "laravel-base" "$GREEN"
+
+    echo "==> Building laravel-app"
+
+    # Build the app image using the base image and the selected Dockerfile
+    docker build \
+      -f docker/img_laravel/$DOCKERFILE \
+      -t local/starterkit.laravel-react-docker:laravel-app.latest \
+      --build-arg BASE_IMAGE=local/starterkit.laravel-react-docker:laravel-base.latest \
+      . \
+      2>&1 | log "laravel-app" "$BLUE"
+  ) &
+  APP_CHAIN_PID=$!
+
+  # -----------------------------
+  # THREAD B: compose services (parallel)
+  # -----------------------------
+  (
+    set -e
+
+    docker compose \
+      -p $PROJECT_NAME \
+      -f $COMPOSE_FILE \
+      --env-file $ENV_FILE \
+      --profile $PROFILE \
+      build --parallel \
+      nginx \
+      redis \
+      mysql_db \
+      certbot \
+      cert_local \
+      phpmyadmin-admin \
+      phpmyadmin-testing \
+      phpredisadmin \
+      2>&1 | log "compose" "$YELLOW"
+  ) &
+  COMPOSE_PID=$!
+
+  wait $APP_CHAIN_PID || exit 1
+  wait $COMPOSE_PID || exit 1
+
 fi
 
 # Shut down existing containers
