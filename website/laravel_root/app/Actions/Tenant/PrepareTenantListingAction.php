@@ -19,7 +19,7 @@ class PrepareTenantListingAction
      *
      * @return Collection<int, Tenant>
      */
-    public function handle(User $user): Collection
+    public function __invoke(User $user): Collection
     {
         $tenants = $user->tenants()
             ->withCount(['users', 'organisationUnits'])

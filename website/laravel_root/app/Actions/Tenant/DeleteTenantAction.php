@@ -10,7 +10,7 @@ class DeleteTenantAction
     /**
      * Execute the action to delete a tenant and clean up related roles and permissions.
      */
-    public function handle(Tenant $tenant): ?bool
+    public function __invoke(Tenant $tenant): ?bool
     {
         return DB::transaction(function () use ($tenant) {
             $teamId = $tenant->id;

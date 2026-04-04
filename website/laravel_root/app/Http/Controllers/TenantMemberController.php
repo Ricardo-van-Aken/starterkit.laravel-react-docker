@@ -38,7 +38,7 @@ class TenantMemberController extends Controller
         $tenant = app(ActiveTenant::class)->get();
         
         return Inertia::render('tenants/settings/members', [
-            'members' => $listMembersAction->handle($tenant),
+            'members' => $listMembersAction($tenant),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
             'invitations' => [
@@ -71,7 +71,7 @@ class TenantMemberController extends Controller
         /** @var array<int, string> $permissions */
         $permissions = $request->validated('permissions');
 
-        $this->updateTenantMemberAction->handle($tenant, $user, $roles, $permissions);
+        ($this->updateTenantMemberAction)($tenant, $user, $roles, $permissions);
 
         return redirect()->back()->with('status', __('actions.member_updated'));
     }
@@ -84,7 +84,7 @@ class TenantMemberController extends Controller
         /** @var Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        $this->removeTenantMemberAction->handle($tenant, $user);
+        ($this->removeTenantMemberAction)($tenant, $user);
 
         return redirect()->back()->with('status', __('actions.member_removed'));
     }

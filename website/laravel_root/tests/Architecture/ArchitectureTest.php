@@ -19,13 +19,15 @@ arch()->preset()->laravel()
 
 arch('models')
     ->expect('App\Models')
+    ->classes()
     ->toExtend('Illuminate\Database\Eloquent\Model')
     ->ignoring([
         'App\Models\User',
-        'App\Models\Pivot',
-        'App\Models\Resources\Contracts',
-        'App\Models\OrganisationUnits\Contracts',
     ]);
+
+arch('contracts')
+    ->expect('App\Models\*\Contracts')
+    ->toBeInterfaces();
 
 arch('controllers')
     ->expect('App\Http\Controllers')
@@ -44,3 +46,9 @@ arch('exceptions')
 arch('service providers')
     ->expect('App\Providers')
     ->toExtend('Illuminate\Support\ServiceProvider');
+
+arch('actions')
+    ->expect('App\Actions')
+    ->classes()
+    ->toBeInvokable()
+    ->ignoring('App\Actions\Fortify');

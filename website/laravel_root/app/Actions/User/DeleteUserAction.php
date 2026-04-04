@@ -23,17 +23,17 @@ class DeleteUserAction
      *                                 instead of failing the entire account deletion.
      * @throws LastAdminSafeGuardException if the user is the last admin of a tenant and $forceDeleteTenants is false
      */
-    public function handle(User $user, bool $forceDeleteTenants = false): void
+    public function __invoke(User $user, bool $forceDeleteTenants = false): void
     {
         DB::transaction(function () use ($user, $forceDeleteTenants) {
             // Iterate over all tenants the user belongs to
             foreach ($user->tenants()->get() as $tenant) {
                 try {
-                    $this->removeMemberAction->handle($tenant, $user);
+                    ($this->removeMemberAction)($tenant, $user);
                 } catch (LastAdminSafeGuardException $e) {
                     if ($forceDeleteTenants) {
                         // If the user requested to force delete, silently delete the orphaned tenant
-                        $this->deleteTenantAction->handle($tenant);
+                        ($this->deleteTenantAction)($tenant);
                     } else {
                         // Otherwise, rethrow to abort the transaction and block account deletion
                         throw $e;

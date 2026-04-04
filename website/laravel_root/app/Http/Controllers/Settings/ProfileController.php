@@ -63,7 +63,7 @@ class ProfileController extends Controller
 
         $forceDelete = $request->boolean('force_delete_tenants');
 
-        $action->handle($user, $forceDelete);
+        $action($user, $forceDelete);
 
         return redirect()->route('deletion.notice');
     }

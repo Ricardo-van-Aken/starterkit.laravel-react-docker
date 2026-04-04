@@ -11,7 +11,7 @@ class UpdateTenantAction
      *
      * @param array<string, mixed> $data
      */
-    public function handle(Tenant $tenant, array $data): bool
+    public function __invoke(Tenant $tenant, array $data): bool
     {
         return $tenant->update($data);
     }

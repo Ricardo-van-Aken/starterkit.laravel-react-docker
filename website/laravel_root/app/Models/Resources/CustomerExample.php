@@ -2,14 +2,14 @@
 
 namespace App\Models\Resources;
 
-use App\Models\Resources\Contracts\OrganisationResource;
+use App\Models\Resources\Contracts\OrganisationResourceContract;
 use App\Models\OrganisationUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CustomerExample extends Model implements OrganisationResource
+class CustomerExample extends Model implements OrganisationResourceContract
 {
     use HasUuids;
 

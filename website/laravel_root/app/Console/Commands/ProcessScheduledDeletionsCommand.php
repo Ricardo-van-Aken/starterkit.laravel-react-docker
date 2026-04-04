@@ -50,7 +50,7 @@ class ProcessScheduledDeletionsCommand extends Command
                 // We unconditionally force-purge associated tenants.
                 // If a tenant still has other active admins, the action merely removes this user.
                 // If this user was the last active admin, the tenant becomes completely orphaned, so we garbage collect it.
-                $deleteUserAction->handle($user, true);
+                $deleteUserAction($user, true);
                 $this->info("Successfully purged: {$user->email}");
             } catch (\Exception $e) {
                 // We catch general exceptions so one failing user doesn't prevent others from being purged

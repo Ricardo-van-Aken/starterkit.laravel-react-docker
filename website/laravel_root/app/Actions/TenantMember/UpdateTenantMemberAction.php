@@ -19,7 +19,7 @@ class UpdateTenantMemberAction
      * @throws LastAdminSafeGuardException if the user whose roles are being updated is the last admin being demoted
      * @throws TenantMemberNotFoundException if the user whose roles are being updated is not an actual member of the tenant
      */
-    public function handle(Tenant $tenant, User $user, array $roles, array $permissions): void
+    public function __invoke(Tenant $tenant, User $user, array $roles, array $permissions): void
     {
         // Verify that member to be updated is an actual member of the tenant
         if (!$tenant->users()->where('users.id', $user->id)->exists()) {

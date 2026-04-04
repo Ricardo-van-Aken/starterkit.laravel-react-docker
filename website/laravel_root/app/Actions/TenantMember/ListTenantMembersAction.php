@@ -23,7 +23,7 @@ class ListTenantMembersAction
      *
      * @return Collection<int, TenantMember>
      */
-    public function handle(Tenant $tenant): Collection
+    public function __invoke(Tenant $tenant): Collection
     {
         setPermissionsTeamId($tenant->id);
 

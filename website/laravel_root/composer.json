@@ -66,6 +66,9 @@
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=2G"
         ],
+        "test:arch": [
+            "vendor/bin/pest tests/Architecture"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
