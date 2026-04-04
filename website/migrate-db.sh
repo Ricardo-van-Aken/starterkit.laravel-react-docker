@@ -13,9 +13,9 @@ while [ "$#" -gt 0 ]; do
       SEED=1
       shift
       ;;
-    --class)
-      SEED_CLASS="$2"
-      shift 2
+    --class=*)
+      SEED_CLASS="${1#*=}"
+      shift
       ;;
     *)
       echo "Unknown option: $1"
