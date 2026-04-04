@@ -181,6 +181,14 @@ jobs:
           docker run --rm \
             ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }} \
             composer analyse
+ 
+      - name: Run Architecture Tests
+        run: |
+          docker run --rm \
+            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }} \
+            composer test:arch
+
+  
 
   cleanup-dockerhub:
     name: Cleanup temporary Docker Hub images

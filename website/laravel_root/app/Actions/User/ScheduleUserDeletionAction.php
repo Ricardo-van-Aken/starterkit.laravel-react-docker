@@ -13,7 +13,7 @@ class ScheduleUserDeletionAction
      *
      * @throws LastAdminSafeGuardException
      */
-    public function handle(User $user, bool $forceDeleteTenants): void
+    public function __invoke(User $user, bool $forceDeleteTenants): void
     {
         // Don't allow scheduling if it will force an orphaned tenant, unless they explicitly opted in
         if (! $forceDeleteTenants) {

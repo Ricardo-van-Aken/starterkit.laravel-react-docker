@@ -4,10 +4,12 @@ arch('front-facing models use HasUuids trait')
     ->expect('App\Models')
     ->classes()
     ->toUseTrait('Illuminate\Database\Eloquent\Concerns\HasUuids')
-    ->ignoring(['App\Models\OrganisationUnits', 'App\Models\OrganisationUnitClosure']);
+    ->ignoring([
+        'App\Models\OrganisationUnitClosure', // Not front-facing
+        'App\Models\OrganisationUnits', // These will all be behind the OrganisationUnit model
+    ]);
 
-arch('front-facing models hide the id field')
+arch('all models hide the id field')
     ->expect('App\Models')
     ->classes()
-    ->toHideParams('id')
-    ->ignoring(['App\Models\OrganisationUnits', 'App\Models\OrganisationUnitClosure']);
+    ->toHideParams('id');
