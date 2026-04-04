@@ -1,50 +1,23 @@
 # Laravel React Docker Starterkit
 
-<p align="center">
-  <a href="https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml">
-    <img src="https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml/badge.svg" alt="Test Status">
-  </a>
-  <a href="https://packagist.org/packages/laravel/framework">
-    <img src="https://img.shields.io/badge/laravel-12.x-ff2d20?logo=laravel" alt="Laravel 12">
-  </a>
-  <a href="https://react.dev">
-    <img src="https://img.shields.io/badge/react-19-61dafb?logo=react" alt="React 19">
-  </a>
-  <a href="https://spatie.be/docs/laravel-permission">
-    <img src="https://img.shields.io/badge/spatie-permissions-%23ec5975.svg?logo=spatie&logoColor=white" alt="Spatie Permissions">
-  </a>
-  <a href="https://pestphp.com">
-    <img src="https://img.shields.io/badge/Pest-Testing-000000?logo=pest&logoColor=white" alt="Pest">
-  </a>
-  <a href="https://github.com/larastan/larastan">
-    <img src="https://img.shields.io/badge/larastan-level%2010-4f5b93.svg?logo=phpstan&logoColor=white" alt="Larastan">
-  </a>
-  <!-- <a href="https://spatie.be/docs/laravel-activitylog">
-    <img src="https://img.shields.io/badge/spatie-activitylog-%23ec5975.svg?logo=spatie&logoColor=white" alt="Spatie Activitylog">
-  </a> -->
-  <!-- <a href="https://github.com/mollie/laravel-cashier-mollie">
-    <img src="https://img.shields.io/badge/cashier-mollie-%23ff5e13.svg?logo=mollie&logoColor=white" alt="Cashier Mollie">
-  </a> -->
-  <br>
-  <a href="https://www.php.net">
-    <img src="https://img.shields.io/badge/php-%3E%3D%208.2-8892bf?logo=php" alt="PHP 8.2+">
-  </a>
-  <a href="https://ui.shadcn.com">
-    <img src="https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white" alt="shadcn/ui">
-  </a>
-  <a href="https://www.docker.com">
-    <img src="https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white" alt="Docker">
-  </a>
-  <a href="https://www.terraform.io">
-    <img src="https://img.shields.io/badge/terraform-%23623CE4.svg?logo=terraform&logoColor=white" alt="Terraform">
-  </a>
-  <a href="https://www.ansible.com">
-    <img src="https://img.shields.io/badge/ansible-%23EE0000.svg?logo=ansible&logoColor=white" alt="Ansible">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/Ricardo-van-Aken/starterkit.laravel-react-docker" alt="License">
-  </a>
-</p>
+<div align="center">
+
+[![Test Status](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml/badge.svg)](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml)
+[![Laravel 12](https://img.shields.io/badge/laravel-12.x-ff2d20?logo=laravel)](https://packagist.org/packages/laravel/framework)
+[![React 19](https://img.shields.io/badge/react-19-61dafb?logo=react)](https://react.dev)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com)
+[![Spatie Permissions](https://img.shields.io/badge/spatie-permissions-%23ec5975.svg?logo=spatie&logoColor=white)](https://spatie.be/docs/laravel-permission)
+[![Pest](https://img.shields.io/badge/Pest-Testing-000000?logo=pest&logoColor=white)](https://pestphp.com)
+[![Larastan](https://img.shields.io/badge/larastan-level%2010-4f5b93.svg?logo=phpstan&logoColor=white)](https://github.com/larastan/larastan)
+<br>
+[![PHP 8.2+](https://img.shields.io/badge/php-%3E%3D%208.2-8892bf?logo=php)](https://www.php.net)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)](https://www.docker.com)
+[![Terraform](https://img.shields.io/badge/terraform-%23623CE4.svg?logo=terraform&logoColor=white)](https://www.terraform.io)
+[![Ansible](https://img.shields.io/badge/ansible-%23EE0000.svg?logo=ansible&logoColor=white)](https://www.ansible.com)
+[![License](https://img.shields.io/github/license/Ricardo-van-Aken/starterkit.laravel-react-docker)](LICENSE)
+<!-- [![Spatie Activitylog](https://img.shields.io/badge/spatie-activitylog-%23ec5975.svg?logo=spatie&logoColor=white)](https://spatie.be/docs/laravel-activitylog)
+[![Cashier Mollie](https://img.shields.io/badge/cashier-mollie-%23ff5e13.svg?logo=mollie&logoColor=white)](https://github.com/mollie/laravel-cashier-mollie) -->
+</div>
 
 A production-ready starter kit for building multi-tenant SaaS web applications with Laravel, Inertia and React. This starterkit focuses on delivering a consistent developer experience across local and production environments by combining containerised development with infrastructure-as-code deployment.
 
