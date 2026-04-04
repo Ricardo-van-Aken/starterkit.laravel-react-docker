@@ -19,10 +19,10 @@ arch()->preset()->laravel()
 
 arch('models')
     ->expect('App\Models')
+    ->classes()
     ->toExtend('Illuminate\Database\Eloquent\Model')
     ->ignoring([
         'App\Models\User',
-        '*\Contracts',
     ]);
 
 arch('contracts')
@@ -49,4 +49,6 @@ arch('service providers')
 
 arch('actions')
     ->expect('App\Actions')
-    ->toBeInvokable();
+    ->classes()
+    ->toBeInvokable()
+    ->ignoring('App\Actions\Fortify');

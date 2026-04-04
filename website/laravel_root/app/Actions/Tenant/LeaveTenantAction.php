@@ -18,8 +18,8 @@ class LeaveTenantAction
      * @throws \App\Exceptions\LastAdminSafeGuardException if the user is the last admin (handled by RemoveTenantMemberAction)
      * @throws \App\Exceptions\TenantMemberNotFoundException if the user is not a member of the tenant (handled by RemoveTenantMemberAction)
      */
-    public function handle(User $user, Tenant $tenant): void
+    public function __invoke(User $user, Tenant $tenant): void
     {
-        $this->removeMemberAction->handle($tenant, $user);
+        ($this->removeMemberAction)($tenant, $user);
     }
 }

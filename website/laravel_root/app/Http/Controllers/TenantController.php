@@ -48,7 +48,7 @@ class TenantController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $action->handle($user, $tenant);
+        $action($user, $tenant);
 
         $request->session()->forget('active_tenant_uuid');
 
@@ -64,7 +64,7 @@ class TenantController extends Controller
         $user = $request->user();
 
         return Inertia::render('tenants/index', [
-            'tenants' => $action->handle($user),
+            'tenants' => $action($user),
         ]);
     }
 
@@ -97,7 +97,7 @@ class TenantController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $tenant = $action->handle($user, $request->validated());
+        $tenant = $action($user, $request->validated());
 
         $request->session()->put('active_tenant_uuid', $tenant->uuid);
 
@@ -112,7 +112,7 @@ class TenantController extends Controller
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        $action->handle($tenant, $request->validated());
+        $action($tenant, $request->validated());
 
         return redirect()->back()->with('status', __('tenant.updated'));
     }
@@ -125,7 +125,7 @@ class TenantController extends Controller
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        $action->handle($tenant);
+        $action($tenant);
 
         $request->session()->forget('active_tenant_uuid');
 

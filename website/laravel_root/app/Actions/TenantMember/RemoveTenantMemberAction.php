@@ -17,7 +17,7 @@ class RemoveTenantMemberAction
      * @throws LastAdminSafeGuardException if the user to be removed from the tenant is the last admin
      * @throws TenantMemberNotFoundException if the user to be removed from the tenant is not an actual member
      */
-    public function handle(Tenant $tenant, User $user): void
+    public function __invoke(Tenant $tenant, User $user): void
     {
         // Verify that member to be removed is an actual member of the tenant
         if (!$tenant->users()->where('users.id', $user->id)->exists()) {
