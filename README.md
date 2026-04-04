@@ -1,17 +1,52 @@
-# Laravel React Docker Starter Kit
+# Laravel React Docker Starterkit
 
-A production-ready starter kit for building multi-tenant SaaS web applications with Laravel, Inertia and React. Fully containerised and designed for a smooth path from local development to production.
+<p align="center">
+  <a href="https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml">
+    <img src="https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml/badge.svg" alt="Test Status">
+  </a>
+  <a href="https://packagist.org/packages/laravel/framework">
+    <img src="https://img.shields.io/badge/laravel-12.x-ff2d20?logo=laravel" alt="Laravel 12">
+  </a>
+  <a href="https://react.dev">
+    <img src="https://img.shields.io/badge/react-19-61dafb?logo=react" alt="React 19">
+  </a>
+  <a href="https://spatie.be/docs/laravel-permission">
+    <img src="https://img.shields.io/badge/spatie-permissions-%23ec5975.svg?logo=spatie&logoColor=white" alt="Spatie Permissions">
+  </a>
+  <a href="https://pestphp.com">
+    <img src="https://img.shields.io/badge/Pest-Testing-000000?logo=pest&logoColor=white" alt="Pest">
+  </a>
+  <a href="https://github.com/larastan/larastan">
+    <img src="https://img.shields.io/badge/larastan-level%2010-4f5b93.svg?logo=phpstan&logoColor=white" alt="Larastan">
+  </a>
+  <!-- <a href="https://spatie.be/docs/laravel-activitylog">
+    <img src="https://img.shields.io/badge/spatie-activitylog-%23ec5975.svg?logo=spatie&logoColor=white" alt="Spatie Activitylog">
+  </a> -->
+  <!-- <a href="https://github.com/mollie/laravel-cashier-mollie">
+    <img src="https://img.shields.io/badge/cashier-mollie-%23ff5e13.svg?logo=mollie&logoColor=white" alt="Cashier Mollie">
+  </a> -->
+  <br>
+  <a href="https://www.php.net">
+    <img src="https://img.shields.io/badge/php-%3E%3D%208.2-8892bf?logo=php" alt="PHP 8.2+">
+  </a>
+  <a href="https://ui.shadcn.com">
+    <img src="https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white" alt="shadcn/ui">
+  </a>
+  <a href="https://www.docker.com">
+    <img src="https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white" alt="Docker">
+  </a>
+  <a href="https://www.terraform.io">
+    <img src="https://img.shields.io/badge/terraform-%23623CE4.svg?logo=terraform&logoColor=white" alt="Terraform">
+  </a>
+  <a href="https://www.ansible.com">
+    <img src="https://img.shields.io/badge/ansible-%23EE0000.svg?logo=ansible&logoColor=white" alt="Ansible">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/github/license/Ricardo-van-Aken/starterkit.laravel-react-docker" alt="License">
+  </a>
+</p>
 
-## Description
-
-This starter kit provides a pre-configured environment for Laravel 12 applications using Inertia and React 19. It focuses on delivering a consistent developer experience across local and production environments by combining containerised development with infrastructure-as-code deployment.
-
-The goal is to reduce setup time, enforce best practices, and provide a clear path from development to production.
-
-The project is organised into three main areas:
-- **`website/`**: Contains the application source code and the local Docker environment.
-- **`deployment/`**: Contains the architecture definition and deployment configurations for various environments.
-- **`.github/`**: Contains the CI/CD workflows for automated testing and deployment
+A production-ready starter kit for building multi-tenant SaaS web applications with Laravel, Inertia and React. This starterkit focuses on delivering a consistent developer experience across local and production environments by combining containerised development with infrastructure-as-code deployment.
 
 ## Quick Start
 
@@ -29,6 +64,9 @@ cd website
 ./migrate-db.sh --seed --class=RequiredDataSeeder
 ```
 
+> [!IMPORTANT]
+> **First Build Note**: The initial execution of `./run_env.sh` may take several minutes as it downloads base images and builds the application containers. Subsequent starts will be significantly faster.
+
 Application will be available at: https://localhost
 
 ### Environment Modes
@@ -42,19 +80,6 @@ The `./run_env.sh` script supports several modes to suit different development a
 | **`mock-prod`** | Runs a production-like setup locally | Verifying production behavior before deployment |
 | **`staging`** | Targets a staging environment configuration | Pre-production validation |
 | **`production`** | Targets the production environment | Live deployment |
-
-## Features
-
-- **Modern Tech Stack**: Laravel 12, React 19, and Inertia.js.
-- **Multi-tenant SaaS Foundation**: Pre-configured architecture for multi-tenancy using Spatie Laravel Permissions and Laravel Cashier.
-- **Full Dockerised Stack**: A complete infrastructure ready for local development, including PHP-FPM, Nginx, MySQL, Redis.
-- **Optimised Docker Build**: Parallelised Docker build process for faster local startup and CI execution.
-- **Environment Management**: Robust `run_env.sh` script to manage different environments (local, staging, production) with ease.
-- **Quality Assurance**: Pre-defined workflows for automated testing (Pest PHP), static analysis (Larastan), and CI/CD consistency.
-- **Developer Experience**: Choice between `bindmount` (instant code reflection) and `volume` based development.
-- **Type Safety**: Full TypeScript support in the frontend.
-- **Architecture**: Enforced architectural standards using Pest Architectural tests.
-- **Security**: Pre-configured SSL support via Certbot/Let's Encrypt.
 
 ### Useful Commands
 
@@ -72,6 +97,13 @@ Check `website/commands.sh` for a cheat sheet of common commands (migrations, se
 - **Type Safety**: Full TypeScript support in the frontend.
 - **Architecture**: Enforced architectural standards using Pest Architectural tests.
 - **Security**: Pre-configured SSL support via Certbot/Let's Encrypt.
+
+### Project Structure
+
+The project is organised into three main areas:
+- **`website/`**: Contains the application source code and the local Docker environment.
+- **`deployment/`**: Contains the architecture definition and deployment configurations for various environments.
+- **`.github/`**: Contains the CI/CD workflows for automated testing and deployment.
 
 ## Tech Stack
 
