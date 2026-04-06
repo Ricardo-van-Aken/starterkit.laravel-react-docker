@@ -3,24 +3,27 @@
 # This script runs docker-compose.yml with a selected profile and .env file.
 # Usage: ./run_env_profile.sh [dev-volume|dev-bindmount|testing|staging|production]
 
-log() {
-  NAME="$1"
-  COLOR="$2"
-
-  awk -v name="$NAME" -v color="$COLOR" '
-  BEGIN {
-    reset="\033[0m"
-  }
-  {
-    print color "[" name "]" reset " " $0
-  }'
-}
 RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 BLUE="\033[34m"
 CYAN="\033[36m"
 MAGENTA="\033[35m"
+RESET="\033[0m"
+
+# Check if required commands are available
+for cmd in docker grep cut id tput; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "${RED}Error:${RESET} Required command '${YELLOW}$cmd${RESET}' not found. Please install it to continue."
+    exit 1
+  fi
+done
+
+# Check specifically for docker compose (V2)
+if ! docker compose version >/dev/null 2>&1; then
+  echo "${RED}Error:${RESET} '${YELLOW}docker compose${RESET}' (V2) is not available. Please install it to continue."
+  exit 1
+fi
 
 # Get the mode from the first argument
 MODE="$1"
@@ -152,9 +155,6 @@ elif [ "$MODE" = "local-volume" ] || [ "$MODE" = "local-bindmount" ] || [ "$MODE
   EXIT_COMPOSE=""
   STATUS_APP="${BLUE}[laravel-app]${RESET} Pending..."
   STATUS_COMPOSE="${BLUE}[compose]${RESET} Pending..."
-
-  # RESET variable for ANSI codes
-  RESET="\033[0m"
 
   # Print placeholders for the status lines
   echo ""

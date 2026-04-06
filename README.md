@@ -25,15 +25,17 @@ A production-ready starter kit for building multi-tenant SaaS web applications w
 
 ### Prerequisites
 
+- Linux, macOS, or Windows with WSL2
+- Bash-compatible shell
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
 ### Installation & Local Development
 
 ```bash
-git clone https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker.git
-cd website
-./run_env.sh local-bindmount
+git clone https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker.git starterkit
+cd starterkit/website
+./run_env.sh local-volume
 ./migrate-db.sh --seed --class=RequiredDataSeeder
 ```
 

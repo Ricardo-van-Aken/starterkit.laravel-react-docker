@@ -1,0 +1,108 @@
+# =========================================================
+# Default behavior
+# =========================================================
+* text=auto eol=lf
+
+
+# =========================================================
+# Force LF for scripts & devops tooling
+# =========================================================
+*.sh            text eol=lf
+*.bash          text eol=lf
+*.env*          text eol=lf
+
+Dockerfile*     text eol=lf
+docker-compose*.yml text eol=lf
+docker-compose*.yaml text eol=lf
+*.dockerignore  text eol=lf
+
+
+# =========================================================
+# Terraform
+# =========================================================
+*.tf            text eol=lf
+*.tfvars        text eol=lf
+
+
+# =========================================================
+# Ansible
+# =========================================================
+ansible/**/*.yml text eol=lf
+ansible/**/*.yaml text eol=lf
+
+
+# =========================================================
+# Laravel / PHP
+# =========================================================
+*.php           text eol=lf
+*.blade.php     text eol=lf
+*.json          text eol=lf
+
+
+# =========================================================
+# Frontend (React / Node)
+# =========================================================
+*.js            text eol=lf
+*.ts            text eol=lf
+*.tsx           text eol=lf
+*.jsx           text eol=lf
+*.css           text eol=lf
+*.scss          text eol=lf
+*.html          text eol=lf
+
+
+# =========================================================
+# Configuration files
+# =========================================================
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.toml          text eol=lf
+*.ini           text eol=lf
+*.xml           text eol=lf
+*.svg           text eol=lf
+
+
+# =========================================================
+# Binary files (never touched)
+# =========================================================
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.webp          binary
+
+*.pdf           binary
+*.zip           binary
+*.tar           binary
+*.gz            binary
+
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.eot           binary
+
+
+# =========================================================
+# Dependencies (avoid noisy diffs)
+# =========================================================
+node_modules/**  -diff
+vendor/**        -diff
+dist/**          -diff
+build/**         -diff
+
+
+# =========================================================
+# Lock files
+# =========================================================
+composer.lock   text
+package-lock.json text
+yarn.lock       text
+pnpm-lock.yaml  text
+
+
+# =========================================================
+# Security / env files handling
+# =========================================================
+.env            text eol=lf
+.env.*          text eol=lf
