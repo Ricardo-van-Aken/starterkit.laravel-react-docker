@@ -55,19 +55,16 @@ export default function MembersPage({ members, invitations, available_roles, ava
                         </div>
                     </div>
 
-                    {/* Invitations Table (Placeholder) */}
+                    {/* Invitations Table */}
                     <div className="space-y-6">
                         <HeadingSmall
                             title="Outstanding Invitations"
                             description="Invitations that have been sent but not yet accepted."
                         />
 
-                        <div className="rounded-md border opacity-60">
+                        <div className="rounded-md border">
                             <InvitationsTable invitations={invitations} />
                         </div>
-                        <p className="text-xs text-muted-foreground italic">
-                            Invitation management is coming soon.
-                        </p>
                     </div>
                 </div>
             </TenantSettingsLayout>

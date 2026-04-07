@@ -18,6 +18,10 @@ class TenantMemberPolicy
     {
         setPermissionsTeamId($tenant->id);
 
+        if (!$user->hasPermissionTo(TenantPermissionName::UpdateTenantMemberRoles->value, 'tenant')) {
+            return false;
+        }
+
         $userIsAdmin = $user->hasTenantRole($tenant, TenantRoleName::Admin);
 
         // Only an admin can update another admin
@@ -30,7 +34,7 @@ class TenantMemberPolicy
             return false;
         }
 
-        return $user->hasPermissionTo(TenantPermissionName::UpdateTenantMembers->value, 'tenant');
+        return true;
     }
 
     /**
@@ -40,13 +44,17 @@ class TenantMemberPolicy
     {
         setPermissionsTeamId($tenant->id);
 
+        if (!$user->hasPermissionTo(TenantPermissionName::DeleteTenantMembers->value, 'tenant')) {
+            return false;
+        }
+
         // Only an admin can delete another admin
         if ($member->hasTenantRole($tenant, TenantRoleName::Admin) && 
             !$user->hasTenantRole($tenant, TenantRoleName::Admin)) {
             return false;
         }
 
-        return $user->hasPermissionTo(TenantPermissionName::DeleteTenantMembers->value, 'tenant');
+        return true;
     }
 
     /**
@@ -57,15 +65,5 @@ class TenantMemberPolicy
         setPermissionsTeamId($tenant->id);
 
         return $user->hasPermissionTo(TenantPermissionName::ViewTenantMembers->value, 'tenant');
-    }
-
-    /**
-     * Determine whether the user can invite new members.
-     */
-    public function invite(User $user, Tenant $tenant): bool
-    {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::InviteTenantMembers->value, 'tenant');
     }
 }

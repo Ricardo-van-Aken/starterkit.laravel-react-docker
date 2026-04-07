@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Requests\TenantMember;
+namespace App\Http\Requests\TenantInvitation;
 
-use App\Models\User;
-use App\Policies\TenantMemberPolicy;
+use App\Models\TenantInvitation;
+use App\Policies\TenantInvitationPolicy;
 use App\Rules\TenantPermissionRule;
 use App\Rules\TenantRoleRule;
 use App\Services\ActiveTenant;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateTenantMemberRequest extends FormRequest
+class UpdateTenantInvitationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -18,15 +18,10 @@ class UpdateTenantMemberRequest extends FormRequest
     {
         /** @var \App\Models\User $user */
         $user = $this->user();
+        /** @var TenantInvitation $invitation */
+        $invitation = $this->route('tenantInvitation');
 
-        /** @var \App\Models\Tenant $tenant */
-        $tenant = app(ActiveTenant::class)->get();
-        
-
-        /** @var \App\Models\User $memberUser */
-        $memberUser = $this->route('user');
-
-        return $user->can('update', [TenantMemberPolicy::class, $memberUser, $tenant, $this->input('roles', [])]);
+        return $user->can('update', [$invitation, $this->input('roles', [])]);
     }
 
     /**

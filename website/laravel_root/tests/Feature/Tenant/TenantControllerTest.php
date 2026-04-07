@@ -20,7 +20,7 @@ beforeEach(function () {
 describe('Tenant Creation', function () {
     test('user can create a tenant', function () {
         /* --- Setup --- */
-        $this->user->update(['max_tenants' => 5]);
+        $this->user->forceFill(['max_tenants' => 5])->save();
 
         /* --- Request --- */
         $response = $this->from(route('tenants.index'))
@@ -52,7 +52,7 @@ describe('Tenant Creation', function () {
 
     test('user cannot create more tenants than their limit', function () {
         /* --- Setup --- */
-        $this->user->update(['max_tenants' => 1]);
+        $this->user->forceFill(['max_tenants' => 1])->save();
         $tenant = Tenant::factory()->create(['name' => 'First Tenant']);
         $this->user->tenants()->attach($tenant->id);
 

@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\OrganisationUnit;
 use App\Models\Role;
 use App\Enums\TenantRoleName;
+use App\Enums\TenantPermissionName;
 use App\Enums\OrgUnitRoleName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property \Illuminate\Support\Carbon|null $scheduled_for_deletion_at
@@ -33,7 +36,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'max_tenants',
     ];
 
     /**
@@ -87,12 +89,28 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(OrganisationUnit::class, 'organisation_unit_user');
     }
 
+    /** @return HasMany<TenantInvitation, $this> */
+    public function tenantInvitations(): HasMany
+    {
+        return $this->hasMany(TenantInvitation::class);
+    }
+
     public function assignTenantRole(Tenant $tenant, string|TenantRoleName $role): self
     {
         $roleName = $role instanceof TenantRoleName ? $role->value : $role;
         setPermissionsTeamId($tenant->id);
 
         $this->assignRole(Role::findByName($roleName, 'tenant'));
+
+        return $this;
+    }
+
+    public function assignTenantPermission(Tenant $tenant, TenantPermissionName $permission): self
+    {
+        $permissionName = $permission->value;
+        setPermissionsTeamId($tenant->id);
+
+        $this->givePermissionTo(Permission::findByName($permissionName, 'tenant'));
 
         return $this;
     }
@@ -126,5 +144,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canCreateTenant(): bool
     {
         return $this->tenants()->count() < $this->max_tenants;
+    }
+
+    /**
+     * @return HasMany<TenantInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(TenantInvitation::class, 'email', 'email');
     }
 }

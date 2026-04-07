@@ -37,17 +37,6 @@ function createUserWithRole(Tenant $tenant, TenantRoleName $role, array $attribu
     return $user;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Invitations (WIP)
-|--------------------------------------------------------------------------
-*/
-describe('Invitations', function () {
-    test('member can be invited to tenant (wip)', function () {
-        /* --- Assertions --- */
-        $this->markTestSkipped('Invitation logic is currently WIP.');
-    });
-});
 
 /*
 |--------------------------------------------------------------------------

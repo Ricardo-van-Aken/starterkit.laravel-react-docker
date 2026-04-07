@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\TenantMember\InviteTenantMemberAction;
 use App\Actions\TenantMember\ListTenantMembersAction;
 use App\Actions\TenantMember\RemoveTenantMemberAction;
 use App\Actions\TenantMember\UpdateTenantMemberAction;
 use App\Http\Requests\TenantMember\DestroyTenantMemberRequest;
+use App\Http\Requests\TenantMember\InviteTenantMemberRequest;
 use App\Http\Requests\TenantMember\UpdateTenantMemberRequest;
 use App\Http\Requests\TenantMember\IndexTenantMembersRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\TenantInvitation;
 use App\Models\User;
 use App\Policies\TenantMemberPolicy;
 use App\Policies\TenantRolePolicy;
@@ -28,12 +31,13 @@ class TenantMemberController extends Controller
     ) {}
 
     /**
-     * Display a listing of the tenant members.
+     * Display a listing of the tenant members and outstanding invitations.
      */
     public function index(IndexTenantMembersRequest $request, ListTenantMembersAction $listMembersAction): Response
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
+
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
         
@@ -41,14 +45,15 @@ class TenantMemberController extends Controller
             'members' => $listMembersAction($tenant),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
-            'invitations' => [
-                [
-                    'email' => 'placeholder@example.com',
-                    'role' => 'Guest',
-                    'status' => 'Pending',
-                    'expires_at' => now()->addDays(7)->toDateTimeString(),
-                ]
-            ],
+            'invitations' => TenantInvitation::where('tenant_id', $tenant->id)
+                ->get()
+                ->map(fn (TenantInvitation $invitation) => [
+                    'uuid' => $invitation->uuid,
+                    'email' => $invitation->email,
+                    'roles' => $invitation->roles ?? [],
+                    'status' => $invitation->status->value,
+                    'expires_at' => $invitation->expires_at?->toDateTimeString(),
+                ]),
             'abilities' => [
                 'update'        => $user->can('update', $tenant),
                 'view_members'  => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),
@@ -59,17 +64,17 @@ class TenantMemberController extends Controller
     }
 
     /**
-     * Update the specified tenant member.
+     * Update an existing tenant member's roles and permissions.
      */
     public function update(UpdateTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var Tenant $tenant */
+        /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         /** @var array<int, string> $roles */
-        $roles = $request->validated('roles');
+        $roles = (array) $request->validated('roles');
         /** @var array<int, string> $permissions */
-        $permissions = $request->validated('permissions');
+        $permissions = (array) ($request->validated('permissions') ?? []);
 
         ($this->updateTenantMemberAction)($tenant, $user, $roles, $permissions);
 
@@ -81,7 +86,7 @@ class TenantMemberController extends Controller
      */
     public function destroy(DestroyTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var Tenant $tenant */
+        /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         ($this->removeTenantMemberAction)($tenant, $user);

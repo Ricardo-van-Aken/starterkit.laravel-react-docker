@@ -44,7 +44,7 @@ class DefaultRolesAndPermissionsSeeder extends Seeder
             TenantPermissionName::UpdateOrganisationUnits->value,
             
             TenantPermissionName::InviteTenantMembers->value,
-            TenantPermissionName::UpdateTenantMembers->value,
+            TenantPermissionName::UpdateTenantMemberRoles->value,
 
             TenantPermissionName::ViewOrgUnitRoles->value,
             TenantPermissionName::ViewTenantRoles->value,

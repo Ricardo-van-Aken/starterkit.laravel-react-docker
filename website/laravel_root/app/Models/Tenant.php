@@ -71,4 +71,11 @@ class Tenant extends Model
 
         return $query->count();
     }
+    /**
+     * @return HasMany<TenantInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(TenantInvitation::class);
+    }
 }
