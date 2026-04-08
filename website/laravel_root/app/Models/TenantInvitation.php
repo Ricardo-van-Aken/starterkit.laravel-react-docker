@@ -2,31 +2,34 @@
 
 namespace App\Models;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Permission\Traits\HasRoles;
+use App\Models\Traits\HasTenantAuthorization;
 
 /**
  * @property string $uuid
  * @property string $email
  * @property \App\Enums\TenantInvitationStatus $status
- * @property string[]|null $roles
- * @property string[]|null $permissions
+ * @property \Illuminate\Database\Eloquent\Collection<int, \App\Models\Role> $roles
+ * @property \Illuminate\Database\Eloquent\Collection<int, \App\Models\Permission> $permissions
  * @property \Illuminate\Support\Carbon|null $expires_at
  * @property \App\Models\Tenant $tenant
  */
 class TenantInvitation extends Model
 {
     /** @use HasFactory<\Database\Factories\TenantInvitationFactory> */
-    use HasUuids, HasFactory;
+    use HasUuids, HasFactory, HasRoles, HasTenantAuthorization;
+
+    protected string $guard_name = 'tenant';
 
     protected $fillable = [
         'tenant_id',
         'email',
         'status',
-        'roles',
-        'permissions',
         'expires_at',
     ];
 
@@ -40,8 +43,6 @@ class TenantInvitation extends Model
     {
         return [
             'status' => \App\Enums\TenantInvitationStatus::class,
-            'roles' => 'array',
-            'permissions' => 'array',
             'expires_at' => 'datetime',
         ];
     }
@@ -57,6 +58,10 @@ class TenantInvitation extends Model
         return ['uuid'];
     }
 
+    public function isExpired(): bool
+    {
+        return $this->expires_at && $this->expires_at->isPast();
+    }
 
     /**
      * @return BelongsTo<Tenant, $this>

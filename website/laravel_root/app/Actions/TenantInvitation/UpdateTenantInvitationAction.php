@@ -10,22 +10,27 @@ use Illuminate\Support\Facades\DB;
 class UpdateTenantInvitationAction
 {
     /**
-     * Update the roles and permissions on a pending tenant invitation.
+     * Update a pending tenant invitation and its assigned roles and/or permissions.
      *
-     * @param array<int, string> $roles
-     * @param array<int, string> $permissions
+     * @param array<int, string>|null $newRoles
+     * @param array<int, string>|null $newPermissions
      */
-    public function __invoke(TenantInvitation $invitation, array $roles, array $permissions): void
+    public function __invoke(TenantInvitation $invitation, ?array $newRoles = null, ?array $newPermissions = null): bool
     {
         if ($invitation->status !== TenantInvitationStatus::Pending) {
             throw new TenantInvitationAlreadyProcessedException;
         }
 
-        DB::transaction(function () use ($invitation, $roles, $permissions) {
-            $invitation->update([
-                'roles'       => $roles,
-                'permissions' => $permissions,
-            ]);
+        return DB::transaction(function () use ($invitation, $newRoles, $newPermissions) {
+            if ($newRoles !== null) {
+                $invitation->syncTenantRoles($invitation->tenant, $newRoles);
+            }
+
+            if ($newPermissions !== null) {
+                $invitation->syncTenantPermissions($invitation->tenant, $newPermissions);
+            }
+
+            return true;
         });
     }
 }

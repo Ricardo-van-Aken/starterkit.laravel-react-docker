@@ -18,15 +18,17 @@ class UpdateTenantMemberRequest extends FormRequest
     {
         /** @var \App\Models\User $user */
         $user = $this->user();
-
+        $memberUser = $this->route('user');
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
-        
 
-        /** @var \App\Models\User $memberUser */
-        $memberUser = $this->route('user');
-
-        return $user->can('update', [TenantMemberPolicy::class, $memberUser, $tenant, $this->input('roles', [])]);
+        return $user->can('update', [
+            TenantMemberPolicy::class,
+            $memberUser,
+            $tenant,
+            $this->input('roles'),
+            $this->input('permissions'),
+        ]);
     }
 
     /**
@@ -40,9 +42,9 @@ class UpdateTenantMemberRequest extends FormRequest
         $tenant = app(ActiveTenant::class)->get();
 
         return [
-            'roles'         => ['required', 'array'],
+            'roles'         => ['sometimes', 'array'],
             'roles.*'       => ['string', new TenantRoleRule($tenant)],
-            'permissions'   => ['present', 'array'],
+            'permissions'   => ['sometimes', 'array'],
             'permissions.*' => ['string', new TenantPermissionRule],
         ];
     }

@@ -9,4 +9,6 @@ return [
     'already_exists' => 'Er bestaat al een openstaande uitnodiging voor deze gebruiker in deze organisatie.',
     'user_already_member' => 'Deze gebruiker is al lid van deze organisatie.',
     'created' => 'Uitnodiging succesvol verzonden.',
+    'updated' => 'Uitnodiging succesvol bijgewerkt.',
+    'deleted' => 'De uitnodiging is verwijderd.',
 ];

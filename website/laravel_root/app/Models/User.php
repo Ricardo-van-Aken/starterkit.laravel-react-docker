@@ -5,8 +5,6 @@ namespace App\Models;
 use App\Models\Tenant;
 use App\Models\OrganisationUnit;
 use App\Models\Role;
-use App\Enums\TenantRoleName;
-use App\Enums\TenantPermissionName;
 use App\Enums\OrgUnitRoleName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +13,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
-use Spatie\Permission\Models\Permission;
+use App\Models\Traits\HasTenantAuthorization;
+use App\Models\Traits\HasOrgUnitAuthorization;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -25,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasUuids;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasUuids, HasTenantAuthorization, HasOrgUnitAuthorization;
 
     /**
      * The attributes that are mass assignable.
@@ -93,52 +92,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function tenantInvitations(): HasMany
     {
         return $this->hasMany(TenantInvitation::class);
-    }
-
-    public function assignTenantRole(Tenant $tenant, string|TenantRoleName $role): self
-    {
-        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
-
-        $this->assignRole(Role::findByName($roleName, 'tenant'));
-
-        return $this;
-    }
-
-    public function assignTenantPermission(Tenant $tenant, TenantPermissionName $permission): self
-    {
-        $permissionName = $permission->value;
-        setPermissionsTeamId($tenant->id);
-
-        $this->givePermissionTo(Permission::findByName($permissionName, 'tenant'));
-
-        return $this;
-    }
-
-    public function assignOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): self
-    {
-        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
-
-        $this->assignRole(Role::findByName($roleName, 'organisation_unit'));
-
-        return $this;
-    }
-
-    public function hasTenantRole(Tenant $tenant, string|TenantRoleName $role): bool
-    {
-        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
-
-        return $this->hasRole($roleName, 'tenant');
-    }
-
-    public function hasOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): bool
-    {
-        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
-
-        return $this->hasRole($roleName, 'organisation_unit');
     }
 
     public function canCreateTenant(): bool

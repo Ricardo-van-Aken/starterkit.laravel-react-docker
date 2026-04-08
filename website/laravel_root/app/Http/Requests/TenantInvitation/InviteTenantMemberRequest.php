@@ -23,10 +23,10 @@ class InviteTenantMemberRequest extends FormRequest
         $tenant = app(ActiveTenant::class)->get();
 
         return $user->can('create', [
-            TenantInvitationPolicy::class,
+            \App\Models\TenantInvitation::class,
             $tenant,
             $this->input('roles', []),
-            $this->input('permissions', [])
+            $this->input('permissions', []),
         ]);
     }
 
@@ -42,9 +42,9 @@ class InviteTenantMemberRequest extends FormRequest
 
         return [
             'email'         => ['required', 'email', 'max:255'],
-            'roles'         => ['sometimes', 'array'],
+            'roles'         => ['present', 'array'],
             'roles.*'       => ['string', new TenantRoleRule($tenant)],
-            'permissions'   => ['sometimes', 'array'],
+            'permissions'   => ['present', 'array'],
             'permissions.*' => ['string', new TenantPermissionRule],
         ];
     }

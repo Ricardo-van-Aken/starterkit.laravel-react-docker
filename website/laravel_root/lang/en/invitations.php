@@ -9,4 +9,6 @@ return [
     'already_exists' => 'A pending invitation for this user already exists in this organization.',
     'user_already_member' => 'This user is already a member of this organization.',
     'created' => 'Invitation sent successfully.',
+    'updated' => 'Invitation updated successfully.',
+    'deleted' => 'The invitation was deleted.',
 ];

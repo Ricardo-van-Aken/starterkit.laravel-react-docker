@@ -14,6 +14,10 @@ class DeclineTenantInvitationAction
      */
     public function __invoke(TenantInvitation $invitation, User $user): void
     {
+        if ($invitation->isExpired()) {
+            throw new \App\Exceptions\TenantInvitationExpiredException;
+        }
+
         if ($invitation->status !== TenantInvitationStatus::Pending) {
             throw new \App\Exceptions\TenantInvitationAlreadyProcessedException;
         }

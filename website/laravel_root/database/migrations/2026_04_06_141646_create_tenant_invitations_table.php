@@ -19,8 +19,6 @@ return new class extends Migration
             $table->string('status')->default(\App\Enums\TenantInvitationStatus::Pending->value);
             $table->string('accept_token', 64)->nullable()->unique();
             $table->string('decline_token', 64)->nullable()->unique();
-            $table->json('roles')->nullable();
-            $table->json('permissions')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 

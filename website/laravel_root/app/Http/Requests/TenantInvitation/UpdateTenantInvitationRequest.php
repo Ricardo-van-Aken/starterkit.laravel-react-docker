@@ -21,7 +21,11 @@ class UpdateTenantInvitationRequest extends FormRequest
         /** @var TenantInvitation $invitation */
         $invitation = $this->route('tenantInvitation');
 
-        return $user->can('update', [$invitation, $this->input('roles', [])]);
+        return $user->can('update', [
+            $invitation,
+            $this->input('roles'),
+            $this->input('permissions'),
+        ]);
     }
 
     /**
@@ -35,9 +39,9 @@ class UpdateTenantInvitationRequest extends FormRequest
         $tenant = app(ActiveTenant::class)->get();
 
         return [
-            'roles'         => ['required', 'array'],
+            'roles'         => ['sometimes', 'array'],
             'roles.*'       => ['string', new TenantRoleRule($tenant)],
-            'permissions'   => ['present', 'array'],
+            'permissions'   => ['sometimes', 'array'],
             'permissions.*' => ['string', new TenantPermissionRule],
         ];
     }

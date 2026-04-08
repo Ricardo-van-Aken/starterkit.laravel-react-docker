@@ -47,11 +47,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tenant/settings', [\App\Http\Controllers\TenantController::class, 'edit'])->name('tenant.edit');
 
         Route::get('tenant/members', [\App\Http\Controllers\TenantMemberController::class, 'index'])->name('tenant.members');
-        Route::put('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'update'])->name('tenant.members.update');
+        Route::patch('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'update'])->name('tenant.members.update');
         Route::delete('tenant/members/{user}', [\App\Http\Controllers\TenantMemberController::class, 'destroy'])->name('tenant.members.destroy');
 
         Route::post('tenant/invitations', [\App\Http\Controllers\TenantInvitationController::class, 'store'])->name('tenant.invitations.store');
-        Route::put('tenant/invitations/{tenantInvitation}', [\App\Http\Controllers\TenantInvitationController::class, 'update'])->name('tenant.invitations.update');
+        Route::patch('tenant/invitations/{tenantInvitation}', [\App\Http\Controllers\TenantInvitationController::class, 'update'])->name('tenant.invitations.update');
         Route::delete('tenant/invitations/{tenantInvitation}', [\App\Http\Controllers\TenantInvitationController::class, 'destroy'])->name('tenant.invitations.destroy');
     });
 

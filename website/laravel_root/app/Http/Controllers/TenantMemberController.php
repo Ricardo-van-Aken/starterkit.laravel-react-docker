@@ -71,12 +71,17 @@ class TenantMemberController extends Controller
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        /** @var array<int, string> $roles */
-        $roles = (array) $request->validated('roles');
-        /** @var array<int, string> $permissions */
-        $permissions = (array) ($request->validated('permissions') ?? []);
+        /** @var array<int, string>|null $roles */
+        $roles = $request->validated('roles');
+        /** @var array<int, string>|null $permissions */
+        $permissions = $request->validated('permissions');
 
-        ($this->updateTenantMemberAction)($tenant, $user, $roles, $permissions);
+        ($this->updateTenantMemberAction)(
+            $tenant,
+            $user,
+            $roles,
+            $permissions,
+        );
 
         return redirect()->back()->with('status', __('actions.member_updated'));
     }

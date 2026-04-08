@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Actions\TenantInvitation\AcceptTenantInvitationAction;
 use App\Actions\TenantInvitation\DeclineTenantInvitationAction;
+use App\Actions\TenantInvitation\DeleteTenantInvitationAction;
 use App\Actions\TenantInvitation\InviteTenantMemberAction;
 use App\Actions\TenantInvitation\UpdateTenantInvitationAction;
 use App\Models\TenantInvitation;
 use Illuminate\Http\RedirectResponse;
 use App\Http\Requests\TenantInvitation\AcceptTenantInvitationRequest;
 use App\Http\Requests\TenantInvitation\DeclineTenantInvitationRequest;
+use App\Http\Requests\TenantInvitation\DestroyInvitationRequest;
 use App\Http\Requests\TenantInvitation\InviteTenantMemberRequest;
 use App\Http\Requests\TenantInvitation\UpdateTenantInvitationRequest;
 use App\Services\ActiveTenant;
@@ -24,14 +26,19 @@ class TenantInvitationController extends Controller
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        /** @var array{email: string, roles?: array<int, string>, permissions?: array<int, string>} $validated */
-        $validated = $request->validated();
+        /** @var array<int, string> $roles */
+        $roles = $request->validated('roles', []);
+        /** @var array<int, string> $permissions */
+        $permissions = $request->validated('permissions', []);
+
+        /** @var string $email */
+        $email = $request->validated('email');
 
         $inviteAction(
             $tenant,
-            $validated['email'],
-            $validated['roles'] ?? [],
-            $validated['permissions'] ?? []
+            $email,
+            $roles,
+            $permissions
         );
 
         return redirect()->back()->with('status', __('invitations.created'));
@@ -42,13 +49,15 @@ class TenantInvitationController extends Controller
      */
     public function update(TenantInvitation $tenantInvitation, UpdateTenantInvitationRequest $request, UpdateTenantInvitationAction $updateAction): RedirectResponse
     {
-        /** @var array{roles: array<int, string>, permissions: array<int, string>} $validated */
-        $validated = $request->validated();
+        /** @var array<int, string> $roles */
+        $roles = $request->validated('roles');
+        /** @var array<int, string> $permissions */
+        $permissions = $request->validated('permissions');
 
         $updateAction(
             $tenantInvitation,
-            $validated['roles'],
-            $validated['permissions']
+            $roles,
+            $permissions,
         );
 
         return redirect()->back()->with('status', __('invitations.updated'));
@@ -57,14 +66,14 @@ class TenantInvitationController extends Controller
     /**
      * Destroy the invitation.
      */
-    public function destroy(TenantInvitation $tenantInvitation, DeclineTenantInvitationRequest $request, DeclineTenantInvitationAction $declineAction): RedirectResponse
+    public function destroy(TenantInvitation $tenantInvitation, DestroyInvitationRequest $request, DeleteTenantInvitationAction $deleteAction): RedirectResponse
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $declineAction($tenantInvitation, $user);
+        $deleteAction($tenantInvitation, $user);
 
-        return redirect()->back()->with('status', __('invitations.declined'));
+        return redirect()->back()->with('status', __('invitations.deleted'));
     }
 
     /**

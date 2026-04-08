@@ -21,8 +21,6 @@ class TenantInvitationFactory extends Factory
             'tenant_id' => \App\Models\Tenant::factory(),
             'email' => fake()->unique()->safeEmail(),
             'status' => \App\Enums\TenantInvitationStatus::Pending,
-            'roles' => [],
-            'permissions' => [],
             'accept_token' => \Illuminate\Support\Str::random(64),
             'decline_token' => \Illuminate\Support\Str::random(64),
             'expires_at' => now()->addDays(7),
