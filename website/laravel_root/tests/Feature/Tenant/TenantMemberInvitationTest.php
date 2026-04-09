@@ -323,6 +323,34 @@ describe('Updating Invitations', function () {
         $this->invitation->assignTenantRole($this->tenant, TenantRoleName::Manager);
     });
 
+    test('Invitation update success', function () {
+        /* --- Setup --- */
+        setPermissionsTeamId($this->tenant->id);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
+
+        /* --- Request --- */
+        $response = $this->from(route('tenant.members'))
+            ->patch(route('tenant.invitations.update', $this->invitation), [
+                'roles' => [TenantRoleName::Finance->value],
+                'permissions' => [TenantPermissionName::UpdateTenantDetails->value],
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
+
+        /* --- Assert HTTP response message/error --- */
+        expect(session('status'))->toBe(__('invitations.updated'));
+
+        /* --- Assert DB State --- */
+        setPermissionsTeamId($this->tenant->id);
+        expect($this->invitation->fresh()->hasRole(TenantRoleName::Finance))->toBeTrue();
+        expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeFalse();
+        expect($this->invitation->fresh()->hasPermissionTo(TenantPermissionName::UpdateTenantDetails))->toBeTrue();
+    });
+
     describe('Authorization', function () {
         test('user without any update permission cannot perform invitation updates', function () {
             /* --- Setup --- */
@@ -330,11 +358,38 @@ describe('Updating Invitations', function () {
 
             /* --- Request --- */
             $response = $this->from(route('tenant.members'))
-                ->patch(route('tenant.invitations.update', $this->invitation), []);
+                ->patch(route('tenant.invitations.update', $this->invitation), [
+                    'roles' => [TenantRoleName::Finance->value],
+                ]);
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+
+            /* --- Assert DB State --- */
+            setPermissionsTeamId($this->tenant->id);
+            expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeTrue();
+        });
+
+        test('user with only update permission cannot assign roles', function () {
+            /* --- Setup --- */
+            setPermissionsTeamId($this->tenant->id);
+            $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+
+            /* --- Request --- */
+            $response = $this->from(route('tenant.members'))
+                ->patch(route('tenant.invitations.update', $this->invitation), [
+                    'roles' => [TenantRoleName::Finance->value],
+                    'permissions' => [TenantPermissionName::UpdateTenantDetails->value],
+                ]);
+
+            /* --- Assert HTTP response status --- */
+            expect($response->status())->toBe(302);
+            expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+
+            /* --- Assert DB State --- */
+            setPermissionsTeamId($this->tenant->id);
+            expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeTrue();
         });
     });
 
@@ -345,8 +400,7 @@ describe('Updating Invitations', function () {
             $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
 
             /* --- Request --- */
-            $response = $this->actingAs($this->user)
-                ->from(route('tenant.members'))
+            $response = $this->from(route('tenant.members'))
                 ->patch(route('tenant.invitations.update', $this->invitation), [
                     'roles' => [TenantRoleName::Finance->value],
                 ]);
@@ -354,6 +408,7 @@ describe('Updating Invitations', function () {
             /* --- Assert --- */
             expect($response->status())->toBe(302);
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+            
             setPermissionsTeamId($this->tenant->id);
             expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeTrue();
         });
@@ -391,39 +446,12 @@ describe('Updating Invitations', function () {
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
-
-            /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
             /* --- Assert DB State --- */
             setPermissionsTeamId($this->tenant->id);
             expect($this->invitation->fresh()->hasRole(TenantRoleName::Admin))->toBeFalse();
-        });
-
-        test('user with permission can update an invitation roles and permissions', function () {
-            /* --- Setup --- */
-            setPermissionsTeamId($this->tenant->id);
-            $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
-            $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
-
-            /* --- Request --- */
-            $response = $this->from(route('tenant.members'))
-                ->patch(route('tenant.invitations.update', $this->invitation), [
-                    'roles' => [TenantRoleName::Finance->value],
-                ]);
-
-            /* --- Assert HTTP response status --- */
-            expect($response->status())->toBe(302);
-            expect(session('errors'))->toBeNull();
-            expect($response->getTargetUrl())->toBe(route('tenant.members'));
-
-            /* --- Assert HTTP response message/error --- */
-            expect(session('status'))->toBe(__('invitations.updated'));
-
-            /* --- Assert DB State --- */
-            setPermissionsTeamId($this->tenant->id);
-            expect($this->invitation->fresh()->hasRole(TenantRoleName::Finance))->toBeTrue();
-            expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeFalse();
+            expect($this->invitation->fresh()->hasRole(TenantRoleName::Manager))->toBeTrue();
         });
     });
 
@@ -458,30 +486,30 @@ describe('Deleting Invitations', function () {
         ]);
     });
 
+    test('Invitation deletion success', function () {
+        /* --- Setup --- */
+        setPermissionsTeamId($this->tenant->id);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::InviteTenantMembers);
+
+        /* --- Request --- */
+        $response = $this->from(route('tenant.members'))
+            ->delete(route('tenant.invitations.destroy', $this->invitation));
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('tenant.members'));
+
+        /* --- Assert HTTP response message/error --- */
+        expect(session('status'))->toBe(__('invitations.deleted'));
+
+        /* --- Assert DB State --- */
+        $this->assertDatabaseMissing('tenant_invitations', [
+            'id' => $this->invitation->id,
+        ]);
+    });
+
     describe('Authorization', function () {
-        test('user with permission can delete a pending invitation', function () {
-            /* --- Setup --- */
-            setPermissionsTeamId($this->tenant->id);
-            $this->user->assignTenantPermission($this->tenant, TenantPermissionName::InviteTenantMembers);
-
-            /* --- Request --- */
-            $response = $this->from(route('tenant.members'))
-                ->delete(route('tenant.invitations.destroy', $this->invitation));
-
-            /* --- Assert HTTP response status --- */
-            expect($response->status())->toBe(302);
-            expect(session('errors'))->toBeNull();
-            expect($response->getTargetUrl())->toBe(route('tenant.members'));
-
-            /* --- Assert HTTP response message/error --- */
-            expect(session('status'))->toBe(__('invitations.deleted'));
-
-            /* --- Assert DB State --- */
-            $this->assertDatabaseMissing('tenant_invitations', [
-                'id' => $this->invitation->id,
-            ]);
-        });
-
         test('user without permission cannot delete a pending invitation', function () {
             /* --- Setup --- */
             setPermissionsTeamId($this->tenant->id);
@@ -521,23 +549,24 @@ describe('Accepting Invitations', function () {
         $this->invitation->assignTenantRole($this->tenant, TenantRoleName::Finance);
     });
 
+    test('Invitation acceptance success', function () {
+        /* --- Setup --- */
+        $this->actingAs($this->invitedUser);
+
+        /* --- Request --- */
+        $response = $this->from(route('dashboard'))->post(route('tenant-invitations.accept', $this->invitation));
+
+        /* --- Assert HTTP response status --- */
+        $response->assertRedirect(route('dashboard'));
+        expect(session('status'))->toBe(__('invitations.accepted'));
+
+        /* --- Assert DB State --- */
+        expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Accepted);
+        expect($this->tenant->users->contains($this->invitedUser))->toBeTrue();
+        expect($this->invitedUser->fresh()->hasTenantRole($this->tenant, TenantRoleName::Finance))->toBeTrue();
+    });
+
     describe('Authorization', function () {
-        test('invited user can accept their invitation', function () {
-            /* --- Setup --- */
-            $this->actingAs($this->invitedUser);
-
-            /* --- Request --- */
-            $response = $this->from(route('dashboard'))->post(route('tenant-invitations.accept', $this->invitation));
-
-            /* --- Assert HTTP response status --- */
-            $response->assertRedirect(route('dashboard'));
-
-            /* --- Assert DB State --- */
-            expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Accepted);
-            expect($this->tenant->users->contains($this->invitedUser))->toBeTrue();
-            expect($this->invitedUser->fresh()->hasTenantRole($this->tenant, TenantRoleName::Finance))->toBeTrue();
-        });
-
         test('user cannot accept another person\'s invitation', function () {
             /* --- Setup --- */
             $otherUser = User::factory()->create();
@@ -548,9 +577,11 @@ describe('Accepting Invitations', function () {
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
-
-            /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
+
+            /* --- Assert DB State --- */
+            expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Pending);
+            expect($this->tenant->users->contains($this->invitedUser))->toBeFalse();
         });
     });
 
@@ -565,18 +596,11 @@ describe('Accepting Invitations', function () {
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
-
-            /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('invitations.already_processed'));
         });
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Declining Invitations
-|--------------------------------------------------------------------------
-*/
 describe('Declining Invitations', function () {
     beforeEach(function () {
         $this->invitedUser = User::factory()->create();
@@ -587,19 +611,36 @@ describe('Declining Invitations', function () {
         ]);
     });
 
+    test('Invitation decline success', function () {
+        /* --- Setup --- */
+        $this->actingAs($this->invitedUser);
+
+        /* --- Request --- */
+        $response = $this->from(route('dashboard'))->post(route('tenant-invitations.decline', $this->invitation));
+
+        /* --- Assert HTTP response status --- */
+        $response->assertRedirect(route('dashboard'));
+        expect(session('status'))->toBe(__('invitations.declined'));
+
+        /* --- Assert DB State --- */
+        expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Declined);
+    });
+
     describe('Authorization', function () {
-        test('invited user can decline their invitation', function () {
+        test('user cannot decline another person\'s invitation', function () {
             /* --- Setup --- */
-            $this->actingAs($this->invitedUser);
+            $otherUser = User::factory()->create();
+            $this->actingAs($otherUser);
 
             /* --- Request --- */
             $response = $this->from(route('dashboard'))->post(route('tenant-invitations.decline', $this->invitation));
 
             /* --- Assert HTTP response status --- */
-            $response->assertRedirect(route('dashboard'));
+            expect($response->status())->toBe(302);
+            expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
             /* --- Assert DB State --- */
-            expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Declined);
+            expect($this->invitation->fresh()->status)->toBe(TenantInvitationStatus::Pending);
         });
     });
 
@@ -614,8 +655,6 @@ describe('Declining Invitations', function () {
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
-
-            /* --- Assert HTTP response message/error --- */
             expect(session('errors')->get('error'))->toContain(__('invitations.already_processed'));
         });
     });

@@ -2,7 +2,6 @@
 
 namespace App\Actions\User;
 
-use App\Exceptions\AccountInvitationAlreadyExistsException;
 use App\Exceptions\UserAlreadyExistsException;
 use App\Mail\ClaimAccountMail;
 use App\Models\AccountInvitation;
@@ -22,18 +21,15 @@ class CreateAccountInvitationAction
             throw new UserAlreadyExistsException;
         }
 
-        // Throw exception if the account invitation already exists
-        if (AccountInvitation::where('email', $email)->exists()) {
-            throw new AccountInvitationAlreadyExistsException;
-        }
+        $invitation = AccountInvitation::updateOrCreate(
+            ['email' => $email],
+            [
+                'claim_token'   => Str::random(60),
+                'expires_at'    => now()->addDays(7),
+            ]
+        );
 
-        $invitation = AccountInvitation::create([
-            'email'         => $email,
-            'claim_token'   => Str::random(60),
-            'expires_at'    => now()->addDays(7),
-        ]);
-
-        // Send the claim account email only for the first invitation
+        // Send the claim account email
         Mail::to($email)->send(new ClaimAccountMail($invitation));
 
         return $invitation;

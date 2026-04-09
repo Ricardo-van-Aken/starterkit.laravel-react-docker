@@ -6,9 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 
 /** @var Tenant $tenant */
-/** @var User $adminUser */
-/** @var User $managerUser */
-/** @var User $regularUser */
+/** @var User $user */
 
 beforeEach(function () {
     /* --- Setup --- */
@@ -16,13 +14,12 @@ beforeEach(function () {
     
     $this->tenant = Tenant::factory()->create();
 
-    // Create Base Users
-    $this->adminUser   = createUserWithRole($this->tenant, TenantRoleName::Admin, ['password' => 'password']);
-    $this->managerUser = createUserWithRole($this->tenant, TenantRoleName::Manager, ['password' => 'password']);
-    $this->regularUser = User::factory()->create(['password' => 'password']);
-    $this->regularUser->tenants()->attach($this->tenant->id);
+    // Create Base User
+    $this->user = User::factory()->create(['password' => 'password']);
+    $this->user->tenants()->attach($this->tenant->id);
 
     // Ensure session has active tenant
+    $this->actingAs($this->user);
     $this->withSession(['active_tenant_uuid' => $this->tenant->uuid]);
 });
 
@@ -56,12 +53,13 @@ describe('Creating Members', function () {
 describe('Updating Members', function () {
     test('non-admin cannot update an admin member', function () {
         /* --- Setup --- */
-        $anotherAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
+        $targetAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->managerUser)
-            ->from(route('tenant.members'))
-            ->patch(route('tenant.members.update', $anotherAdmin), [
+        $response = $this->from(route('tenant.members'))
+            ->patch(route('tenant.members.update', $targetAdmin), [
                 'roles' => [TenantRoleName::Manager->value],
                 'permissions' => [],
             ]);
@@ -74,17 +72,17 @@ describe('Updating Members', function () {
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
         /* --- Assert DB state --- */
-        expect($anotherAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Admin))->toBeTrue();
+        expect($targetAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Admin))->toBeTrue();
     });
 
     test('admin can update another admin member', function () {
         /* --- Setup --- */
-        $anotherAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
+        $targetAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->from(route('tenant.members'))
-            ->patch(route('tenant.members.update', $anotherAdmin), [
+        $response = $this->from(route('tenant.members'))
+            ->patch(route('tenant.members.update', $targetAdmin), [
                 'roles' => [TenantRoleName::Manager->value],
                 'permissions' => [],
             ]);
@@ -98,19 +96,19 @@ describe('Updating Members', function () {
         expect(session('status'))->toBe(__('actions.member_updated'));
 
         /* --- Assert DB state --- */
-        expect($anotherAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Manager))->toBeTrue();
-        expect($anotherAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Admin))->toBeFalse();
+        expect($targetAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Manager))->toBeTrue();
+        expect($targetAdmin->fresh()->hasTenantRole($this->tenant, TenantRoleName::Admin))->toBeFalse();
     });
 
     test('omitting roles and permissions preserves existing ones', function () {
         /* --- Setup --- */
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
         setPermissionsTeamId($this->tenant->id);
         $member = createUserWithRole($this->tenant, TenantRoleName::Manager);
         $member->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantDetails);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->patch(route('tenant.members.update', $member), []);
+        $response = $this->patch(route('tenant.members.update', $member), []);
 
         /* --- Assert HTTP response status --- */
         $response->assertRedirect();
@@ -123,13 +121,14 @@ describe('Updating Members', function () {
 
     test('sending empty arrays clears roles and permissions', function () {
         /* --- Setup --- */
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
         setPermissionsTeamId($this->tenant->id);
         $member = createUserWithRole($this->tenant, TenantRoleName::Manager);
         $member->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantDetails);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->patch(route('tenant.members.update', $member), [
+        $response = $this->patch(route('tenant.members.update', $member), [
                 'roles' => [],
                 'permissions' => []
             ]);
@@ -145,14 +144,15 @@ describe('Updating Members', function () {
 
     test('can update permissions', function () {
         /* --- Setup --- */
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
         setPermissionsTeamId($this->tenant->id);
         $member = createUserWithRole($this->tenant, TenantRoleName::Manager);
         // Initially no extra permissions
         expect($member->hasTenantPermission($this->tenant, TenantPermissionName::UpdateTenantDetails))->toBeFalse();
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->patch(route('tenant.members.update', $member), [
+        $response = $this->patch(route('tenant.members.update', $member), [
                 'permissions' => [TenantPermissionName::UpdateTenantDetails->value]
             ]);
 
@@ -170,13 +170,12 @@ describe('Updating Members', function () {
     test('user with UpdateTenantMembers but without ManageTenantMemberRoles can perform a base update if no roles/permissions are sent', function () {
         /* --- Setup --- */
         setPermissionsTeamId($this->tenant->id);
-        $this->managerUser->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
         
         $member = createUserWithRole($this->tenant, TenantRoleName::Finance);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->managerUser)
-            ->patch(route('tenant.members.update', $member), []);
+        $response = $this->patch(route('tenant.members.update', $member), []);
 
         /* --- Assert --- */
         $response->assertRedirect();
@@ -187,14 +186,13 @@ describe('Updating Members', function () {
     test('user with UpdateTenantMembers but without ManageTenantMemberRoles cannot set roles', function () {
         /* --- Setup --- */
         setPermissionsTeamId($this->tenant->id);
-        $this->managerUser->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::UpdateTenantMembers);
         
         $member = createUserWithRole($this->tenant, TenantRoleName::Finance);
         $currentRoles = $member->getRoleNames()->toArray();
 
         /* --- Request --- */
-        $response = $this->actingAs($this->managerUser)
-            ->from(route('tenant.members'))
+        $response = $this->from(route('tenant.members'))
             ->patch(route('tenant.members.update', $member), [
                 'roles' => $currentRoles,
             ]);
@@ -214,12 +212,12 @@ describe('Updating Members', function () {
 describe('Deleting Members', function () {
     test('non-admin cannot delete an admin member', function () {
         /* --- Setup --- */
-        $anotherAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
+        $this->user->assignTenantPermission($this->tenant, TenantPermissionName::DeleteTenantMembers);
+        $targetAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->managerUser)
-            ->from(route('tenant.members'))
-            ->delete(route('tenant.members.destroy', $anotherAdmin));
+        $response = $this->from(route('tenant.members'))
+            ->delete(route('tenant.members.destroy', $targetAdmin));
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
@@ -229,17 +227,17 @@ describe('Deleting Members', function () {
         expect(session('errors')->get('error'))->toContain(__('permissions.unauthorized'));
 
         /* --- Assert DB state --- */
-        expect($this->tenant->users()->where('users.id', $anotherAdmin->id)->exists())->toBeTrue();
+        expect($this->tenant->users()->where('users.id', $targetAdmin->id)->exists())->toBeTrue();
     });
 
     test('admin can delete another admin member', function () {
         /* --- Setup --- */
-        $anotherAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
+        $targetAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->from(route('tenant.members'))
-            ->delete(route('tenant.members.destroy', $anotherAdmin));
+        $response = $this->from(route('tenant.members'))
+            ->delete(route('tenant.members.destroy', $targetAdmin));
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
@@ -250,16 +248,15 @@ describe('Deleting Members', function () {
         expect(session('status'))->toBe(__('actions.member_removed'));
 
         /* --- Assert DB state --- */
-        expect($this->tenant->users()->where('users.id', $anotherAdmin->id)->exists())->toBeFalse();
+        expect($this->tenant->users()->where('users.id', $targetAdmin->id)->exists())->toBeFalse();
     });
 
     test('last admin cannot leave the tenant', function () {
         /* --- Setup --- */
-        // adminUser is the last admin
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->from(route('tenant.members'))
+        $response = $this->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
@@ -272,16 +269,16 @@ describe('Deleting Members', function () {
         expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
 
         /* --- Assert DB state --- */
-        expect($this->tenant->users()->where('users.id', $this->adminUser->id)->exists())->toBeTrue();
+        expect($this->tenant->users()->where('users.id', $this->user->id)->exists())->toBeTrue();
     });
 
     test('admin can leave if another active admin exists', function () {
         /* --- Setup --- */
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
         createUserWithRole($this->tenant, TenantRoleName::Admin);
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->from(route('tenant.members'))
+        $response = $this->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
@@ -295,17 +292,17 @@ describe('Deleting Members', function () {
         expect(session('status'))->toBe(__('tenant.left'));
 
         /* --- Assert DB state --- */
-        expect($this->tenant->users()->where('users.id', $this->adminUser->id)->exists())->toBeFalse();
+        expect($this->tenant->users()->where('users.id', $this->user->id)->exists())->toBeFalse();
     });
 
     test('admin cannot leave if other admins are scheduled for deletion', function () {
         /* --- Setup --- */
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
         $otherAdmin = createUserWithRole($this->tenant, TenantRoleName::Admin);
         $otherAdmin->forceFill(['scheduled_for_deletion_at' => now()->addDays(10)])->save();
 
         /* --- Request --- */
-        $response = $this->actingAs($this->adminUser)
-            ->from(route('tenant.members'))
+        $response = $this->from(route('tenant.members'))
             ->post(route('tenants.leave', $this->tenant), [
                 'password' => 'password',
             ]);
@@ -318,6 +315,6 @@ describe('Deleting Members', function () {
         expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
 
         /* --- Assert DB state --- */
-        expect($this->tenant->users()->where('users.id', $this->adminUser->id)->exists())->toBeTrue();
+        expect($this->tenant->users()->where('users.id', $this->user->id)->exists())->toBeTrue();
     });
 });
