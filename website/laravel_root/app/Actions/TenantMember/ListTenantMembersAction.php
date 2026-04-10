@@ -4,11 +4,12 @@ namespace App\Actions\TenantMember;
 
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
  * @phpstan-type TenantMember array{
- *     id: int,
+ *     uuid: string,
  *     name: string,
  *     email: string,
  *     avatar: null,
@@ -21,23 +22,26 @@ class ListTenantMembersAction
     /**
      * Execute the action to list tenant members.
      *
-     * @return Collection<int, TenantMember>
+     * @return LengthAwarePaginator<TenantMember>
      */
-    public function __invoke(Tenant $tenant): Collection
+    public function __invoke(Tenant $tenant): LengthAwarePaginator
     {
         setPermissionsTeamId($tenant->id);
 
-        return $tenant->users()->get()->map(function (User $user) {
+        /** @var LengthAwarePaginator<User> $paginator */
+        $paginator = $tenant->users()->paginate(10, ['*'], 'members_page')->withQueryString();
+
+        return $paginator->through(function (User $user) {
             /** @var TenantMember $member */
             $member = [
-                'id' => $user->id,
+                'uuid' => $user->uuid,
                 'name' => $user->name,
                 'email' => $user->email,
                 'avatar' => null,
                 'roles' => $user->getRoleNames(), // Spatie method
-                'permissions' => $user->getAllPermissions()->pluck('name'),
+                'permissions' => $user->getDirectPermissions()->pluck('name'),
             ];
- 
+
             return $member;
         });
     }

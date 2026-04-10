@@ -19,7 +19,13 @@ export default function Dashboard() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <IncomingInvitationsCard invitations={invitations || []} />
+                {invitations && invitations.length > 0 && (
+                    <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+                        <div className="md:col-span-3 xl:col-span-2">
+                            <IncomingInvitationsCard invitations={invitations} />
+                        </div>
+                    </div>
+                )}
                 <div className="grid auto-rows-min gap-4 md:grid-cols-3">
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />

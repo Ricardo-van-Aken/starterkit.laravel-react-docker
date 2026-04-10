@@ -7,49 +7,45 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import tenant from '@/routes/tenant';
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { type Member } from '@/components/custom/tables/members-table';
-
 import { MembershipEditor } from '@/components/custom/membership/membership-editor';
+import { type MembershipInvitation } from '@/components/custom/tables/outgoing-membership-invitations-table';
 
-interface EditMemberDialogProps {
-    member: Member | null;
+interface EditMembershipInvitationDialogProps {
+    invitation: MembershipInvitation | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
     availablePermissions: string[];
 }
 
-export function EditMemberDialog({
-    member,
+export function EditMembershipInvitationDialog({
+    invitation,
     open,
     onOpenChange,
     availableRoles,
     availablePermissions,
-}: EditMemberDialogProps) {
+}: EditMembershipInvitationDialogProps) {
     const { data, setData, patch, processing, reset } = useForm({
         roles: [] as string[],
         permissions: [] as string[],
     });
 
     useEffect(() => {
-        if (member) {
+        if (invitation) {
             setData({
-                roles: member.roles,
-                permissions: member.permissions,
+                roles: invitation.roles,
+                permissions: invitation.permissions,
             });
         }
-    }, [member]);
+    }, [invitation]);
 
     const handleUpdate = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!member) return;
+        if (!invitation) return;
 
-        patch((tenant.members as any).update.url({ user: member.uuid }), {
+        patch(`/tenant/invitations/${invitation.uuid}`, {
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
         });
@@ -60,9 +56,9 @@ export function EditMemberDialog({
             <DialogContent className="sm:max-w-[700px]">
                 <form onSubmit={handleUpdate}>
                     <DialogHeader>
-                        <DialogTitle>Edit Member</DialogTitle>
+                        <DialogTitle>Edit Invitation</DialogTitle>
                         <DialogDescription>
-                            Assign roles and permissions to {member?.name}.
+                            Adjust the roles and permissions for {invitation?.email}.
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -80,7 +76,7 @@ export function EditMemberDialog({
                             Cancel
                         </Button>
                         <Button type="submit" disabled={processing}>
-                            Save changes
+                            Save Changes
                         </Button>
                     </DialogFooter>
                 </form>

@@ -10,13 +10,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         /** @var \App\Models\User $user */
         $user = request()->user();
-
-        $invitations = \App\Models\TenantInvitation::with('tenant')
-            ->where('email', $user->email)
-            ->get();
-            
+ 
         return Inertia::render('dashboard', [
-            'invitations' => $invitations,
+            'invitations' => app(\App\Actions\TenantInvitation\ListIncomingInvitationsAction::class)($user),
         ]);
     })->name('dashboard');
 
@@ -52,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('tenant/invitations', [\App\Http\Controllers\TenantInvitationController::class, 'store'])->name('tenant.invitations.store');
         Route::patch('tenant/invitations/{tenantInvitation}', [\App\Http\Controllers\TenantInvitationController::class, 'update'])->name('tenant.invitations.update');
-        Route::delete('tenant/invitations/{tenantInvitation}', [\App\Http\Controllers\TenantInvitationController::class, 'destroy'])->name('tenant.invitations.destroy');
+        Route::post('tenant/invitations/{tenantInvitation}/revoke', [\App\Http\Controllers\TenantInvitationController::class, 'revoke'])->name('tenant.invitations.revoke');
     });
 
     // Account Deletion Hold Area
@@ -72,3 +68,4 @@ Route::middleware(['signed'])->group(function () {
 // Email-based Invitation Actions
 Route::get('invitations/email-accept/{token}', [\App\Http\Controllers\TenantInvitationController::class, 'acceptByToken'])->name('invitations.email-accept');
 Route::get('invitations/email-decline/{token}', [\App\Http\Controllers\TenantInvitationController::class, 'declineByToken'])->name('invitations.email-decline');
+

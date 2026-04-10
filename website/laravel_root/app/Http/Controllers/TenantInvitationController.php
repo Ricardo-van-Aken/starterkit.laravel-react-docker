@@ -6,6 +6,7 @@ use App\Actions\TenantInvitation\AcceptTenantInvitationAction;
 use App\Actions\TenantInvitation\DeclineTenantInvitationAction;
 use App\Actions\TenantInvitation\DeleteTenantInvitationAction;
 use App\Actions\TenantInvitation\InviteTenantMemberAction;
+use App\Actions\TenantInvitation\RevokeTenantInvitationAction;
 use App\Actions\TenantInvitation\UpdateTenantInvitationAction;
 use App\Models\TenantInvitation;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +14,7 @@ use App\Http\Requests\TenantInvitation\AcceptTenantInvitationRequest;
 use App\Http\Requests\TenantInvitation\DeclineTenantInvitationRequest;
 use App\Http\Requests\TenantInvitation\DestroyInvitationRequest;
 use App\Http\Requests\TenantInvitation\InviteTenantMemberRequest;
+use App\Http\Requests\TenantInvitation\RevokeInvitationRequest;
 use App\Http\Requests\TenantInvitation\UpdateTenantInvitationRequest;
 use App\Services\ActiveTenant;
 
@@ -61,6 +63,19 @@ class TenantInvitationController extends Controller
         );
 
         return redirect()->back()->with('status', __('invitations.updated'));
+    }
+
+    /**
+     * Revoke the invitation.
+     */
+    public function revoke(TenantInvitation $tenantInvitation, RevokeInvitationRequest $request, RevokeTenantInvitationAction $revokeAction): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $revokeAction($tenantInvitation, $user);
+
+        return redirect()->back()->with('status', __('invitations.revoked'));
     }
 
     /**

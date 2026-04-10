@@ -91,9 +91,9 @@ class TenantInvitationPolicy
     }
 
     /**
-     * A tenant member with InviteTenantMembers permission can revoke (destroy) invitations.
+     * A tenant member with InviteTenantMembers permission can revoke invitations.
      */
-    public function destroy(User $user, TenantInvitation $invitation): bool
+    public function revoke(User $user, TenantInvitation $invitation): bool
     {
         $tenant = $invitation->tenant;
         setPermissionsTeamId($tenant->id);
@@ -102,12 +102,20 @@ class TenantInvitationPolicy
             return false;
         }
 
-        // Only an admin can delete an invitation that includes an admin role
+        // Only an admin can revoke an invitation that includes an admin role
         $userIsAdmin = $user->hasTenantRole($tenant, TenantRoleName::Admin);
         if ($invitation->hasTenantRole($tenant, TenantRoleName::Admin) && !$userIsAdmin) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Deleting an invitation has the same requirements as revoking an invitation for now.
+     */
+    public function destroy(User $user, TenantInvitation $invitation): bool
+    {
+        return $this->revoke($user, $invitation);
     }
 }

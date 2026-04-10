@@ -33,27 +33,28 @@ class TenantMemberController extends Controller
     /**
      * Display a listing of the tenant members and outstanding invitations.
      */
-    public function index(IndexTenantMembersRequest $request, ListTenantMembersAction $listMembersAction): Response
+    public function index(IndexTenantMembersRequest $request, ListTenantMembersAction $listMembersAction, \App\Actions\TenantInvitation\ListOutgoingInvitationsAction $listInvitationsAction): Response
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-
+ 
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
         
+        $invitationFilters = [
+            'status'    => $request->query('invitations_status', 'pending'),
+            'sort'      => $request->query('invitations_sort', 'expires_at'),
+            'direction' => $request->query('invitations_direction', 'desc'),
+            'search'    => $request->query('invitations_search', ''),
+            'expires_at' => $request->query('invitations_expires_at', 'all'),
+        ];
+
         return Inertia::render('tenants/settings/members', [
             'members' => $listMembersAction($tenant),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
-            'invitations' => TenantInvitation::where('tenant_id', $tenant->id)
-                ->get()
-                ->map(fn (TenantInvitation $invitation) => [
-                    'uuid' => $invitation->uuid,
-                    'email' => $invitation->email,
-                    'roles' => $invitation->roles ?? [],
-                    'status' => $invitation->status->value,
-                    'expires_at' => $invitation->expires_at?->toDateTimeString(),
-                ]),
+            'invitations' => $listInvitationsAction($tenant, $invitationFilters),
+            'invitation_filters' => $invitationFilters,
             'abilities' => [
                 'update'        => $user->can('update', $tenant),
                 'view_members'  => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),

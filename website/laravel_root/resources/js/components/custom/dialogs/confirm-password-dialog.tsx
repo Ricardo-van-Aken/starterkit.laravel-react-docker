@@ -1,14 +1,14 @@
 import * as React from "react"
 import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+    AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -50,13 +50,13 @@ export function ConfirmPasswordDialog({
         )
 
     return (
-        <Dialog>
-            <DialogTrigger render={triggerElement} />
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
-                </DialogHeader>
+        <AlertDialog>
+            <AlertDialogTrigger render={triggerElement} />
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogDescription>{description}</AlertDialogDescription>
+                </AlertDialogHeader>
 
                 <Form
                     {...form}
@@ -98,24 +98,23 @@ export function ConfirmPasswordDialog({
                                 <InputError message={errors.password} />
                             </div>
 
-                            <DialogFooter className="gap-2">
-                                <DialogClose
-                                    render={
-                                        <Button variant="secondary" onClick={() => resetAndClearErrors()}>
-                                            {cancelText}
-                                        </Button>
-                                    }
-                                />
+                            <AlertDialogFooter className="gap-2">
+                                <AlertDialogCancel
+                                    variant="secondary"
+                                    onClick={() => resetAndClearErrors()}
+                                >
+                                    {cancelText}
+                                </AlertDialogCancel>
 
                                 <Button variant={variant} disabled={processing} type="submit">
                                     {confirmText}
                                 </Button>
-                            </DialogFooter>
+                            </AlertDialogFooter>
                         </>
                     )}
                 </Form>
-            </DialogContent>
-        </Dialog>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 }
 

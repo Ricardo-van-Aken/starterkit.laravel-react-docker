@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EditMemberDialog } from '@/components/custom/dialogs/edit-member-dialog';
-import { type User } from '@/types';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { ConfirmationDialog } from '@/components/custom/dialogs/confirmation-dialog';
+import { ViewMemberDialog } from '@/components/custom/dialogs/view-member-dialog';
+import { type User, type PaginatedResponse } from '@/types';
+import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import tenant from '@/routes/tenant';
+import { DataTablePagination } from '@/components/data-table/DataTablePagination';
 
 export interface Member extends User {
     roles: string[];
@@ -16,26 +19,46 @@ export interface Member extends User {
 }
 
 interface MembersTableProps {
-    members: Member[];
+    members: PaginatedResponse<Member>;
     availableRoles: string[];
     availablePermissions: string[];
 }
 
 export function MembersTable({ members, availableRoles, availablePermissions }: MembersTableProps) {
+    const [viewingMember, setViewingMember] = useState<Member | null>(null);
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
     const [editingMember, setEditingMember] = useState<Member | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    const handleView = (member: Member) => {
+        setViewingMember(member);
+        setIsViewDialogOpen(true);
+    };
 
     const handleEdit = (member: Member) => {
         setEditingMember(member);
         setIsEditDialogOpen(true);
     };
 
-    const handleDelete = (member: Member) => {
-        if (confirm(`Are you sure you want to remove ${member.name} from this tenant?`)) {
-            router.delete((tenant.members as any).destroy.url({ user: member.id }), {
-                preserveScroll: true,
-            });
-        }
+    const confirmDelete = (member: Member) => {
+        setMemberToDelete(member);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDelete = () => {
+        if (!memberToDelete) return;
+        
+        router.delete((tenant.members as any).destroy.url({ user: memberToDelete.uuid }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsDeleteDialogOpen(false);
+                setMemberToDelete(null);
+            },
+        });
     };
 
     return (
@@ -43,32 +66,40 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Member</TableHead>
+                        <TableHead className="min-w-[200px]">Member</TableHead>
                         <TableHead>Role(s)</TableHead>
-                        <TableHead className="hidden md:table-cell">Permissions</TableHead>
+                        <TableHead className="hidden lg:table-cell">Permissions</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {members.map((member) => (
-                        <TableRow key={member.id}>
-                            <TableCell className="font-medium">
+                    {members.data.map((member: Member) => (
+                        <TableRow key={member.uuid}>
+                            <TableCell className="max-w-[250px] truncate font-medium" title={member.name}>
                                 <div className="flex items-center gap-3">
                                     <UserInfo user={member} showEmail />
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                    {member.roles.map((role) => (
+                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                    {member.roles.slice(0, 2).map((role: string) => (
                                         <Badge key={role} variant="secondary" className="capitalize">
                                             {role}
                                         </Badge>
                                     ))}
+                                    {member.roles.length > 2 && (
+                                        <Badge variant="outline" className="text-muted-foreground">
+                                            +{member.roles.length - 2} more
+                                        </Badge>
+                                    )}
+                                    {member.roles.length === 0 && (
+                                        <span className="text-xs text-muted-foreground italic text-nowrap">No roles</span>
+                                    )}
                                 </div>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">
+                            <TableCell className="hidden lg:table-cell">
                                 <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {member.permissions.slice(0, 3).map((permission) => (
+                                    {member.permissions.slice(0, 3).map((permission: string) => (
                                         <span key={permission} className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
                                             {permission}
                                         </span>
@@ -91,13 +122,17 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
                                         <MoreHorizontal className="h-4 w-4" />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleView(member)}>
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            <span>View</span>
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleEdit(member)}>
                                             <Edit className="mr-2 h-4 w-4" />
                                             <span>Edit</span>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem 
                                             variant="destructive"
-                                            onClick={() => handleDelete(member)}
+                                            onClick={() => confirmDelete(member)}
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             <span>Delete</span>
@@ -110,12 +145,31 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
                 </TableBody>
             </Table>
 
+            <div className="py-4 border-t px-4">
+                <DataTablePagination links={members.links} />
+            </div>
+
+            <ViewMemberDialog
+                member={viewingMember}
+                open={isViewDialogOpen}
+                onOpenChange={setIsViewDialogOpen}
+            />
+
             <EditMemberDialog
                 member={editingMember}
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 availableRoles={availableRoles}
                 availablePermissions={availablePermissions}
+            />
+
+            <ConfirmationDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title="Remove Member"
+                description={`Are you sure you want to remove ${memberToDelete?.name} from this tenant?`}
+                onConfirm={handleDelete}
+                variant="destructive"
             />
         </>
     );

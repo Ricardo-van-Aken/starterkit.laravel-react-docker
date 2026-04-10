@@ -8,4 +8,5 @@ enum TenantInvitationStatus: string
     case Accepted = 'accepted';
     case Declined = 'declined';
     case Expired = 'expired';
+    case Revoked = 'revoked';
 }

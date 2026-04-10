@@ -49,7 +49,6 @@ export interface User {
 }
 
 export interface Tenant {
-    id: number;
     uuid: string;
     name: string;
     roles?: string[];
@@ -66,4 +65,28 @@ export interface TenantIndexItem extends Tenant {
 export interface TenantDashboardItem extends Tenant {
     users_count: number;
     organisation_units_count: number;
+}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+}
+
+export interface MembershipInvitation {
+    uuid: string;
+    email: string;
+    roles: string[];
+    permissions: string[];
+    status: string;
+    expires_at: string;
 }
