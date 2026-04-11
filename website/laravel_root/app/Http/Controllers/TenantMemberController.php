@@ -42,18 +42,29 @@ class TenantMemberController extends Controller
         $tenant = app(ActiveTenant::class)->get();
         
         $invitationFilters = [
-            'status'    => $request->query('invitations_status', 'pending'),
-            'sort'      => $request->query('invitations_sort', 'expires_at'),
-            'direction' => $request->query('invitations_direction', 'desc'),
-            'search'    => $request->query('invitations_search', ''),
-            'expires_at' => $request->query('invitations_expires_at', 'all'),
+            'status'     => $request->query('inv_status', ['pending']),
+            'sort'       => $request->query('inv_sort', 'expires_at'),
+            'direction'  => $request->query('inv_dir', 'desc'),
+            'search'     => $request->query('inv_search', ''),
+            'expires_at' => $request->query('inv_expires_at'),
+            'page'       => $request->integer('inv_page', 1),
+            'pageSize'   => $request->integer('inv_per_page', 10),
         ];
 
         return Inertia::render('tenants/settings/members', [
-            'members' => $listMembersAction($tenant),
+            'members' => $listMembersAction(
+                $tenant, 
+                $request->integer('mem_per_page', 10),
+                $request->integer('mem_page', 1)
+            ),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
-            'invitations' => $listInvitationsAction($tenant, $invitationFilters),
+            'invitations' => $listInvitationsAction(
+                $tenant, 
+                $invitationFilters,
+                $invitationFilters['pageSize'],
+                $invitationFilters['page']
+            ),
             'invitation_filters' => $invitationFilters,
             'abilities' => [
                 'update'        => $user->can('update', $tenant),

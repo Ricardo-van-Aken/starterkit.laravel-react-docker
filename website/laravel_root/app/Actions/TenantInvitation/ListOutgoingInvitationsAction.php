@@ -21,38 +21,37 @@ use Illuminate\Support\Collection;
 class ListOutgoingInvitationsAction
 {
     /**
-     * Execute the action to list outgoing invitations.
+     * Execute the action to list tenant members.
      *
-     * @param array{status?: string, sort?: string, direction?: string, search?: string} $params
+     * @param array{status?: string[], sort?: string, direction?: 'asc'|'desc', search?: string, expires_at?: string|null} $params
      * @return LengthAwarePaginator<OutgoingInvitationData>
      */
-    public function __invoke(Tenant $tenant, array $params = []): LengthAwarePaginator
+    public function __invoke(Tenant $tenant, array $params = [], int $pageSize = 10, int $page = 1): LengthAwarePaginator
     {
         setPermissionsTeamId($tenant->id);
         
         $query = TenantInvitation::where('tenant_id', $tenant->id);
 
-        // Filtering
+        // Email Filtering
         if ($search = $params['search'] ?? null) {
             $query->where('email', 'like', "%{$search}%");
         }
 
-        $status = $params['status'] ?? 'pending';
-        if ($status !== 'all') {
-            $statuses = is_array($status) ? $status : [$status];
-            $enumStatuses = collect($statuses)
+        // Status Filtering
+        $status = $params['status'] ?? ['pending'];
+        if (! empty($status)) {
+            $enumStatuses = collect((array) $status)
                 ->map(fn($s) => TenantInvitationStatus::tryFrom($s))
-                ->filter()
-                ->values();
+                ->filter();
 
             if ($enumStatuses->isNotEmpty()) {
-                $query->whereIn('status', $enumStatuses->toArray());
+                $query->whereIn('status', $enumStatuses);
             }
         }
 
-        // Timeframe filtering
-        $expiresAt = $params['expires_at'] ?? 'all';
-        if ($expiresAt !== 'all') {
+        // Expires_at filtering
+        $expiresAt = $params['expires_at'] ?? null;
+        if ($expiresAt) {
             $now = now();
             switch ($expiresAt) {
                 case '24h':
@@ -86,7 +85,7 @@ class ListOutgoingInvitationsAction
         }
 
         /** @var LengthAwarePaginator<TenantInvitation> $paginator */
-        $paginator = $query->paginate(10, ['*'], 'invitations_page')
+        $paginator = $query->paginate($pageSize, ['*'], 'invitations_page', $page)
             ->withQueryString();
 
         return $paginator->through(function (TenantInvitation $invitation) {

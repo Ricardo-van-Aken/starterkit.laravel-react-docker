@@ -16,7 +16,7 @@ interface DataTableTimeframeFilterProps {
 }
 
 const TIMEFRAME_OPTIONS = [
-    { label: 'All', value: 'all', icon: InfinityIcon },
+    { label: 'All', value: '', icon: InfinityIcon },
     { label: 'Next 24 Hours', value: '24h', icon: Hourglass },
     { label: 'Next 7 Days', value: '7d', icon: CalendarDays },
     { label: 'Next 30 Days', value: '30d', icon: Clock },
@@ -25,7 +25,7 @@ const TIMEFRAME_OPTIONS = [
 
 export function DataTableTimeframeFilter({
     title,
-    value = 'all',
+    value = '',
     onSelect,
 }: DataTableTimeframeFilterProps) {
     return (

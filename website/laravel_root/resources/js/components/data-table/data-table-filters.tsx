@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { DataTableFacetedFilter } from './DataTableFacetedFilter';
-import { DataTableTimeframeFilter } from './DataTableTimeframeFilter';
+import { DataTableFacetedFilter } from './data-table-faceted-filter';
+import { DataTableTimeframeFilter } from './data-table-timeframe-filter';
 import { FilterConfig } from './types';
 
 interface DataTableFiltersProps {
@@ -28,22 +28,9 @@ export function DataTableFilters({ table, filters }: DataTableFiltersProps) {
                                 key={filter.key}
                                 title={filter.label}
                                 options={filter.options || []}
-                                selectedValues={
-                                    Array.isArray(value) 
-                                        ? new Set(value) 
-                                        : value && value !== 'all' 
-                                            ? new Set([value]) 
-                                            : new Set()
-                                }
-                                onSelect={(val: string) => {
-                                    const currentValues = Array.isArray(value) ? value : (value && value !== 'all' ? [value] : []);
-                                    const newValues = currentValues.includes(val)
-                                        ? currentValues.filter((v) => v !== val)
-                                        : [...currentValues, val];
-                                    
-                                    table.onFilterChange(filter.key, newValues.length > 0 ? newValues : 'all');
-                                }}
-                                onClear={() => table.onFilterChange(filter.key, 'all')}
+                                selectedValues={value || []}
+                                onSelect={(values: string[]) => table.onFilterChange(filter.key, values)}
+                                onClear={() => table.onFilterChange(filter.key, [])}
                             />
                         );
                     case 'timeframe':
@@ -52,7 +39,7 @@ export function DataTableFilters({ table, filters }: DataTableFiltersProps) {
                                 key={filter.key}
                                 title={filter.label}
                                 value={value}
-                                onSelect={(val: string | null) => table.onFilterChange(filter.key, val || 'all')}
+                                onSelect={(val: string | null) => table.onFilterChange(filter.key, val || '')}
                             />
                         );
                     case 'text':

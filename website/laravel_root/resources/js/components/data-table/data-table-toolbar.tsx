@@ -1,6 +1,6 @@
 import { XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DataTableFilters } from './DataTableFilters';
+import { DataTableFilters } from './data-table-filters';
 import { FilterConfig } from './types';
 
 interface DataTableToolbarProps {
@@ -18,7 +18,7 @@ interface DataTableToolbarProps {
 
 export function DataTableToolbar({ table, filters }: DataTableToolbarProps) {
     return (
-        <div className="flex items-center justify-between gap-4 p-4 text-nowrap">
+        <div className="flex items-center justify-between gap-4 py-1.5 px-0 text-nowrap">
             <div className="flex flex-1 items-center space-x-2">
                 <DataTableFilters table={table} filters={filters} />
 

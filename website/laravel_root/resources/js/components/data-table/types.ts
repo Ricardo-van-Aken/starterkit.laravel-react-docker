@@ -13,7 +13,7 @@ export interface ColumnDef<TData, TValue = any> {
 export interface FilterOption {
     label: string;
     value: string;
-    icon?: React.ComponentType<{ className?: string }>;
+    component?: React.ComponentType<{ value: string; label: string; isSelected: boolean }>;
 }
 
 export interface FilterConfig {

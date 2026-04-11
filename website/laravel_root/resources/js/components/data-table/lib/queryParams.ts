@@ -17,6 +17,10 @@ export function toNamespaceParams(
     const namespaced: Record<string, any> = {};
     
     Object.entries(params).forEach(([key, value]) => {
+        // Skip empty arrays, null, undefined, or empty strings to keep URL clean
+        if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
+            return;
+        }
         namespaced[getNamespaceKey(key, namespace)] = value;
     });
     

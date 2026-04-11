@@ -24,12 +24,12 @@ class ListTenantMembersAction
      *
      * @return LengthAwarePaginator<TenantMember>
      */
-    public function __invoke(Tenant $tenant): LengthAwarePaginator
+    public function __invoke(Tenant $tenant, int $pageSize = 10, int $page = 1): LengthAwarePaginator
     {
         setPermissionsTeamId($tenant->id);
 
         /** @var LengthAwarePaginator<User> $paginator */
-        $paginator = $tenant->users()->paginate(10, ['*'], 'members_page')->withQueryString();
+        $paginator = $tenant->users()->paginate($pageSize, ['*'], 'members_page', $page)->withQueryString();
 
         return $paginator->through(function (User $user) {
             /** @var TenantMember $member */

@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Trash2, Eye, Edit } from 'lucide-react';
 import { MembershipInvitationStatusBadge, INVITATION_STATUSES } from '@/components/custom/badges/membership-invitation-status-badge';
-import { DataTable } from '@/components/data-table/DataTable';
-import { useDataTable } from '@/components/data-table/hooks/useDataTable';
+import { DataTable } from '@/components/data-table/data-table';
+import { useDataTable } from '@/components/data-table/hooks/use-data-table';
 import { type MembershipInvitation, type PaginatedResponse } from '@/types';
 import { type ColumnDef, type FilterConfig } from '@/components/data-table/types';
 import { ViewMembershipInvitationDialog } from '@/components/custom/dialogs/view-membership-invitation-dialog';
@@ -50,8 +50,10 @@ export function OutgoingMembershipInvitationsTable({
     const table = useDataTable({
         data: invitations.data,
         meta: invitations,
-        namespace: 'invitations',
-        initialFilters: { status: 'pending' },
+        namespace: 'inv',
+        initialFilters: {
+            status: ['pending'],
+        },
     });
 
     // 4. Columns Definition (Co-located)
@@ -173,7 +175,9 @@ export function OutgoingMembershipInvitationsTable({
             options: Object.entries(INVITATION_STATUSES).map(([value, meta]) => ({
                 label: meta.label,
                 value,
-                icon: meta.icon,
+                component: ({ value, isSelected }: any) => (
+                    <MembershipInvitationStatusBadge status={value as any} className={isSelected ? 'font-medium' : ''} />
+                ),
             })),
         },
         {

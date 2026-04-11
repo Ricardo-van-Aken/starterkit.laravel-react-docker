@@ -11,7 +11,7 @@ import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import tenant from '@/routes/tenant';
-import { DataTablePagination } from '@/components/data-table/DataTablePagination';
+import { DataTablePagination } from '@/components/data-table/data-table-pagination';
 
 export interface Member extends User {
     roles: string[];
@@ -145,9 +145,7 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
                 </TableBody>
             </Table>
 
-            <div className="py-4 border-t px-4">
-                <DataTablePagination links={members.links} />
-            </div>
+            <DataTablePagination links={members.links} />
 
             <ViewMemberDialog
                 member={viewingMember}

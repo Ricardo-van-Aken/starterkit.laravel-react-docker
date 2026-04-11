@@ -7,28 +7,39 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { MembershipInvitationStatusBadge, INVITATION_STATUSES, type MembershipInvitationStatus } from '@/components/custom/badges/membership-invitation-status-badge';
 
 interface DataTableFacetedFilterProps {
     title?: string;
     options: {
         label: string;
         value: string;
-        icon?: React.ComponentType<{ className?: string }>;
+        component?: React.ComponentType<{ value: string; label: string; isSelected: boolean }>;
     }[];
-    selectedValues: Set<string>;
-    onSelect: (value: string) => void;
+    selectedValues?: string[];
+    onSelect: (values: string[]) => void;
     onClear: () => void;
 }
 
 export function DataTableFacetedFilter({
     title,
     options,
-    selectedValues,
+    selectedValues = [],
     onSelect,
     onClear,
 }: DataTableFacetedFilterProps) {
     const [searchTerm, setSearchTerm] = React.useState('');
+
+    const selectedSet = React.useMemo(() => new Set(selectedValues), [selectedValues]);
+
+    const handleSelect = (value: string) => {
+        const next = new Set(selectedValues);
+        if (next.has(value)) {
+            next.delete(value);
+        } else {
+            next.add(value);
+        }
+        onSelect(Array.from(next));
+    };
 
     const filteredOptions = options.filter((option) =>
         option.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -36,6 +47,8 @@ export function DataTableFacetedFilter({
 
     return (
         <Popover>
+
+            {/* Display selected elements as badges in the trigger */}
             <PopoverTrigger
                 render={
                     <Button
@@ -45,26 +58,26 @@ export function DataTableFacetedFilter({
                     >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         {title}
-                        {selectedValues.size > 0 && (
+                        {selectedSet.size > 0 && (
                             <>
                                 <Separator orientation="vertical" className="mx-2 h-4" />
                                 <Badge
                                     variant="secondary"
                                     className="rounded-sm px-1 font-normal lg:hidden"
                                 >
-                                    {selectedValues.size}
+                                    {selectedSet.size}
                                 </Badge>
                                 <div className="hidden space-x-1 lg:flex">
-                                    {selectedValues.size > 2 ? (
+                                    {selectedSet.size > 2 ? (
                                         <Badge
                                             variant="secondary"
                                             className="rounded-sm px-1 font-normal"
                                         >
-                                            {selectedValues.size} selected
+                                            {selectedSet.size} selected
                                         </Badge>
                                     ) : (
                                         options
-                                            .filter((option) => selectedValues.has(option.value))
+                                            .filter((option) => selectedSet.has(option.value))
                                             .map((option) => (
                                                 <Badge
                                                     variant="secondary"
@@ -81,8 +94,10 @@ export function DataTableFacetedFilter({
                     </Button>
                 }
             />
+
             <PopoverContent className="w-[200px] p-0" align="start">
                 <div className="flex flex-col">
+                    {/* Search Functionality */}
                     <div className="p-2 border-b">
                         <Input
                             placeholder={title}
@@ -92,6 +107,8 @@ export function DataTableFacetedFilter({
                             autoFocus={false}
                         />
                     </div>
+
+                    {/* Search-Filtered Options */}
                     <div className="max-h-[300px] overflow-y-auto p-1">
                         {filteredOptions.length === 0 ? (
                             <div className="py-6 text-center text-sm text-muted-foreground">
@@ -100,14 +117,13 @@ export function DataTableFacetedFilter({
                         ) : (
                             <div className="space-y-1">
                                 {filteredOptions.map((option) => {
-                                    const isSelected = selectedValues.has(option.value);
-                                    const statusMeta = INVITATION_STATUSES[option.value as MembershipInvitationStatus];
-                                    const Icon = option.icon || statusMeta?.icon;
+                                    const isSelected = selectedSet.has(option.value);
+                                    const Component = option.component;
 
                                     return (
                                         <button
                                             key={option.value}
-                                            onClick={() => onSelect(option.value)}
+                                            onClick={() => handleSelect(option.value)}
                                             className={cn(
                                                 "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
                                                 isSelected && "bg-accent/50"
@@ -123,20 +139,20 @@ export function DataTableFacetedFilter({
                                             >
                                                 {isSelected && <Check className="h-4 w-4" />}
                                             </div>
-                                            {statusMeta ? (
-                                                <MembershipInvitationStatusBadge status={option.value as MembershipInvitationStatus} />
+                                            
+                                            {Component ? (
+                                                <Component 
+                                                    value={option.value} 
+                                                    label={option.label} 
+                                                    isSelected={isSelected} 
+                                                />
                                             ) : (
-                                                <>
-                                                    {Icon && (
-                                                        <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                    )}
-                                                    <span className={cn(
-                                                        "capitalize",
-                                                        isSelected && "font-medium"
-                                                    )}>
-                                                        {option.label}
-                                                    </span>
-                                                </>
+                                                <span className={cn(
+                                                    "capitalize",
+                                                    isSelected && "font-medium"
+                                                )}>
+                                                    {option.label}
+                                                </span>
                                             )}
                                         </button>
                                     );
@@ -144,7 +160,9 @@ export function DataTableFacetedFilter({
                             </div>
                         )}
                     </div>
-                    {selectedValues.size > 0 && (
+
+                    {/* Clear Filters */}
+                    {selectedSet.size > 0 && (
                         <div className="border-t p-1">
                             <button
                                 onClick={onClear}

@@ -5,7 +5,9 @@ namespace App\Http\Requests\TenantMember;
 use App\Models\User;
 use App\Policies\TenantMemberPolicy;
 use App\Services\ActiveTenant;
+use App\Enums\TenantInvitationStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexTenantMembersRequest extends FormRequest
 {
@@ -28,6 +30,30 @@ class IndexTenantMembersRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            // Members Table Pagination
+            'mem_page' => 'integer|min:1',
+            'mem_per_page' => 'integer|min:1|max:100',
+
+            // Invitations Table Pagination
+            'inv_page' => 'integer|min:1',
+            'inv_per_page' => 'integer|min:1|max:100',
+
+            // Invitations Table Sorting
+            'inv_sort' => 'string|in:email,status,expires_at',
+            'inv_dir' => 'string|in:asc,desc',
+
+            // Invitations Table Filtering
+            'inv_search' => 'nullable|string|max:255',
+            'inv_status' => 'array',
+            'inv_status.*' => [
+                'string',
+                Rule::in([
+                    ...array_column(TenantInvitationStatus::cases(), 'value'),
+                    'all'
+                ])
+            ],
+            'inv_expires_at' => 'nullable|string', // Timeframe filter (e.g. '1_month')
+        ];
     }
 }

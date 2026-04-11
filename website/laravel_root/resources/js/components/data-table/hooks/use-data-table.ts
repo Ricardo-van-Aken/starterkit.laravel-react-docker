@@ -7,6 +7,7 @@ export interface DataTableState {
     sort: string;
     direction: 'asc' | 'desc';
     page: number;
+    pageSize: number;
     filters: Record<string, any>;
 }
 
@@ -26,39 +27,36 @@ export function useDataTable({
     const getInitialState = (): DataTableState => {
         const searchParams = new URLSearchParams(window.location.search);
         const prefix = namespace ? `${namespace}_` : '';
+        const filters: Record<string, any> = { ...initialFilters };
         
-        const extractedFilters: Record<string, any> = { ...initialFilters };
-        
-        // Extract filters, handling potential arrays (Inertia serializes arrays as key[])
-        const seenActualKeys = new Set<string>();
-        for (const key of searchParams.keys()) {
-            if (key.startsWith(prefix)) {
-                const actualKey = key.replace(prefix, '').replace('[]', '');
-                if (!['search', 'sort', 'direction', 'page'].includes(actualKey)) {
-                    seenActualKeys.add(actualKey);
+        // Extract filters for this table from the url
+        const urlKeys = new Set<string>();
+        for (const [rawKey, value] of searchParams.entries()) {
+            // Check if parameter belongs to the current table
+            if (rawKey.startsWith(prefix)) {
+                const key = rawKey.replace(prefix, '').replace(/\[.*\]$/, '');
+                
+                // Skip core parameters; everything else is a filter
+                if (!['page', 'per_page', 'search', 'sort', 'dir'].includes(key)) {
+                    if (! urlKeys.has(key)) {
+                        // First time we encounter this specific filter key, we overwrite the default 'initialFilter'
+                        filters[key] = [value];
+                        urlKeys.add(key);
+                    } else {
+                        // We have already encountered this filter key, so we append the current value to the existing array
+                        filters[key].push(value);
+                    }
                 }
             }
         }
 
-        seenActualKeys.forEach(key => {
-            // Check both namespaced and non-namespaced keys, with and without brackets
-            const fullKey = namespace ? `${namespace}_${key}` : key;
-            let values = searchParams.getAll(fullKey);
-            if (values.length === 0) {
-                values = searchParams.getAll(`${fullKey}[]`);
-            }
-            
-            if (values.length > 0) {
-                extractedFilters[key] = values.length > 1 ? values : values[0];
-            }
-        });
-
         return {
             search: (searchParams.get(`${prefix}search`) || '') as string,
             sort: (searchParams.get(`${prefix}sort`) || '') as string,
-            direction: (searchParams.get(`${prefix}direction`) === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
+            direction: (searchParams.get(`${prefix}dir`) === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
             page: parseInt(searchParams.get(`${prefix}page`) || '1'),
-            filters: extractedFilters,
+            pageSize: parseInt(searchParams.get(`${prefix}per_page`) || '10'),
+            filters: filters,
         };
     };
 
@@ -74,13 +72,23 @@ export function useDataTable({
     }, [window.location.search]);
 
     const updateUrl = useCallback((newState: DataTableState) => {
-        const queryParams = Object.fromEntries(new URLSearchParams(window.location.search));
+        const searchParams = new URLSearchParams(window.location.search);
+        const prefix = namespace ? `${namespace}_` : '';
+        
+        // Remove all current namespaced params to prevent duplicates
+        const queryParams: Record<string, any> = {};
+        for (const [key, value] of searchParams.entries()) {
+            if (!key.startsWith(prefix)) {
+                queryParams[key] = value;
+            }
+        }
         
         const tableParams = toNamespaceParams({
             search: newState.search,
             sort: newState.sort,
-            direction: newState.direction,
+            dir: newState.direction,
             page: newState.page,
+            per_page: newState.pageSize,
             ...newState.filters,
         }, namespace);
 
@@ -106,10 +114,28 @@ export function useDataTable({
 
     // Handle filter change
     const onFilterChange = (key: string, value: any) => {
+        // If a multi-select filter is cleared, use ['all'] as a filter to distinguish from the 
+        // initial (empty) state which might have default filters.
+        const actualValue = Array.isArray(value) && value.length === 0 ? ['all'] : value;
+
         const newState: DataTableState = {
             ...state,
-            filters: { ...state.filters, [key]: value },
+            filters: { ...state.filters, [key]: actualValue },
             page: 1,
+        };
+        setState(newState);
+        updateUrl(newState);
+    };
+
+    // Handle page size change
+    const onPageSizeChange = (newPageSize: number) => {
+        const oldTopElementIndex = (state.page - 1) * state.pageSize;
+        const newPage = Math.floor(oldTopElementIndex / newPageSize) + 1;
+
+        const newState: DataTableState = {
+            ...state,
+            pageSize: newPageSize,
+            page: newPage,
         };
         setState(newState);
         updateUrl(newState);
@@ -146,17 +172,34 @@ export function useDataTable({
         updateUrl(newState);
     };
 
-    const isFiltered: boolean = state.search !== '' || JSON.stringify(state.filters) !== JSON.stringify(initialFilters);
+    const isFiltered: boolean = state.search !== '' || JSON.stringify(
+        Object.fromEntries(
+            Object.entries(state.filters).map(([k, v]) => [
+                k,
+                Array.isArray(v) ? v.filter(i => i !== 'all') : v
+            ])
+        )
+    ) !== JSON.stringify(initialFilters);
 
     return {
         data,
         meta,
-        state,
+        state: {
+            ...state,
+            // Provide a "clean" version of filters to components, removing the 'all' sentinel
+            filters: Object.fromEntries(
+                Object.entries(state.filters).map(([k, v]) => [
+                    k,
+                    Array.isArray(v) ? v.filter(i => i !== 'all') : v
+                ])
+            )
+        },
         localSearch,
         isFiltered,
         onSearch: setLocalSearch,
         onSort,
         onFilterChange,
+        onPageSizeChange,
         onClearFilters,
     };
 }
