@@ -15,6 +15,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Traits\HasTenantAuthorization;
 use App\Models\Traits\HasOrgUnitAuthorization;
+use App\Notifications\VerifyEmailQueued;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -105,5 +106,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function invitations(): HasMany
     {
         return $this->hasMany(TenantInvitation::class, 'email', 'email');
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailQueued);
     }
 }

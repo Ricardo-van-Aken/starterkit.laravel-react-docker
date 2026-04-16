@@ -2,21 +2,21 @@
 
 namespace App\Actions\TenantInvitation;
 
-use App\Actions\User\CreateAccountInvitationAction;
+use App\Actions\User\SendAccountInvitationAction;
 use App\Enums\TenantInvitationStatus;
 use App\Exceptions\TenantInvitationAlreadyExistsException;
 use App\Exceptions\UserAlreadyMemberException;
-use App\Mail\TenantInvitationMail;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\TenantInvitationNotification;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class InviteTenantMemberAction
 {
     public function __construct(
-        protected CreateAccountInvitationAction $createAccountInvitationAction
+        protected SendAccountInvitationAction $sendAccountInvitationAction,
     ) {}
 
     /**
@@ -33,24 +33,27 @@ class InviteTenantMemberAction
         if ($user && $tenant->users()->where('users.id', $user->id)->exists()) {
             throw new UserAlreadyMemberException;
         }
+
         $existingInvitation = \App\Models\TenantInvitation::where('tenant_id', $tenant->id)
             ->where('email', $email)
             ->where('status', TenantInvitationStatus::Pending)
             ->first();
+
         if ($existingInvitation) {
             throw new TenantInvitationAlreadyExistsException;
         }
 
-        return DB::transaction(function () use ($tenant, $email, $roles, $permissions, $user) {
+        $invitation = DB::transaction(function () use ($tenant, $email, $roles, $permissions, $user) {
             // If the user does not exist, and is not yet invited for an account, create a temporary account invitation
             if (! $user && ! \App\Models\AccountInvitation::where('email', $email)->exists()) {
-                ($this->createAccountInvitationAction)($email);
+                ($this->sendAccountInvitationAction)($email);
             }
 
-            // Create new invitation
+            // Create new tenant invitation
             $invitation = $tenant->invitations()->make([
                 'email' => $email,
             ]);
+
             $invitation->forceFill([
                 'accept_token'  => Str::random(64),
                 'decline_token' => Str::random(64),
@@ -61,10 +64,13 @@ class InviteTenantMemberAction
             $invitation->syncTenantRoles($tenant, $roles);
             $invitation->syncTenantPermissions($tenant, $permissions);
 
-            // Send invitation email
-            Mail::to($email)->send(new TenantInvitationMail($invitation));
-
             return $invitation;
         });
+
+        // Send the tenant-specific notification
+        Notification::route('mail', $email)
+            ->notify(new TenantInvitationNotification($invitation));
+
+        return $invitation;
     }
 }

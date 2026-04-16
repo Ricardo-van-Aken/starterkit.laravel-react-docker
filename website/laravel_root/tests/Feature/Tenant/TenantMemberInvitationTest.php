@@ -9,9 +9,10 @@ use App\Models\AccountInvitation;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Models\User;
-use App\Mail\ClaimAccountMail;
-use App\Mail\TenantInvitationMail;
-use Illuminate\Support\Facades\Mail;
+use App\Notifications\AccountInvitationNotification;
+use App\Notifications\TenantInvitationNotification;
+use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Notification;
 
 /** 
  * @var \Tests\TestCase $this
@@ -39,7 +40,7 @@ describe('Creating Invitations', function () {
         /* --- Setup --- */
         $this->user->assignTenantPermission($this->tenant, TenantPermissionName::InviteTenantMembers);
         $this->user->assignTenantPermission($this->tenant, TenantPermissionName::ManageTenantMemberRoles);
-        Mail::fake();
+        Notification::fake();
         $existingUser = User::factory()->create();
 
         /* --- Request --- */
@@ -71,8 +72,8 @@ describe('Creating Invitations', function () {
         expect($invitation->hasPermissionTo(TenantPermissionName::UpdateTenantDetails))->toBeTrue();
 
         /* --- Assert Notifications --- */
-        Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($existingUser) {
-            return $mail->hasTo($existingUser->email);
+        Notification::assertSentTo(new AnonymousNotifiable, TenantInvitationNotification::class, function ($notification, $channels, $notifiable) use ($existingUser) {
+            return $notifiable->routes['mail'] === $existingUser->email;
         });
     });
 
@@ -182,7 +183,7 @@ describe('Creating Invitations', function () {
 
         test('can invite a non-existing user', function () {
             /* --- Setup --- */
-            Mail::fake();
+            Notification::fake();
             $newEmail = 'new-user@example.com';
 
             /* --- Request --- */
@@ -207,17 +208,17 @@ describe('Creating Invitations', function () {
                 'status' => TenantInvitationStatus::Pending->value,
             ]);
 
-            Mail::assertQueued(ClaimAccountMail::class, function ($mail) use ($newEmail) {
-                return $mail->hasTo($newEmail);
+            Notification::assertSentTo(new AnonymousNotifiable, AccountInvitationNotification::class, function ($notification, $channels, $notifiable) use ($newEmail) {
+                return $notifiable->routes['mail'] === $newEmail;
             });
-            Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($newEmail) {
-                return $mail->hasTo($newEmail);
+            Notification::assertSentTo(new AnonymousNotifiable, TenantInvitationNotification::class, function ($notification, $channels, $notifiable) use ($newEmail) {
+                return $notifiable->routes['mail'] === $newEmail;
             });
         });
 
         test('invite a non-existing user that already has an account_invitation', function () {
             /* --- Setup --- */
-            Mail::fake();
+            Notification::fake();
             $newEmail = 'already-invited-to-other-tenant@example.com';
             
             // Create an existing account invitation (simulating they were invited elsewhere)
@@ -249,10 +250,10 @@ describe('Creating Invitations', function () {
                 'status' => TenantInvitationStatus::Pending->value,
             ]);
 
-            // Only the tenant invitation email should be sent, NOT a new claim account email
-            Mail::assertNotSent(ClaimAccountMail::class);
-            Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($newEmail) {
-                return $mail->hasTo($newEmail);
+            // Only the tenant invitation notification should be sent, NOT a new claim account notification
+            Notification::assertNotSentTo(new AnonymousNotifiable, AccountInvitationNotification::class);
+            Notification::assertSentTo(new AnonymousNotifiable, TenantInvitationNotification::class, function ($notification, $channels, $notifiable) use ($newEmail) {
+                return $notifiable->routes['mail'] === $newEmail;
             });
         });
     });

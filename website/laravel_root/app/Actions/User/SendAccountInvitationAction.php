@@ -3,24 +3,25 @@
 namespace App\Actions\User;
 
 use App\Exceptions\UserAlreadyExistsException;
-use App\Mail\ClaimAccountMail;
 use App\Models\AccountInvitation;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
+use App\Notifications\AccountInvitationNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
-class CreateAccountInvitationAction
+class SendAccountInvitationAction
 {
     /**
-     * Create a new account invitation record for the given email.
+     * Create a new account invitation and notify the user.
      */
     public function __invoke(string $email): AccountInvitation
     {
-        // If a user already exists, we cannot invite them to create an account
+        // Only invite users who don't have an account
         if (User::where('email', $email)->exists()) {
             throw new UserAlreadyExistsException;
         }
 
+        // Create or refresh the invitation
         $invitation = AccountInvitation::updateOrCreate(
             ['email' => $email],
             [
@@ -29,8 +30,9 @@ class CreateAccountInvitationAction
             ]
         );
 
-        // Send the claim account email
-        Mail::to($email)->send(new ClaimAccountMail($invitation));
+        // Send the notification
+        Notification::route('mail', $email)
+            ->notify(new AccountInvitationNotification($invitation));
 
         return $invitation;
     }
