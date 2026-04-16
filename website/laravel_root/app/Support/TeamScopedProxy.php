@@ -33,14 +33,25 @@ class TeamScopedProxy
     public function __call($method, $arguments)
     {
         return RunInTeamScope::run($this->teamId, function () use ($method, $arguments) {
+            $this->unsetRelations();
 
-            foreach (['roles', 'permissions'] as $relation) {
-                if (method_exists($this->model, $relation)) {
-                    $this->model->unsetRelation($relation);
-                }
+            try {
+                return $this->model->{$method}(...$arguments);
+            } finally {
+                $this->unsetRelations();
             }
-
-            return $this->model->{$method}(...$arguments);
         });
+    }
+
+    /**
+     * Clear roles and permissions relations to prevent stale caching across team contexts.
+     */
+    protected function unsetRelations(): void
+    {
+        foreach (['roles', 'permissions'] as $relation) {
+            if (method_exists($this->model, $relation)) {
+                $this->model->unsetRelation($relation);
+            }
+        }
     }
 }
