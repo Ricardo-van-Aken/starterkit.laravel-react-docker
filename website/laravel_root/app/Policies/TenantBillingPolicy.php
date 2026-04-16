@@ -13,9 +13,7 @@ class TenantBillingPolicy
      */
     public function viewAny(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::ViewBillingInformation->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::ViewBillingInformation);
     }
 
     /**
@@ -23,8 +21,6 @@ class TenantBillingPolicy
      */
     public function update(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::EditBillingInformation->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::EditBillingInformation);
     }
 }

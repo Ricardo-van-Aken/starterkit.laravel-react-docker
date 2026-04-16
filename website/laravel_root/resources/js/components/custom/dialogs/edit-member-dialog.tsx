@@ -7,20 +7,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import tenant from '@/routes/tenant';
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { type Member } from '@/components/custom/tables/members-table';
+import { type MemberWithAbilities } from '@/components/custom/tables/members-table';
 
 import { MembershipEditor } from '@/components/custom/membership/membership-editor';
 
 interface EditMemberDialogProps {
-    member: Member | null;
+    member: MemberWithAbilities | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
+    manageableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -29,6 +28,7 @@ export function EditMemberDialog({
     open,
     onOpenChange,
     availableRoles,
+    manageableRoles,
     availablePermissions,
 }: EditMemberDialogProps) {
     const { data, setData, patch, processing, reset } = useForm({
@@ -71,6 +71,7 @@ export function EditMemberDialog({
                             data={data}
                             setData={(key, value) => setData(key as 'roles' | 'permissions', value)}
                             availableRoles={availableRoles}
+                            manageableRoles={manageableRoles}
                             availablePermissions={availablePermissions}
                         />
                     </div>

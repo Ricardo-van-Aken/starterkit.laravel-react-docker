@@ -1,50 +1,58 @@
-import { UserInfo } from '@/components/starterkit/user-info';
+import { useState } from 'react';
+import { router } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
+import { UserInfo } from '@/components/starterkit/user-info';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+import { DataTable } from '@/components/data-table/data-table';
+import { useDataTable } from '@/components/data-table/hooks/use-data-table';
+import { type ColumnDef, type FilterConfig } from '@/components/data-table/types';
+import { type PaginatedResponse, type Abilities, type Member as BaseMember } from '@/types';
 import { EditMemberDialog } from '@/components/custom/dialogs/edit-member-dialog';
 import { ConfirmationDialog } from '@/components/custom/dialogs/confirmation-dialog';
 import { ViewMemberDialog } from '@/components/custom/dialogs/view-member-dialog';
-import { type User, type PaginatedResponse } from '@/types';
-import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
-import { useState } from 'react';
-import { router } from '@inertiajs/react';
 import tenant from '@/routes/tenant';
-import { DataTablePagination } from '@/components/data-table/data-table-pagination';
 
-export interface Member extends User {
-    roles: string[];
-    permissions: string[];
+export interface MemberWithAbilities extends BaseMember {
+    abilities: Abilities;
 }
 
 interface MembersTableProps {
-    members: PaginatedResponse<Member>;
+    members: PaginatedResponse<MemberWithAbilities>;
     availableRoles: string[];
+    manageableRoles: string[];
     availablePermissions: string[];
 }
 
-export function MembersTable({ members, availableRoles, availablePermissions }: MembersTableProps) {
-    const [viewingMember, setViewingMember] = useState<Member | null>(null);
+export function MembersTable({ 
+    members, 
+    availableRoles, 
+    manageableRoles,
+    availablePermissions, 
+}: MembersTableProps) {
+    const [viewingMember, setViewingMember] = useState<MemberWithAbilities | null>(null);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
-    const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [editingMember, setEditingMember] = useState<MemberWithAbilities | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-    const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+    const [memberToDelete, setMemberToDelete] = useState<MemberWithAbilities | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    const handleView = (member: Member) => {
+    const handleView = (member: MemberWithAbilities) => {
         setViewingMember(member);
         setIsViewDialogOpen(true);
     };
 
-    const handleEdit = (member: Member) => {
+    const handleEdit = (member: MemberWithAbilities) => {
         setEditingMember(member);
         setIsEditDialogOpen(true);
     };
 
-    const confirmDelete = (member: Member) => {
+    const confirmDelete = (member: MemberWithAbilities) => {
         setMemberToDelete(member);
         setIsDeleteDialogOpen(true);
     };
@@ -61,91 +69,171 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
         });
     };
 
+    const table = useDataTable({
+        data: members.data,
+        meta: members,
+        namespace: 'mem',
+        initialFilters: {
+            roles: [],
+        },
+    });
+
+    const columns: ColumnDef<MemberWithAbilities>[] = [
+        {
+            accessorKey: 'name',
+            header: 'Member',
+            sortable: true,
+            className: 'max-w-[250px] truncate font-medium',
+            headerClassName: 'max-w-[250px] truncate',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <UserInfo user={row} showEmail />
+                </div>
+            )
+        },
+        {
+            accessorKey: 'roles',
+            header: 'Role(s)',
+            sortable: true,
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {row.roles.slice(0, 2).map((role) => (
+                        <Badge key={role} variant="secondary" className="capitalize">
+                            {role}
+                        </Badge>
+                    ))}
+                    {row.roles.length > 2 && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                            +{row.roles.length - 2} more
+                        </Badge>
+                    )}
+                    {row.roles.length === 0 && (
+                        <span className="text-xs text-muted-foreground italic text-nowrap">No roles</span>
+                    )}
+                </div>
+            )
+        },
+        {
+            accessorKey: 'permissions',
+            header: 'Permissions',
+            sortable: true,
+            className: 'hidden lg:table-cell',
+            headerClassName: 'hidden lg:table-cell',
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    {row.permissions.slice(0, 3).map((permission) => (
+                        <span key={permission} className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
+                            {permission}
+                        </span>
+                    ))}
+                    {row.permissions.length > 3 && (
+                        <span className="text-[10px] text-muted-foreground">
+                            +{row.permissions.length - 3} more
+                        </span>
+                    )}
+                </div>
+            )
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            align: 'right',
+            cell: ({ row }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button variant="ghost" className="h-8 w-8 p-0" />
+                        }
+                    >
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(row)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            <span>View</span>
+                        </DropdownMenuItem>
+                        <TooltipProvider>
+                            {row.abilities?.update ? (
+                                <DropdownMenuItem onClick={() => handleEdit(row)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>Edit</span>
+                                </DropdownMenuItem>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger 
+                                        render={
+                                            <div className="w-full cursor-not-allowed">
+                                                <DropdownMenuItem disabled>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    <span>Edit</span>
+                                                </DropdownMenuItem>
+                                            </div>
+                                        }
+                                    />
+                                    <TooltipContent side="left">
+                                        You don't have permission to edit this member
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+
+                            {row.abilities?.delete ? (
+                                <DropdownMenuItem 
+                                    variant="destructive"
+                                    onClick={() => confirmDelete(row)}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger 
+                                        render={
+                                            <div className="w-full cursor-not-allowed">
+                                                <DropdownMenuItem disabled variant="destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>Delete</span>
+                                                </DropdownMenuItem>
+                                            </div>
+                                        }
+                                    />
+                                    <TooltipContent side="left">
+                                        You don't have permission to delete this member
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </TooltipProvider>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )
+        }
+    ];
+
+    const filters: FilterConfig[] = [
+        {
+            key: 'search',
+            label: 'Name or Email',
+            type: 'text',
+            placeholder: 'Filter members...',
+        },
+        {
+            key: 'roles',
+            label: 'Role',
+            type: 'faceted',
+            options: availableRoles.map(role => ({
+                label: role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                value: role,
+            })),
+        },
+    ];
+
     return (
         <>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="min-w-[200px]">Member</TableHead>
-                        <TableHead>Role(s)</TableHead>
-                        <TableHead className="hidden lg:table-cell">Permissions</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {members.data.map((member: Member) => (
-                        <TableRow key={member.uuid}>
-                            <TableCell className="max-w-[250px] truncate font-medium" title={member.name}>
-                                <div className="flex items-center gap-3">
-                                    <UserInfo user={member} showEmail />
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {member.roles.slice(0, 2).map((role: string) => (
-                                        <Badge key={role} variant="secondary" className="capitalize">
-                                            {role}
-                                        </Badge>
-                                    ))}
-                                    {member.roles.length > 2 && (
-                                        <Badge variant="outline" className="text-muted-foreground">
-                                            +{member.roles.length - 2} more
-                                        </Badge>
-                                    )}
-                                    {member.roles.length === 0 && (
-                                        <span className="text-xs text-muted-foreground italic text-nowrap">No roles</span>
-                                    )}
-                                </div>
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell">
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {member.permissions.slice(0, 3).map((permission: string) => (
-                                        <span key={permission} className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
-                                            {permission}
-                                        </span>
-                                    ))}
-                                    {member.permissions.length > 3 && (
-                                        <span className="text-[10px] text-muted-foreground">
-                                            +{member.permissions.length - 3} more
-                                        </span>
-                                    )}
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger
-                                        render={
-                                            <Button variant="ghost" className="h-8 w-8 p-0" />
-                                        }
-                                    >
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleView(member)}>
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            <span>View</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleEdit(member)}>
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            <span>Edit</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                            variant="destructive"
-                                            onClick={() => confirmDelete(member)}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            <span>Delete</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-
-            <DataTablePagination links={members.links} />
+            <DataTable 
+                table={table}
+                columns={columns}
+                filters={filters}
+            />
 
             <ViewMemberDialog
                 member={viewingMember}
@@ -158,6 +246,7 @@ export function MembersTable({ members, availableRoles, availablePermissions }: 
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 availableRoles={availableRoles}
+                manageableRoles={manageableRoles}
                 availablePermissions={availablePermissions}
             />
 

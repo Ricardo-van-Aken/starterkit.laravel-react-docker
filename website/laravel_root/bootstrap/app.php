@@ -49,12 +49,6 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, \Illuminate\Http\Request $request) {
-            // We only want to return a specific error for actions that are not GET requests,
-            // so we can show them in a toast
-            if ($request->isMethod('GET')) {
-                return null;
-            }
-
             // Error message fallback
             $fallback = __('permissions.access_denied');
             if ($e->getPrevious() instanceof AuthorizationException) {
@@ -65,6 +59,21 @@ return Application::configure(basePath: dirname(__DIR__))
             $message = $e->getMessage();
             if (empty($message) || $message === "This action is unauthorized.") {
                 $message = $fallback;
+            }
+
+            // Self-Healing UI: If the user hits a 403 on a GET request within a tenant context,
+            // we redirect them to the dashboard instead of showing an error page.
+            if ($request->isMethod('GET') && $request->is('tenant/*')) {
+                return redirect()->route('tenant.dashboard')->with('status', [
+                    'type' => 'error',
+                    'message' => $message . ' ' . __('permissions.redirected_to_dashboard'),
+                ]);
+            }
+
+            // We only want to return a specific error for actions that are not GET requests,
+            // so we can show them in a toast
+            if ($request->isMethod('GET')) {
+                return null;
             }
 
             if ($request->expectsJson()) {

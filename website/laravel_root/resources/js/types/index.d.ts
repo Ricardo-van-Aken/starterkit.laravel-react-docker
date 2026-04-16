@@ -35,17 +35,25 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
-export interface User {
+export interface UserInfo {
     uuid: string;
     name: string;
     email: string;
     avatar?: string;
+}
+
+export interface User extends UserInfo {
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
     tenant_roles?: string[];
     [key: string]: unknown; // This allows for additional properties...
+}
+
+export interface Member extends UserInfo {
+    roles: string[];
+    permissions: string[];
 }
 
 export interface Tenant {

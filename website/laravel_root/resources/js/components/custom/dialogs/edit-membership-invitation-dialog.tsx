@@ -10,13 +10,14 @@ import {
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { MembershipEditor } from '@/components/custom/membership/membership-editor';
-import { type MembershipInvitation } from '@/components/custom/tables/outgoing-membership-invitations-table';
+import { type MembershipInvitation } from '@/types';
 
 interface EditMembershipInvitationDialogProps {
     invitation: MembershipInvitation | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
+    manageableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -25,6 +26,7 @@ export function EditMembershipInvitationDialog({
     open,
     onOpenChange,
     availableRoles,
+    manageableRoles,
     availablePermissions,
 }: EditMembershipInvitationDialogProps) {
     const { data, setData, patch, processing, reset } = useForm({
@@ -67,6 +69,7 @@ export function EditMembershipInvitationDialog({
                             data={data}
                             setData={(key, value) => setData(key as 'roles' | 'permissions', value)}
                             availableRoles={availableRoles}
+                            manageableRoles={manageableRoles}
                             availablePermissions={availablePermissions}
                         />
                     </div>

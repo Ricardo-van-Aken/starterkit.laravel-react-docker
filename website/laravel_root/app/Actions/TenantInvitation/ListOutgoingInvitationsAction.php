@@ -5,6 +5,7 @@ namespace App\Actions\TenantInvitation;
 use App\Enums\TenantInvitationStatus;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
+use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -15,7 +16,8 @@ use Illuminate\Support\Collection;
  *     roles: Collection<int, string>,
  *     permissions: Collection<int|string, mixed>,
  *     status: string,
- *     expires_at: string|null
+ *     expires_at: string|null,
+ *     abilities: array{update: bool, revoke: bool}
  * }
  */
 class ListOutgoingInvitationsAction
@@ -23,10 +25,15 @@ class ListOutgoingInvitationsAction
     /**
      * Execute the action to list tenant members.
      *
-     * @param array{status?: string[], sort?: string, direction?: 'asc'|'desc', search?: string, expires_at?: string|null} $params
-     * @return LengthAwarePaginator<OutgoingInvitationData>
+     * @param array{status?: string[],
+     *     sort?: string,
+     *     direction?: 'asc'|'desc',
+     *     search?: string,
+     *     expires_at?: string|null
+     * } $params
+     * @return LengthAwarePaginator<int, OutgoingInvitationData>
      */
-    public function __invoke(Tenant $tenant, array $params = [], int $pageSize = 10, int $page = 1): LengthAwarePaginator
+    public function __invoke(?User $actor, Tenant $tenant, array $params = [], int $pageSize = 10, int $page = 1): LengthAwarePaginator
     {
         setPermissionsTeamId($tenant->id);
         
@@ -37,7 +44,7 @@ class ListOutgoingInvitationsAction
             $query->where('email', 'like', "%{$search}%");
         }
 
-        // Status Filtering
+        // Status Filtering(defaults to pending)
         $status = $params['status'] ?? ['pending'];
         if (! empty($status)) {
             $enumStatuses = collect((array) $status)
@@ -75,20 +82,27 @@ class ListOutgoingInvitationsAction
             }
         }
 
-        // Sorting
         $sort = $params['sort'] ?? 'expires_at';
         $direction = $params['direction'] ?? 'desc';
         
-        $allowedSorts = ['email', 'status', 'expires_at'];
+        $allowedSorts = ['email', 'status', 'expires_at', 'created_at', 'roles', 'permissions'];
         if (in_array($sort, $allowedSorts)) {
-            $query->orderBy($sort, $direction === 'asc' ? 'asc' : 'desc');
+            if ($sort === 'roles') {
+                $query->withMin('roles', 'name')
+                      ->orderBy('roles_min_name', $direction);
+            } elseif ($sort === 'permissions') {
+                $query->withMin('permissions', 'name')
+                      ->orderBy('permissions_min_name', $direction);
+            } else {
+                $query->orderBy($sort, $direction);
+            }
         }
 
-        /** @var LengthAwarePaginator<TenantInvitation> $paginator */
-        $paginator = $query->paginate($pageSize, ['*'], 'invitations_page', $page)
+        /** @var LengthAwarePaginator<int, TenantInvitation> $paginator */
+        $paginator = $query->paginate($pageSize, ['*'], 'inv_page', $page)
             ->withQueryString();
 
-        return $paginator->through(function (TenantInvitation $invitation) {
+        return $paginator->through(function (TenantInvitation $invitation) use ($actor) {
             /** @var OutgoingInvitationData $data */
             $data = [
                 'uuid' => $invitation->uuid,
@@ -97,6 +111,10 @@ class ListOutgoingInvitationsAction
                 'permissions' => $invitation->getDirectPermissions()->pluck('name'),
                 'status' => $invitation->status->value,
                 'expires_at' => $invitation->expires_at?->toDateTimeString(),
+                'abilities' => [
+                    'update' => $actor ? $actor->can('update', $invitation) : false,
+                    'revoke' => $actor ? $actor->can('revoke', $invitation) : false,
+                ],
             ];
 
             return $data;

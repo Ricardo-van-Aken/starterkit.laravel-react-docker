@@ -29,7 +29,7 @@ class PrepareTenantListingAction
             setPermissionsTeamId($tenant->id);
 
             // Attach user's roles within this tenant
-            $tenant->setAttribute('roles', $user->getRoleNames()->toArray());
+            $tenant->setAttribute('roles', $user->getTenantRoleNames($tenant));
 
             // Attach user's abilities within this tenant
             $tenant->setAttribute('abilities', [

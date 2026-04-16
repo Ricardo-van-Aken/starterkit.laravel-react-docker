@@ -6,6 +6,7 @@ export interface ColumnDef<TData, TValue = any> {
     header: string | ((props: { column: ColumnDef<TData, TValue> }) => React.ReactNode);
     cell?: (props: { row: TData; value: TValue }) => React.ReactNode;
     sortable?: boolean;
+    align?: 'left' | 'center' | 'right';
     className?: string;
     headerClassName?: string;
 }

@@ -7,9 +7,17 @@ use App\Enums\TenantRoleName;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Models\User;
-
+use App\Actions\TenantMember\GetManageableTenantRolesAction;
+use App\Policies\Traits\ValidatesTenantRoles;
+ 
 class TenantInvitationPolicy
 {
+    use ValidatesTenantRoles;
+
+    public function __construct(
+        protected GetManageableTenantRolesAction $getManageableRoles
+    ) {}
+
     /**
      * Determine whether the user can create (send) an invitation.
      *
@@ -18,21 +26,14 @@ class TenantInvitationPolicy
      */
     public function create(User $user, Tenant $tenant, array $roles, array $permissions): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        if (! $user->hasPermissionTo(TenantPermissionName::InviteTenantMembers->value, 'tenant')) {
+        if (! $user->hasTenantPermission($tenant, TenantPermissionName::InviteTenantMembers)) {
             return false;
         }
 
-        // Check permissions required for updating roles and permissions
-        if (count($roles) > 0 || count($permissions) > 0) {
-            if (! $user->hasPermissionTo(TenantPermissionName::ManageTenantMemberRoles->value, 'tenant')) {
-                return false;
-            }
-            // Only an admin can give the admin role
-            if (in_array(TenantRoleName::Admin->value, $roles) && !$user->hasTenantRole($tenant, TenantRoleName::Admin)) {
-                return false;
-            }
+        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+
+        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $roles, $permissions, $manageableRoles, true)) {
+            return false;
         }
 
         return true;
@@ -47,28 +48,19 @@ class TenantInvitationPolicy
     public function update(User $user, TenantInvitation $invitation, ?array $newRoles = null, ?array $newPermissions = null): bool
     {
         $tenant = $invitation->tenant;
-        setPermissionsTeamId($tenant->id);
 
-        if (!$user->hasPermissionTo(TenantPermissionName::UpdateTenantMembers->value, 'tenant')) {
+        if (!$user->hasTenantPermission($tenant, TenantPermissionName::UpdateTenantMembers)) {
             return false;
         }
 
-        // Only an admin can update an invitation that includes an admin role
-        $userIsAdmin = $user->hasTenantRole($tenant, TenantRoleName::Admin);
-        if ($invitation->hasTenantRole($tenant, TenantRoleName::Admin) && !$userIsAdmin) {
+        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+
+        if (!$this->canManageCurrentRoles($invitation->getTenantRoleNames($tenant), $manageableRoles)) {
             return false;
         }
 
-        // Check permissions required for updating roles and permissions
-        if ($newRoles !== null || $newPermissions !== null) {
-            if (!$user->hasPermissionTo(TenantPermissionName::ManageTenantMemberRoles->value, 'tenant')) {
-                return false;
-            }
-
-            // Only an admin can assign the admin role
-            if ($newRoles !== null && in_array(TenantRoleName::Admin->value, $newRoles) && !$userIsAdmin) {
-                return false;
-            }
+        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $manageableRoles)) {
+            return false;
         }
 
         return true;
@@ -76,6 +68,7 @@ class TenantInvitationPolicy
 
     /**
      * The invited user (matched by email) can accept their own invitation.
+
      */
     public function accept(User $user, TenantInvitation $invitation): bool
     {
@@ -96,15 +89,14 @@ class TenantInvitationPolicy
     public function revoke(User $user, TenantInvitation $invitation): bool
     {
         $tenant = $invitation->tenant;
-        setPermissionsTeamId($tenant->id);
 
-        if (!$user->hasPermissionTo(TenantPermissionName::InviteTenantMembers->value, 'tenant')) {
+        if (!$user->hasTenantPermission($tenant, TenantPermissionName::InviteTenantMembers)) {
             return false;
         }
 
-        // Only an admin can revoke an invitation that includes an admin role
-        $userIsAdmin = $user->hasTenantRole($tenant, TenantRoleName::Admin);
-        if ($invitation->hasTenantRole($tenant, TenantRoleName::Admin) && !$userIsAdmin) {
+        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+
+        if (!$this->canManageCurrentRoles($invitation->getTenantRoleNames($tenant), $manageableRoles)) {
             return false;
         }
 

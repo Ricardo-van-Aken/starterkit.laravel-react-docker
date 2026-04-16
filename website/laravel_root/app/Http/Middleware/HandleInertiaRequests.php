@@ -51,7 +51,7 @@ class HandleInertiaRequests extends Middleware
         if ($user) {
             $tenants = $user->tenants()->get()->map(function (\App\Models\Tenant $tenant) use ($user) {
                 setPermissionsTeamId($tenant->id);
-                $tenant->setAttribute('roles', $user->getRoleNames()->toArray());
+                $tenant->setAttribute('roles', $user->getTenantRoleNames($tenant));
                 return $tenant;
             });
         }

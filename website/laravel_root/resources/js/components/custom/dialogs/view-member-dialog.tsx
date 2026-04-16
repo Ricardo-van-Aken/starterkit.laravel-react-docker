@@ -8,10 +8,10 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { type Member } from '@/components/custom/tables/members-table';
+import { type MemberWithAbilities } from '@/components/custom/tables/members-table';
 
 interface ViewMemberDialogProps {
-    member: Member | null;
+    member: MemberWithAbilities | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }

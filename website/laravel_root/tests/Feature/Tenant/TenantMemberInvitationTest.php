@@ -475,10 +475,10 @@ describe('Updating Invitations', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Deleting Invitations
+| Revoking Invitations
 |--------------------------------------------------------------------------
 */
-describe('Deleting Invitations', function () {
+describe('Revoking Invitations', function () {
     beforeEach(function () {
         $this->invitation = TenantInvitation::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -486,14 +486,14 @@ describe('Deleting Invitations', function () {
         ]);
     });
 
-    test('Invitation deletion success', function () {
+    test('Invitation revocation success', function () {
         /* --- Setup --- */
         setPermissionsTeamId($this->tenant->id);
         $this->user->assignTenantPermission($this->tenant, TenantPermissionName::InviteTenantMembers);
 
         /* --- Request --- */
         $response = $this->from(route('tenant.members'))
-            ->delete(route('tenant.invitations.destroy', $this->invitation));
+            ->post(route('tenant.invitations.revoke', $this->invitation));
 
         /* --- Assert HTTP response status --- */
         expect($response->status())->toBe(302);
@@ -501,22 +501,23 @@ describe('Deleting Invitations', function () {
         expect($response->getTargetUrl())->toBe(route('tenant.members'));
 
         /* --- Assert HTTP response message/error --- */
-        expect(session('status'))->toBe(__('invitations.deleted'));
+        expect(session('status'))->toBe(__('invitations.revoked'));
 
         /* --- Assert DB State --- */
-        $this->assertDatabaseMissing('tenant_invitations', [
+        $this->assertDatabaseHas('tenant_invitations', [
             'id' => $this->invitation->id,
+            'status' => TenantInvitationStatus::Revoked->value,
         ]);
     });
 
     describe('Authorization', function () {
-        test('user without permission cannot delete a pending invitation', function () {
+        test('user without permission cannot revoke a pending invitation', function () {
             /* --- Setup --- */
             setPermissionsTeamId($this->tenant->id);
 
             /* --- Request --- */
             $response = $this->from(route('tenant.members'))
-                ->delete(route('tenant.invitations.destroy', $this->invitation));
+                ->post(route('tenant.invitations.revoke', $this->invitation));
 
             /* --- Assert HTTP response status --- */
             expect($response->status())->toBe(302);
@@ -527,6 +528,7 @@ describe('Deleting Invitations', function () {
             /* --- Assert DB State --- */
             $this->assertDatabaseHas('tenant_invitations', [
                 'id' => $this->invitation->id,
+                'status' => TenantInvitationStatus::Pending->value,
             ]);
         });
     });

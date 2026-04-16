@@ -9,6 +9,12 @@ use App\Rules\TenantRoleRule;
 use App\Services\ActiveTenant;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * @method array{
+ *     roles?: list<string>,
+ *     permissions?: list<string>
+ * } validated()
+ */
 class UpdateTenantMemberRequest extends FormRequest
 {
     /**
@@ -34,7 +40,7 @@ class UpdateTenantMemberRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, string|object>|string>
      */
     public function rules(): array
     {

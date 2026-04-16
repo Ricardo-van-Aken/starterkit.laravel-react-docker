@@ -21,11 +21,7 @@ class TenantPolicy
      */
     public function update(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-        $user->unsetRelation('roles');
-        $user->unsetRelation('permissions');
-
-        return $user->hasPermissionTo(TenantPermissionName::UpdateTenantDetails->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::UpdateTenantDetails);
     }
 
     /**
@@ -33,9 +29,7 @@ class TenantPolicy
      */
     public function delete(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::DeleteTenant->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::DeleteTenant);
     }
 
     /**

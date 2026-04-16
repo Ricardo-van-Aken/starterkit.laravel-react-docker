@@ -78,15 +78,25 @@ export function DataTableFacetedFilter({
                                     ) : (
                                         options
                                             .filter((option) => selectedSet.has(option.value))
-                                            .map((option) => (
-                                                <Badge
-                                                    variant="secondary"
-                                                    key={option.value}
-                                                    className="rounded-sm px-1 font-normal capitalize"
-                                                >
-                                                    {option.label}
-                                                </Badge>
-                                            ))
+                                            .map((option) => {
+                                                const Component = option.component;
+                                                return Component ? (
+                                                    <Component 
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        label={option.label}
+                                                        isSelected={true}
+                                                    />
+                                                ) : (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        key={option.value}
+                                                        className="rounded-sm px-1 font-normal capitalize"
+                                                    >
+                                                        {option.label}
+                                                    </Badge>
+                                                );
+                                            })
                                     )}
                                 </div>
                             </>

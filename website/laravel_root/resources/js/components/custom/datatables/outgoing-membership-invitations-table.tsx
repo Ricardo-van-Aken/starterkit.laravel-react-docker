@@ -7,31 +7,39 @@ import { MoreHorizontal, Trash2, Eye, Edit } from 'lucide-react';
 import { MembershipInvitationStatusBadge, INVITATION_STATUSES } from '@/components/custom/badges/membership-invitation-status-badge';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTable } from '@/components/data-table/hooks/use-data-table';
-import { type MembershipInvitation, type PaginatedResponse } from '@/types';
+import { type MembershipInvitation, type PaginatedResponse, type Abilities } from '@/types';
 import { type ColumnDef, type FilterConfig } from '@/components/data-table/types';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ViewMembershipInvitationDialog } from '@/components/custom/dialogs/view-membership-invitation-dialog';
 import { EditMembershipInvitationDialog } from '@/components/custom/dialogs/edit-membership-invitation-dialog';
 import { ConfirmationDialog } from '@/components/custom/dialogs/confirmation-dialog';
 
+export interface InvitationWithAbilities extends MembershipInvitation {
+    abilities: Abilities;
+}
+
 interface OutgoingMembershipInvitationsTableProps {
-    invitations: PaginatedResponse<MembershipInvitation>;
+    invitations: PaginatedResponse<InvitationWithAbilities>;
     availableRoles: string[];
+    manageableRoles: string[];
     availablePermissions: string[];
 }
 
 export function OutgoingMembershipInvitationsTable({
     invitations,
     availableRoles,
+    manageableRoles,
     availablePermissions,
 }: OutgoingMembershipInvitationsTableProps) {
     // 1. Action State
-    const [viewingInvitation, setViewingInvitation] = useState<MembershipInvitation | null>(null);
+    const [viewingInvitation, setViewingInvitation] = useState<InvitationWithAbilities | null>(null);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
-    const [editingInvitation, setEditingInvitation] = useState<MembershipInvitation | null>(null);
+    const [editingInvitation, setEditingInvitation] = useState<InvitationWithAbilities | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-    const [invitationToRevoke, setInvitationToRevoke] = useState<MembershipInvitation | null>(null);
+    const [invitationToRevoke, setInvitationToRevoke] = useState<InvitationWithAbilities | null>(null);
     const [isRevokeDialogOpen, setIsRevokeDialogOpen] = useState(false);
 
     // 2. Handlers
@@ -56,16 +64,19 @@ export function OutgoingMembershipInvitationsTable({
         },
     });
 
-    // 4. Columns Definition (Co-located)
-    const columns: ColumnDef<MembershipInvitation>[] = [
+    // 4. Columns definition
+    const columns: ColumnDef<InvitationWithAbilities>[] = [
         {
             accessorKey: 'email',
             header: 'Email',
             sortable: true,
             className: 'max-w-[250px] truncate font-medium',
+            headerClassName: 'max-w-[250px] truncate',
         },
         {
+            accessorKey: 'roles',
             header: 'Role(s)',
+            sortable: true,
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {row.roles.slice(0, 2).map((role) => (
@@ -83,8 +94,11 @@ export function OutgoingMembershipInvitationsTable({
             )
         },
         {
+            accessorKey: 'permissions',
             header: 'Permissions',
+            sortable: true,
             className: 'hidden lg:table-cell',
+            headerClassName: 'hidden lg:table-cell',
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {row.permissions.slice(0, 3).map((permission) => (
@@ -110,7 +124,8 @@ export function OutgoingMembershipInvitationsTable({
             accessorKey: 'expires_at',
             header: 'Expires',
             sortable: true,
-            className: 'text-right text-[10px] leading-tight text-muted-foreground',
+            align: 'right',
+            className: 'text-[10px] leading-tight text-muted-foreground',
             cell: ({ value }) => value ? (
                 <div className="flex flex-col">
                     {value.split(' ').map((part: string, i: number) => (
@@ -122,8 +137,7 @@ export function OutgoingMembershipInvitationsTable({
         {
             id: 'actions',
             header: 'Actions',
-            className: 'text-right',
-            headerClassName: 'text-right',
+            align: 'right',
             cell: ({ row }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger
@@ -141,17 +155,56 @@ export function OutgoingMembershipInvitationsTable({
                         </DropdownMenuItem>
                         {row.status === 'pending' && (
                             <>
-                                <DropdownMenuItem onClick={() => { setEditingInvitation(row); setIsEditDialogOpen(true); }}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    <span>Edit</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    variant="destructive"
-                                    onClick={() => { setInvitationToRevoke(row); setIsRevokeDialogOpen(true); }}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>Revoke</span>
-                                </DropdownMenuItem>
+                                <TooltipProvider>
+                                    {row.abilities?.update ? (
+                                        <DropdownMenuItem onClick={() => { setEditingInvitation(row); setIsEditDialogOpen(true); }}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            <span>Edit</span>
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <Tooltip>
+                                            <TooltipTrigger 
+                                                render={
+                                                    <div className="w-full cursor-not-allowed">
+                                                        <DropdownMenuItem disabled>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            <span>Edit</span>
+                                                        </DropdownMenuItem>
+                                                    </div>
+                                                }
+                                            />
+                                            <TooltipContent side="left">
+                                                You don't have permission to edit this invitation
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+
+                                    {row.abilities?.revoke ? (
+                                        <DropdownMenuItem 
+                                            variant="destructive"
+                                            onClick={() => { setInvitationToRevoke(row); setIsRevokeDialogOpen(true); }}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Revoke</span>
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <Tooltip>
+                                            <TooltipTrigger 
+                                                render={
+                                                    <div className="w-full cursor-not-allowed">
+                                                        <DropdownMenuItem disabled variant="destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            <span>Revoke</span>
+                                                        </DropdownMenuItem>
+                                                    </div>
+                                                }
+                                            />
+                                            <TooltipContent side="left">
+                                                You don't have permission to revoke this invitation
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                </TooltipProvider>
                             </>
                         )}
                     </DropdownMenuContent>
@@ -206,6 +259,7 @@ export function OutgoingMembershipInvitationsTable({
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 availableRoles={availableRoles}
+                manageableRoles={manageableRoles}
                 availablePermissions={availablePermissions}
             />
 

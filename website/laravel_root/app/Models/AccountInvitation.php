@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AccountInvitation extends Model
 {
+    /** @use HasFactory<\Database\Factories\AccountInvitationFactory> */
     use HasUuids, HasFactory;
 
     protected $fillable = [

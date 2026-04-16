@@ -39,30 +39,20 @@ export function DataTable<TData>({ table, columns, filters, className }: DataTab
                     <TableHeader className="bg-muted/50">
                         <TableRow>
                             {columns.map((column, index) => {
-                                // Extract layout-related classes from column.className to apply to header
-                                // This ensures headers and cells share width/alignment constraints
-                                const layoutClasses = column.className?.split(' ')
-                                    .filter(c => 
-                                        c.startsWith('w-') || 
-                                        c.startsWith('min-w-') || 
-                                        c.startsWith('max-w-') || 
-                                        c.includes('text-') ||
-                                        c.includes('hidden') ||
-                                        c.includes('table-cell') ||
-                                        c === 'truncate'
-                                    )
-                                    .join(' ');
+                                // Compute explicit alignment class
+                                const alignClass = column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : '';
 
                                 return (
                                     <TableHead 
                                         key={column.id || index} 
-                                        className={cn(layoutClasses, column.headerClassName)}
+                                        className={cn(alignClass, column.headerClassName)}
                                     >
                                         {column.sortable && column.accessorKey ? (
                                             <DataTableSortHeader 
                                                 title={typeof column.header === 'string' ? column.header : ''} 
                                                 sortKey={column.accessorKey as string} 
                                                 table={table}
+                                                align={column.align}
                                             />
                                         ) : (
                                             typeof column.header === 'function' 
@@ -83,8 +73,10 @@ export function DataTable<TData>({ table, columns, filters, className }: DataTab
                                             ? (row as any)[column.accessorKey] 
                                             : undefined;
                                         
+                                        const alignClass = column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : '';
+
                                         return (
-                                            <TableCell key={colIndex} className={column.className}>
+                                            <TableCell key={colIndex} className={cn(alignClass, column.className)}>
                                                 {column.cell 
                                                     ? column.cell({ row, value }) 
                                                     : value}

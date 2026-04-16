@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 /**
  * @phpstan-type IncomingInvitationData array{
  *     uuid: string,
- *     tenant: array{name: string, slug: string, uuid: string, created_at: string},
+ *     tenant: array{name: string, uuid: string, created_at: string},
  *     roles: Collection<int, string>,
  *     permissions: Collection<int|string, mixed>,
  *     status: string,
@@ -37,7 +37,6 @@ class ListIncomingInvitationsAction
                     'uuid' => $invitation->uuid,
                     'tenant' => [
                         'name' => $invitation->tenant->name,
-                        'slug' => $invitation->tenant->slug,
                         'uuid' => $invitation->tenant->uuid,
                         'created_at' => $invitation->tenant->created_at->toDateTimeString(),
                     ],

@@ -7,18 +7,28 @@ use App\Enums\TenantRoleName;
 use App\Models\Role;
 use App\Models\Permission;
 use App\Models\Tenant;
+use App\Support\TeamScopedProxy;
 
 trait HasTenantAuthorization
 {
+    /**
+     * Helper to scope model operations to a specific tenant context.
+     * 
+     * @return TeamScopedProxy<$this>
+     */
+    public function forTenant(Tenant $tenant): TeamScopedProxy
+    {
+        return new TeamScopedProxy($this, $tenant->id);
+    }
+
     /**
      * Assign a role to the model within a specific tenant context.
      */
     public function assignTenantRole(Tenant $tenant, string|TenantRoleName $role): self
     {
         $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
-
-        $this->assignRole(Role::findByName($roleName, 'tenant'));
+        
+        $this->forTenant($tenant)->assignRole(Role::findByName($roleName, 'tenant'));
 
         return $this;
     }
@@ -28,10 +38,7 @@ trait HasTenantAuthorization
      */
     public function assignTenantPermission(Tenant $tenant, TenantPermissionName $permission): self
     {
-        $permissionName = $permission->value;
-        setPermissionsTeamId($tenant->id);
-
-        $this->givePermissionTo(Permission::findByName($permissionName, 'tenant'));
+        $this->forTenant($tenant)->givePermissionTo(Permission::findByName($permission->value, 'tenant'));
 
         return $this;
     }
@@ -43,13 +50,11 @@ trait HasTenantAuthorization
      */
     public function syncTenantRoles(Tenant $tenant, array $roles): self
     {
-        setPermissionsTeamId($tenant->id);
-
         $roleModels = Role::whereIn('name', $roles)
             ->where('guard_name', 'tenant')
             ->get();
 
-        $this->syncRoles($roleModels);
+        $this->forTenant($tenant)->syncRoles($roleModels);
 
         return $this;
     }
@@ -61,13 +66,11 @@ trait HasTenantAuthorization
      */
     public function syncTenantPermissions(Tenant $tenant, array $permissions): self
     {
-        setPermissionsTeamId($tenant->id);
-
         $permissionModels = Permission::whereIn('name', $permissions)
             ->where('guard_name', 'tenant')
             ->get();
 
-        $this->syncPermissions($permissionModels);
+        $this->forTenant($tenant)->syncPermissions($permissionModels);
 
         return $this;
     }
@@ -78,9 +81,8 @@ trait HasTenantAuthorization
     public function hasTenantRole(Tenant $tenant, string|TenantRoleName $role): bool
     {
         $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
 
-        return $this->hasRole($roleName, 'tenant');
+        return $this->forTenant($tenant)->hasRole($roleName, 'tenant');
     }
 
     /**
@@ -89,9 +91,8 @@ trait HasTenantAuthorization
     public function hasTenantPermission(Tenant $tenant, string|TenantPermissionName $permission): bool
     {
         $permissionName = $permission instanceof TenantPermissionName ? $permission->value : $permission;
-        setPermissionsTeamId($tenant->id);
 
-        return $this->hasPermissionTo($permissionName, 'tenant');
+        return $this->forTenant($tenant)->hasPermissionTo($permissionName, 'tenant');
     }
 
     /**
@@ -101,10 +102,8 @@ trait HasTenantAuthorization
      */
     public function getTenantRoleNames(Tenant $tenant): array
     {
-        setPermissionsTeamId($tenant->id);
-
         /** @var array<int, string> $names */
-        $names = $this->getRoleNames()->toArray();
+        $names = $this->forTenant($tenant)->getRoleNames()->toArray();
 
         return $names;
     }
@@ -116,10 +115,8 @@ trait HasTenantAuthorization
      */
     public function getTenantPermissionNames(Tenant $tenant): array
     {
-        setPermissionsTeamId($tenant->id);
-
         /** @var array<int, string> $names */
-        $names = $this->getPermissionNames()->toArray();
+        $names = $this->forTenant($tenant)->getPermissionNames()->toArray();
 
         return $names;
     }

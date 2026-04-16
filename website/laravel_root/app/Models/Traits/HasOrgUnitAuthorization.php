@@ -7,18 +7,28 @@ use App\Enums\OrgUnitRoleName;
 use App\Models\OrganisationUnit;
 use App\Models\Role;
 use App\Models\Permission;
+use App\Support\TeamScopedProxy;
 
 trait HasOrgUnitAuthorization
 {
+    /**
+     * Helper to scope model operations to a specific organisation unit context.
+     * 
+     * @return TeamScopedProxy<$this>
+     */
+    public function forOrgUnit(OrganisationUnit $orgUnit): TeamScopedProxy
+    {
+        return new TeamScopedProxy($this, $orgUnit->id);
+    }
+
     /**
      * Assign a role to the model within a specific organisation unit context.
      */
     public function assignOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): self
     {
         $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
-
-        $this->assignRole(Role::findByName($roleName, 'organisation_unit'));
+        
+        $this->forOrgUnit($orgUnit)->assignRole(Role::findByName($roleName, 'organisation_unit'));
 
         return $this;
     }
@@ -28,10 +38,7 @@ trait HasOrgUnitAuthorization
      */
     public function assignOrgUnitPermission(OrganisationUnit $orgUnit, OrgUnitPermissionName $permission): self
     {
-        $permissionName = $permission->value;
-        setPermissionsTeamId($orgUnit->id);
-
-        $this->givePermissionTo(Permission::findByName($permissionName, 'organisation_unit'));
+        $this->forOrgUnit($orgUnit)->givePermissionTo(Permission::findByName($permission->value, 'organisation_unit'));
 
         return $this;
     }
@@ -43,13 +50,11 @@ trait HasOrgUnitAuthorization
      */
     public function syncOrgUnitRoles(OrganisationUnit $orgUnit, array $roles): self
     {
-        setPermissionsTeamId($orgUnit->id);
-
         $roleModels = Role::whereIn('name', $roles)
             ->where('guard_name', 'organisation_unit')
             ->get();
 
-        $this->syncRoles($roleModels);
+        $this->forOrgUnit($orgUnit)->syncRoles($roleModels);
 
         return $this;
     }
@@ -61,13 +66,11 @@ trait HasOrgUnitAuthorization
      */
     public function syncOrgUnitPermissions(OrganisationUnit $orgUnit, array $permissions): self
     {
-        setPermissionsTeamId($orgUnit->id);
-
         $permissionModels = Permission::whereIn('name', $permissions)
             ->where('guard_name', 'organisation_unit')
             ->get();
 
-        $this->syncPermissions($permissionModels);
+        $this->forOrgUnit($orgUnit)->syncPermissions($permissionModels);
 
         return $this;
     }
@@ -78,9 +81,8 @@ trait HasOrgUnitAuthorization
     public function hasOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): bool
     {
         $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
 
-        return $this->hasRole($roleName, 'organisation_unit');
+        return $this->forOrgUnit($orgUnit)->hasRole($roleName, 'organisation_unit');
     }
 
     /**
@@ -89,9 +91,8 @@ trait HasOrgUnitAuthorization
     public function hasOrgUnitPermission(OrganisationUnit $orgUnit, string|OrgUnitPermissionName $permission): bool
     {
         $permissionName = $permission instanceof OrgUnitPermissionName ? $permission->value : $permission;
-        setPermissionsTeamId($orgUnit->id);
 
-        return $this->hasPermissionTo($permissionName, 'organisation_unit');
+        return $this->forOrgUnit($orgUnit)->hasPermissionTo($permissionName, 'organisation_unit');
     }
 
     /**
@@ -101,10 +102,8 @@ trait HasOrgUnitAuthorization
      */
     public function getOrgUnitRoleNames(OrganisationUnit $orgUnit): array
     {
-        setPermissionsTeamId($orgUnit->id);
-
         /** @var array<int, string> $names */
-        $names = $this->getRoleNames()->toArray();
+        $names = $this->forOrgUnit($orgUnit)->getRoleNames()->toArray();
 
         return $names;
     }
@@ -116,10 +115,8 @@ trait HasOrgUnitAuthorization
      */
     public function getOrgUnitPermissionNames(OrganisationUnit $orgUnit): array
     {
-        setPermissionsTeamId($orgUnit->id);
-
         /** @var array<int, string> $names */
-        $names = $this->getPermissionNames()->toArray();
+        $names = $this->forOrgUnit($orgUnit)->getPermissionNames()->toArray();
 
         return $names;
     }

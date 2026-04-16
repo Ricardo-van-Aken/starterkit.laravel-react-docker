@@ -1,19 +1,19 @@
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberController';
 import HeadingSmall from '@/components/starterkit/heading-small';
-import { MembersTable, type Member } from '@/components/custom/tables/members-table';
-import { OutgoingMembershipInvitationsTable } from '@/components/custom/datatables/outgoing-membership-invitations-table';
+import { MembersTable, type MemberWithAbilities } from '@/components/custom/tables/members-table';
+import { OutgoingMembershipInvitationsTable, type InvitationWithAbilities } from '@/components/custom/datatables/outgoing-membership-invitations-table';
 import AppLayout from '@/layouts/app-layout';
 import TenantSettingsLayout from '@/layouts/settings/tenant-layout';
 import { type BreadcrumbItem, type SharedData, type Abilities, type PaginatedResponse, type MembershipInvitation } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 
 interface MembersPageProps {
-    members: PaginatedResponse<Member>;
-    invitations: PaginatedResponse<MembershipInvitation>;
+    members: PaginatedResponse<MemberWithAbilities>;
+    invitations: PaginatedResponse<InvitationWithAbilities>;
     available_roles: string[];
+    manageable_roles: string[];
     available_permissions: string[];
-    abilities: Abilities;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -31,11 +31,9 @@ export default function MembersPage({
     members, 
     invitations, 
     available_roles, 
+    manageable_roles,
     available_permissions, 
-    abilities 
 }: MembersPageProps) {
-    const { auth } = usePage<SharedData>().props;
-    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tenant Members" />
@@ -49,13 +47,12 @@ export default function MembersPage({
                             description="A list of all users that have access to this tenant."
                         />
 
-                        <div className="rounded-md border overflow-x-auto">
-                            <MembersTable
-                                members={members}
-                                availableRoles={available_roles}
-                                availablePermissions={available_permissions}
-                            />
-                        </div>
+                        <MembersTable
+                            members={members}
+                            availableRoles={available_roles}
+                            manageableRoles={manageable_roles}
+                            availablePermissions={available_permissions}
+                        />
                     </div>
 
                     {/* Invitations Table */}
@@ -68,6 +65,7 @@ export default function MembersPage({
                         <OutgoingMembershipInvitationsTable 
                             invitations={invitations}
                             availableRoles={available_roles}
+                            manageableRoles={manageable_roles}
                             availablePermissions={available_permissions}
                         />
                     </div>

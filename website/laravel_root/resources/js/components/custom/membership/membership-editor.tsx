@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RoleEditor } from './role-editor';
 import { PermissionEditor } from './permission-editor';
 import { Shield, UserPlus } from 'lucide-react';
+import { type Abilities } from '@/types';
 
 interface MembershipEditorProps {
     data: {
@@ -10,6 +11,7 @@ interface MembershipEditorProps {
     };
     setData: (key: string, value: string[]) => void;
     availableRoles: string[];
+    manageableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -17,6 +19,7 @@ export function MembershipEditor({
     data,
     setData,
     availableRoles,
+    manageableRoles,
     availablePermissions,
 }: MembershipEditorProps) {
     return (
@@ -40,6 +43,7 @@ export function MembershipEditor({
                     selectedRoles={data.roles}
                     onChange={(roles) => setData('roles', roles)}
                     availableRoles={availableRoles}
+                    manageableRoles={manageableRoles}
                 />
             </TabsContent>
             

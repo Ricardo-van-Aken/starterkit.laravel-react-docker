@@ -9,8 +9,11 @@ use App\Models\AccountInvitation;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Models\User;
+use App\Models\Role;
+use App\Models\Permission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class DevelopmentSeeder extends Seeder
 {
@@ -19,130 +22,183 @@ class DevelopmentSeeder extends Seeder
      */
     public function run(): void
     {
-         DB::transaction(function () {
-            // 1. Create 50 Users
-            $users = User::factory()->count(50)->withoutTwoFactor()->create();
+        DB::transaction(function () {
+            // 1. Pre-fetch Roles and Permissions to avoid repeated queries
+            /** @var Collection<string, Role> $roles */
+            $roles = Role::where('guard_name', 'tenant')->get()->keyBy('name');
+            /** @var Collection<string, Permission> $permissions */
+            $permissions = Permission::where('guard_name', 'tenant')->get()->keyBy('name');
 
-            // 2. Tenant 1 Setup
-            $tenant1 = Tenant::factory()->create(['name' => 'Tenant One (Multi-Admin)']);
-
-            $admin1 = $users[0];
-            $admin1->tenants()->attach($tenant1->id);
-            $admin1->assignTenantRole($tenant1, TenantRoleName::Admin);
-
-            // One Admin pending for deletion
-            $admin2 = $users[1];
-            $admin2->tenants()->attach($tenant1->id);
-            $admin2->assignTenantRole($tenant1, TenantRoleName::Admin);
-            $admin2->forceFill(['scheduled_for_deletion_at' => now()->addYears(10)])->save();
-
-            // Another Admin
-            $admin3 = $users[2];
-            $admin3->tenants()->attach($tenant1->id);
-            $admin3->assignTenantRole($tenant1, TenantRoleName::Admin);
-
-            // Varied members for Tenant 1 (using indices 3-15)
-            for ($i = 0; $i < 13; $i++) {
-                $user = $users[3 + $i];
-                $user->tenants()->attach($tenant1->id);
-                $this->assignVariedToModel($user, $tenant1, $i);
+            // 2. Setup Users (1 Main + 150 Others)
+            $allUsers = User::factory()->count(151)->withoutTwoFactor()->create();
+            
+            // Dynamic Demo Email logic
+            $counter = 1;
+            while (User::where('email', "demo{$counter}@example.com")->exists()) {
+                $counter++;
             }
+            $demoEmail = "demo{$counter}@example.com";
 
-            // 15 Outstanding invitations to Tenant 1 with varied statuses
+            /** @var User $mainUser */
+            $mainUser = $allUsers[0];
+            $mainUser->email = $demoEmail;
+            $mainUser->save();
+
+            $otherUsersPool = $allUsers->slice(1);
             $statusOptions = TenantInvitationStatus::cases();
 
-            // 5 to existing users (indices 16-20)
-            for ($i = 0; $i < 5; $i++) {
-                $user = $users[16 + $i];
-                $invitation = TenantInvitation::factory()->create([
-                    'tenant_id' => $tenant1->id,
-                    'email' => $user->email,
-                    'status' => $statusOptions[$i % count($statusOptions)],
-                ]);
+            // 3. Batch Create 30 Tenants
+            $tenants = Tenant::factory()->count(30)->sequence(fn (\Illuminate\Database\Eloquent\Factories\Sequence $sequence) => [
+                'name' => match($sequence->index) {
+                    0 => 'Tenant One (Main Admin)',
+                    1 => 'Tenant Two (Solo Admin - One Deleting)',
+                    default => "Independent Tenant " . ((int) $sequence->index + 1),
+                }
+            ])->create();
 
-                $this->assignVariedToModel($invitation, $tenant1, $i);
-            }
+            // 4. Populate Tenants
+            foreach ($tenants as $i => $tenant) {
+                // --- Special Rules for T1 and T2 ---
+                if ($i === 0) {
+                    $mainUser->tenants()->attach($tenant->id);
+                    /** @var Role $adminRole */
+                    $adminRole = $roles[TenantRoleName::Admin->value];
+                    $this->optimizedAssignRole($mainUser, $tenant, $adminRole);
+                } elseif ($i === 1) {
+                    $mainUser->tenants()->attach($tenant->id);
+                    /** @var Role $adminRole */
+                    $adminRole = $roles[TenantRoleName::Admin->value];
+                    $this->optimizedAssignRole($mainUser, $tenant, $adminRole);
+                    
+                    $deletingAdmin = $otherUsersPool->random();
+                    /** @var User $deletingAdmin */
+                    $deletingAdmin->tenants()->attach($tenant->id);
+                    $this->optimizedAssignRole($deletingAdmin, $tenant, $adminRole);
+                    $deletingAdmin->forceFill(['scheduled_for_deletion_at' => now()->addDays(30)])->save();
+                }
 
-            // 10 to account invites (new users)
-            for ($i = 0; $i < 10; $i++) {
-                $email = fake()->unique()->safeEmail();
+                // --- Memberships for Main User (5 Tenants between 2-6) ---
+                if ($i >= 2 && $i <= 6) {
+                    $mainUser->tenants()->attach($tenant->id);
+                    $this->assignVariedToModel($mainUser, $tenant, $i, $roles, $permissions);
+                }
+
+                // --- Invitations for Main User (10 Tenants between 7-16) ---
+                if ($i >= 7 && $i <= 16) {
+                    $invitation = TenantInvitation::factory()->create([
+                        'tenant_id' => $tenant->id,
+                        'email' => $mainUser->email,
+                        'status' => $statusOptions[$i % count($statusOptions)],
+                    ]);
+                    $this->assignVariedToModel($invitation, $tenant, $i, $roles, $permissions);
+                }
+
+                // --- Random Population for all Tenants ---
+                // Add some random members (batch attach)
+                $randomMembers = $otherUsersPool->random(rand(2, 10));
                 
-                AccountInvitation::factory()->create([
-                    'email' => $email,
-                ]);
+                // For tenants excluding T1 & T2 (which already have mainUser as Admin), assign an explicit Admin
+                if ($i >= 2) {
+                    /** @var User $admin */
+                    $admin = $randomMembers->shift();
+                    $admin->tenants()->attach($tenant->id);
+                    /** @var Role $adminRole */
+                    $adminRole = $roles[TenantRoleName::Admin->value];
+                    $this->optimizedAssignRole($admin, $tenant, $adminRole);
+                }
 
-                $invitation = TenantInvitation::factory()->create([
-                    'tenant_id' => $tenant1->id,
-                    'email' => $email,
-                    'status' => $statusOptions[$i % count($statusOptions)],
-                ]);
+                foreach ($randomMembers as $member) {
+                    if ($member->tenants()->where('tenants.id', $tenant->id)->exists()) continue;
+                    $member->tenants()->attach($tenant->id);
+                    $this->assignVariedToModel($member, $tenant, rand(0, 4), $roles, $permissions);
+                }
 
-                $this->assignVariedToModel($invitation, $tenant1, $i);
-            }
-
-            // 3. Tenant 2 Setup
-            $tenant2 = Tenant::factory()->create(['name' => 'Tenant Two (Solo Admin)']);
-            $admin1->tenants()->attach($tenant2->id);
-            $admin1->assignTenantRole($tenant2, TenantRoleName::Admin);
-
-            // 4. Five Independent Tenants with Invitations to Admin 1
-            for ($i = 0; $i < 5; $i++) {
-                $tenant = Tenant::factory()->create(['name' => "Independent Tenant " . ($i + 1)]);
-                
-                // New admin for this tenant (users index 30 to 34)
-                $externalAdmin = $users[30 + $i];
-                $externalAdmin->tenants()->attach($tenant->id);
-                $externalAdmin->assignTenantRole($tenant, TenantRoleName::Admin);
-
-                // Invitation to Admin 1 - now with combination of roles and permissions
-                $invitation = TenantInvitation::factory()->create([
+                // Add some random invitations (batch create)
+                $invitationCount = rand(2, 10);
+                $invitations = TenantInvitation::factory()->count($invitationCount)->create([
                     'tenant_id' => $tenant->id,
-                    'email' => $admin1->email,
-                    'status' => TenantInvitationStatus::Pending,
+                    'status' => fn() => $statusOptions[rand(0, count($statusOptions) - 1)],
                 ]);
 
-                // Always give both a role and a permission to Admin 1's invitations
-                $invitation->assignTenantRole($tenant, TenantRoleName::Manager);
-                $invitation->assignTenantPermission($tenant, TenantPermissionName::ViewBillingInformation);
+                foreach ($invitations as $inv) {
+                    $this->assignVariedToModel($inv, $tenant, rand(0, 4), $roles, $permissions);
+                }
             }
         });
     }
 
     /**
-     * Helper to assign varied roles and permissions to a model (User or Invitation).
-     *
-     * @param \App\Models\User|\App\Models\TenantInvitation $model
-     * @param \App\Models\Tenant $tenant
-     * @param int $index
-     * @return void
+     * Optimized role assignment to avoid repeated queries.
      */
-    protected function assignVariedToModel(User|TenantInvitation $model, Tenant $tenant, int $index): void
+    protected function optimizedAssignRole(User|TenantInvitation $model, Tenant $tenant, Role $role): void
     {
+        setPermissionsTeamId($tenant->id);
+        $model->assignRole($role);
+    }
+
+    /**
+     * Optimized permission assignment to avoid repeated queries.
+     */
+    protected function optimizedAssignPermission(User|TenantInvitation $model, Tenant $tenant, Permission $permission): void
+    {
+        setPermissionsTeamId($tenant->id);
+        $model->givePermissionTo($permission);
+    }
+
+    /**
+     * Helper to assign varied roles and permissions using pre-fetched models.
+     * 
+     * @param Collection<string, Role> $roles 
+     * @param Collection<string, Permission> $permissions
+     */
+    protected function assignVariedToModel(
+        User|TenantInvitation $model, 
+        Tenant $tenant, 
+        int $index, 
+        Collection $roles, 
+        Collection $permissions
+    ): void {
         switch ($index % 5) {
             case 0:
-                // Multiple roles
-                $model->assignTenantRole($tenant, TenantRoleName::Manager);
-                $model->assignTenantRole($tenant, TenantRoleName::Finance);
+                /** @var Role $managerRole */
+                $managerRole = $roles[TenantRoleName::Manager->value];
+                $this->optimizedAssignRole($model, $tenant, $managerRole);
                 break;
             case 1:
-                // No roles, multiple permissions
-                $model->assignTenantPermission($tenant, TenantPermissionName::ViewTenantMembers);
-                $model->assignTenantPermission($tenant, TenantPermissionName::ViewBillingInformation);
+                /** @var Permission $viewMembersPermission */
+                $viewMembersPermission = $permissions[TenantPermissionName::ViewTenantMembers->value];
+                /** @var Permission $viewBillingPermission */
+                $viewBillingPermission = $permissions[TenantPermissionName::ViewBillingInformation->value];
+                $this->optimizedAssignPermission($model, $tenant, $viewMembersPermission);
+                $this->optimizedAssignPermission($model, $tenant, $viewBillingPermission);
                 break;
             case 2:
-                // One role, one permission
-                $model->assignTenantRole($tenant, TenantRoleName::Manager);
-                $model->assignTenantPermission($tenant, TenantPermissionName::UpdateTenantDetails);
+                /** @var Role $financeRole */
+                $financeRole = $roles[TenantRoleName::Finance->value];
+                /** @var Permission $updateDetailsPermission */
+                $updateDetailsPermission = $permissions[TenantPermissionName::UpdateTenantDetails->value];
+                $this->optimizedAssignRole($model, $tenant, $financeRole);
+                $this->optimizedAssignPermission($model, $tenant, $updateDetailsPermission);
                 break;
             case 3:
-                // Multiple roles, multiple permissions
-                $model->assignTenantRole($tenant, TenantRoleName::Manager);
-                $model->assignTenantRole($tenant, TenantRoleName::Finance);
-                $model->assignTenantPermission($tenant, TenantPermissionName::CreateOrganisationUnits);
-                $model->assignTenantPermission($tenant, TenantPermissionName::ViewOrganisationUnits);
+                /** @var Role $managerRole */
+                $managerRole = $roles[TenantRoleName::Manager->value];
+                /** @var Role $financeRole */
+                $financeRole = $roles[TenantRoleName::Finance->value];
+                /** @var Permission $createUnitsPermission */
+                $createUnitsPermission = $permissions[TenantPermissionName::CreateOrganisationUnits->value];
+                /** @var Permission $viewUnitsPermission */
+                $viewUnitsPermission = $permissions[TenantPermissionName::ViewOrganisationUnits->value];
+                
+                $this->optimizedAssignRole($model, $tenant, $managerRole);
+                $this->optimizedAssignRole($model, $tenant, $financeRole);
+                $this->optimizedAssignPermission($model, $tenant, $createUnitsPermission);
+                $this->optimizedAssignPermission($model, $tenant, $viewUnitsPermission);
                 break;
-            default:
-                // None
+            case 4:
+                /** @var Permission $viewMembersPermission */
+                $viewMembersPermission = $permissions[TenantPermissionName::ViewTenantMembers->value];
+                $this->optimizedAssignPermission($model, $tenant, $viewMembersPermission);
                 break;
         }
     }
