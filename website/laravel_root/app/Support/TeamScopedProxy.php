@@ -32,12 +32,8 @@ class TeamScopedProxy
      */
     public function __call($method, $arguments)
     {
-        $original = getPermissionsTeamId();
+        return RunInTeamScope::run($this->teamId, function () use ($method, $arguments) {
 
-        try {
-            setPermissionsTeamId($this->teamId);
-
-            // Clear relations if they exist (safe for any model)
             foreach (['roles', 'permissions'] as $relation) {
                 if (method_exists($this->model, $relation)) {
                     $this->model->unsetRelation($relation);
@@ -45,8 +41,6 @@ class TeamScopedProxy
             }
 
             return $this->model->{$method}(...$arguments);
-        } finally {
-            setPermissionsTeamId($original);
-        }
+        });
     }
 }

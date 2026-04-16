@@ -35,8 +35,6 @@ class ListOutgoingInvitationsAction
      */
     public function __invoke(?User $actor, Tenant $tenant, array $params = [], int $pageSize = 10, int $page = 1): LengthAwarePaginator
     {
-        setPermissionsTeamId($tenant->id);
-        
         $query = TenantInvitation::where('tenant_id', $tenant->id);
 
         // Email Filtering
@@ -44,7 +42,7 @@ class ListOutgoingInvitationsAction
             $query->where('email', 'like', "%{$search}%");
         }
 
-        // Status Filtering(defaults to pending)
+        // Status Filtering (defaults to pending)
         $status = $params['status'] ?? ['pending'];
         if (! empty($status)) {
             $enumStatuses = collect((array) $status)
@@ -82,9 +80,10 @@ class ListOutgoingInvitationsAction
             }
         }
 
+        // Sorting
         $sort = $params['sort'] ?? 'expires_at';
         $direction = $params['direction'] ?? 'desc';
-        
+
         $allowedSorts = ['email', 'status', 'expires_at', 'created_at', 'roles', 'permissions'];
         if (in_array($sort, $allowedSorts)) {
             if ($sort === 'roles') {

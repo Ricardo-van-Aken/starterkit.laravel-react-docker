@@ -34,29 +34,25 @@ class ListTenantMembersAction
      */
     public function __invoke(?User $actor, Tenant $tenant, array $params = [], int $pageSize = 10, int $page = 1): LengthAwarePaginator
     {
-        setPermissionsTeamId($tenant->id);
-
         $query = $tenant->users();
 
+        $search = $params['search'] ?? null;
+        $roles = $params['roles'] ?? [];
+
         // Search Filtering (Name/Email)
-        if (!empty($params['search'])) {
-            $search = $params['search'];
+        if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                $q->where('users.name', 'like', "%{$search}%")
+                  ->orWhere('users.email', 'like', "%{$search}%");
             });
         }
 
         // Role Filtering
-        if (!empty($params['roles'])) {
-            $roles = collect((array) $params['roles'])->filter(fn($r) => $r !== 'all');
-
-            if ($roles->isNotEmpty()) {
-                $query->whereHas('roles', function($q) use ($roles) {
-                    $q->whereIn('name', $roles->toArray())
-                      ->where('guard_name', 'tenant');
-                });
-            }
+        if (!empty($roles) && !in_array('all', $roles)) {
+            $query->whereHas('roles', function ($q) use ($roles, $tenant) {
+                $q->whereIn('name', $roles)
+                  ->where('model_has_roles.team_id', $tenant->id);
+            });
         }
 
         // Sorting
