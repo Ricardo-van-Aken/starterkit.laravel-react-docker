@@ -7,14 +7,7 @@ use Laravel\Fortify\Features;
 use App\Services\ActiveTenant;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        /** @var \App\Models\User $user */
-        $user = request()->user();
- 
-        return Inertia::render('dashboard', [
-            'invitations' => app(\App\Actions\TenantInvitation\ListIncomingInvitationsAction::class)($user),
-        ]);
-    })->name('dashboard');
+    Route::get('dashboard', \App\Http\Controllers\DashboardController::class)->name('dashboard');
 
     // Tenant Invitations
     Route::post('tenant-invitations/{tenantInvitation}/accept', [\App\Http\Controllers\TenantInvitationController::class, 'accept'])->name('tenant-invitations.accept');

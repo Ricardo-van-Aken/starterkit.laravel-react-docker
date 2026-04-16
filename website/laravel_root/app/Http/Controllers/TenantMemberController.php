@@ -6,7 +6,7 @@ use App\Actions\TenantMember\InviteTenantMemberAction;
 use App\Actions\TenantMember\ListTenantMembersAction;
 use App\Actions\TenantMember\RemoveTenantMemberAction;
 use App\Actions\TenantMember\UpdateTenantMemberAction;
-use App\Actions\TenantMember\GetManageableTenantRolesAction;
+use App\Actions\TenantMember\GetAssignableTenantRolesAction;
 use App\Actions\TenantInvitation\ListOutgoingInvitationsAction;
 use App\Http\Requests\TenantMember\DestroyTenantMemberRequest;
 use App\Http\Requests\TenantMember\InviteTenantMemberRequest;
@@ -39,7 +39,7 @@ class TenantMemberController extends Controller
         IndexTenantMembersRequest $request, 
         ListTenantMembersAction $listMembersAction, 
         ListOutgoingInvitationsAction $listInvitationsAction,
-        GetManageableTenantRolesAction $getManageableRoles
+        GetAssignableTenantRolesAction $getAssignableRoles
     ): Response
     {
         /** @var \App\Models\User $user */
@@ -80,7 +80,7 @@ class TenantMemberController extends Controller
                 $memPage
             ),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
-            'manageable_roles' => $getManageableRoles($user, $tenant),
+            'assignable_roles' => $getAssignableRoles($user, $tenant),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
             'invitations' => $listInvitationsAction(
                 $user,

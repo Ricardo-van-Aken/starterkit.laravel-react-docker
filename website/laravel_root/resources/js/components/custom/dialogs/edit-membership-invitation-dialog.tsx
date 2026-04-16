@@ -17,7 +17,7 @@ interface EditMembershipInvitationDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -26,7 +26,7 @@ export function EditMembershipInvitationDialog({
     open,
     onOpenChange,
     availableRoles,
-    manageableRoles,
+    assignableRoles,
     availablePermissions,
 }: EditMembershipInvitationDialogProps) {
     const { data, setData, patch, processing, reset } = useForm({
@@ -69,7 +69,7 @@ export function EditMembershipInvitationDialog({
                             data={data}
                             setData={(key, value) => setData(key as 'roles' | 'permissions', value)}
                             availableRoles={availableRoles}
-                            manageableRoles={manageableRoles}
+                            assignableRoles={assignableRoles}
                             availablePermissions={availablePermissions}
                         />
                     </div>

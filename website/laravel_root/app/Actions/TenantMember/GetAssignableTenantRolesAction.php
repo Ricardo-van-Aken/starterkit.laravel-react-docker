@@ -8,10 +8,11 @@ use App\Models\Role;
 use App\Enums\TenantRoleName;
 use App\Enums\TenantPermissionName;
 
-class GetManageableTenantRolesAction
+class GetAssignableTenantRolesAction
 {
     /**
-     * Get the roles a user can assign or manage within a tenant.
+     * Get the roles a user can assign within a tenant.
+     * This considers both rank authority and the ManageTenantMemberRoles permission.
      *
      * @return array<int, string>
      */

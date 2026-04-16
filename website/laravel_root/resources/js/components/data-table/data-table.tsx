@@ -19,7 +19,7 @@ interface DataTableProps<TData> {
         };
         onSort: (key: string) => void;
         onFilterChange: (key: string, value: any) => void;
-        onPageSizeChange: (pageSize: number) => void;
+        onPageSizeChange?: (pageSize: number) => void;
         isFiltered: boolean;
         onClearFilters: () => void;
         [key: string]: any;

@@ -1,7 +1,7 @@
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import TenantMemberController from '@/actions/App/Http/Controllers/TenantMemberController';
 import HeadingSmall from '@/components/starterkit/heading-small';
-import { MembersTable, type MemberWithAbilities } from '@/components/custom/tables/members-table';
+import { MembersTable, type MemberWithAbilities } from '@/components/custom/datatables/members-table';
 import { OutgoingMembershipInvitationsTable, type InvitationWithAbilities } from '@/components/custom/datatables/outgoing-membership-invitations-table';
 import AppLayout from '@/layouts/app-layout';
 import TenantSettingsLayout from '@/layouts/settings/tenant-layout';
@@ -12,7 +12,7 @@ interface MembersPageProps {
     members: PaginatedResponse<MemberWithAbilities>;
     invitations: PaginatedResponse<InvitationWithAbilities>;
     available_roles: string[];
-    manageable_roles: string[];
+    assignable_roles: string[];
     available_permissions: string[];
 }
 
@@ -31,7 +31,7 @@ export default function MembersPage({
     members, 
     invitations, 
     available_roles, 
-    manageable_roles,
+    assignable_roles,
     available_permissions, 
 }: MembersPageProps) {
     return (
@@ -50,7 +50,7 @@ export default function MembersPage({
                         <MembersTable
                             members={members}
                             availableRoles={available_roles}
-                            manageableRoles={manageable_roles}
+                            assignableRoles={assignable_roles}
                             availablePermissions={available_permissions}
                         />
                     </div>
@@ -65,7 +65,7 @@ export default function MembersPage({
                         <OutgoingMembershipInvitationsTable 
                             invitations={invitations}
                             availableRoles={available_roles}
-                            manageableRoles={manageable_roles}
+                            assignableRoles={assignable_roles}
                             availablePermissions={available_permissions}
                         />
                     </div>

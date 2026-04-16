@@ -11,7 +11,7 @@ interface MembershipEditorProps {
     };
     setData: (key: string, value: string[]) => void;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -19,7 +19,7 @@ export function MembershipEditor({
     data,
     setData,
     availableRoles,
-    manageableRoles,
+    assignableRoles,
     availablePermissions,
 }: MembershipEditorProps) {
     return (
@@ -43,7 +43,7 @@ export function MembershipEditor({
                     selectedRoles={data.roles}
                     onChange={(roles) => setData('roles', roles)}
                     availableRoles={availableRoles}
-                    manageableRoles={manageableRoles}
+                    assignableRoles={assignableRoles}
                 />
             </TabsContent>
             

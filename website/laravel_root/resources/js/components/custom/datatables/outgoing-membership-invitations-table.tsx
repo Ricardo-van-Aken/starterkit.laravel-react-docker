@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Trash2, Eye, Edit } from 'lucide-react';
@@ -9,11 +8,12 @@ import { DataTable } from '@/components/data-table/data-table';
 import { useDataTable } from '@/components/data-table/hooks/use-data-table';
 import { type MembershipInvitation, type PaginatedResponse, type Abilities } from '@/types';
 import { type ColumnDef, type FilterConfig } from '@/components/data-table/types';
-import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ViewMembershipInvitationDialog } from '@/components/custom/dialogs/view-membership-invitation-dialog';
 import { EditMembershipInvitationDialog } from '@/components/custom/dialogs/edit-membership-invitation-dialog';
 import { ConfirmationDialog } from '@/components/custom/dialogs/confirmation-dialog';
+import { RolesCell } from '@/components/custom/columns/roles-column';
+import { PermissionsCell } from '@/components/custom/columns/permissions-column';
 
 export interface InvitationWithAbilities extends MembershipInvitation {
     abilities: Abilities;
@@ -22,14 +22,14 @@ export interface InvitationWithAbilities extends MembershipInvitation {
 interface OutgoingMembershipInvitationsTableProps {
     invitations: PaginatedResponse<InvitationWithAbilities>;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
 export function OutgoingMembershipInvitationsTable({
     invitations,
     availableRoles,
-    manageableRoles,
+    assignableRoles,
     availablePermissions,
 }: OutgoingMembershipInvitationsTableProps) {
     // 1. Action State
@@ -77,21 +77,7 @@ export function OutgoingMembershipInvitationsTable({
             accessorKey: 'roles',
             header: 'Role(s)',
             sortable: true,
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {row.roles.slice(0, 2).map((role) => (
-                        <Badge key={role} variant="outline" className="capitalize">{role}</Badge>
-                    ))}
-                    {row.roles.length > 2 && (
-                        <Badge variant="outline" className="text-muted-foreground">
-                            +{row.roles.length - 2} more
-                        </Badge>
-                    )}
-                    {row.roles.length === 0 && (
-                        <span className="text-xs text-muted-foreground italic text-nowrap">No roles</span>
-                    )}
-                </div>
-            )
+            cell: ({ row }) => <RolesCell roles={row.roles} variant="outline" />,
         },
         {
             accessorKey: 'permissions',
@@ -99,20 +85,7 @@ export function OutgoingMembershipInvitationsTable({
             sortable: true,
             className: 'hidden lg:table-cell',
             headerClassName: 'hidden lg:table-cell',
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {row.permissions.slice(0, 3).map((permission) => (
-                        <span key={permission} className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
-                            {permission}
-                        </span>
-                    ))}
-                    {row.permissions.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
-                            +{row.permissions.length - 3} more
-                        </span>
-                    )}
-                </div>
-            )
+            cell: ({ row }) => <PermissionsCell permissions={row.permissions} />,
         },
         {
             accessorKey: 'status',
@@ -259,7 +232,7 @@ export function OutgoingMembershipInvitationsTable({
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 availableRoles={availableRoles}
-                manageableRoles={manageableRoles}
+                assignableRoles={assignableRoles}
                 availablePermissions={availablePermissions}
             />
 

@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { type MemberWithAbilities } from '@/components/custom/tables/members-table';
+import { type MemberWithAbilities } from '@/components/custom/datatables/members-table';
 
 interface ViewMemberDialogProps {
     member: MemberWithAbilities | null;

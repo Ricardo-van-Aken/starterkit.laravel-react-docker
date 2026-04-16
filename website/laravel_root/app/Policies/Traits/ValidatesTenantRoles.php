@@ -9,14 +9,34 @@ use App\Enums\TenantPermissionName;
 trait ValidatesTenantRoles
 {
     /**
-     * Determine if the user is authorized to manage a member or invitation based on their current roles.
+     * Get the subset of roles that the user has rank-based authority over.
+     * Logic: Admins have authority over all roles. Non-admins have authority over all roles except Admin.
      *
-     * @param array<int, string> $currentRoles
-     * @param array<int, string> $manageableRoles
+     * @return array<int, string>
      */
-    protected function canManageCurrentRoles(array $currentRoles, array $manageableRoles): bool
+    protected function getRankAuthoritativeRoles(User $user, Tenant $tenant): array
     {
-        return count(array_diff($currentRoles, $manageableRoles)) === 0;
+        /** @var array<int, string> $allRoles */
+        $allRoles = \App\Models\Role::where('guard_name', 'tenant')->pluck('name')->toArray();
+
+        if ($user->hasTenantRole($tenant, \App\Enums\TenantRoleName::Admin)) {
+            return $allRoles;
+        }
+
+        return array_values(array_filter($allRoles, function ($role) {
+            return $role !== \App\Enums\TenantRoleName::Admin->value;
+        }));
+    }
+
+    /**
+     * Determine if a set of roles is a subset of an allowed set of roles.
+     *
+     * @param array<int, string> $roles
+     * @param array<int, string> $allowedRoles
+     */
+    protected function isRolesSubset(array $roles, array $allowedRoles): bool
+    {
+        return count(array_diff($roles, $allowedRoles)) === 0;
     }
 
     /**
@@ -65,9 +85,7 @@ trait ValidatesTenantRoles
 
         // If specific roles are being assigned, they must exist within the user's manageable subset
         if ($isUpdatingRoles) {
-            $hasUnmanageableRoles = count(array_diff($rolesToCheck, $manageableRoles)) > 0;
-            
-            if ($hasUnmanageableRoles) {
+            if (!$this->isRolesSubset($rolesToCheck, $manageableRoles)) {
                 return false;
             }
         }

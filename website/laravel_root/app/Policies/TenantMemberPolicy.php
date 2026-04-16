@@ -6,7 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Enums\TenantPermissionName;
 use App\Enums\TenantRoleName;
-use App\Actions\TenantMember\GetManageableTenantRolesAction;
+use App\Actions\TenantMember\GetAssignableTenantRolesAction;
 use App\Policies\Traits\ValidatesTenantRoles;
  
 class TenantMemberPolicy
@@ -14,7 +14,7 @@ class TenantMemberPolicy
     use ValidatesTenantRoles;
 
     public function __construct(
-        protected GetManageableTenantRolesAction $getManageableRoles
+        protected GetAssignableTenantRolesAction $getAssignableRoles
     ) {}
 
     /**
@@ -29,16 +29,20 @@ class TenantMemberPolicy
             return false;
         }
 
-        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+        /** @var array<int, string> $rankAuthoritativeRoles */
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
 
-        // Only enforce the "can manage current roles" gate when roles or permissions are being changed
-        if ($newRoles !== null || $newPermissions !== null) {
-            if (!$this->canManageCurrentRoles($member->getTenantRoleNames($tenant), $manageableRoles)) {
-                return false;
-            }
+        // RANK AUTHORITY CHECK: Can I update this member based on their current roles?
+        /** @var array<int, string> $memberRoles */
+        $memberRoles = $member->getTenantRoleNames($tenant);
+        if (!$this->isRolesSubset($memberRoles, $rankAuthoritativeRoles)) {
+            return false;
         }
 
-        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $manageableRoles)) {
+        $assignableRoles = ($this->getAssignableRoles)($user, $tenant);
+
+        // ASSIGNMENT CHECK: Can I assign the new roles and permissions to this member?
+        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $assignableRoles)) {
             return false;
         }
 
@@ -54,9 +58,13 @@ class TenantMemberPolicy
             return false;
         }
 
-        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+        /** @var array<int, string> $rankAuthoritativeRoles */
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
 
-        if (!$this->canManageCurrentRoles($member->getTenantRoleNames($tenant), $manageableRoles)) {
+        // RANK AUTHORITY CHECK: Can I delete this member based on their current roles?
+        /** @var array<int, string> $memberRoles */
+        $memberRoles = $member->getTenantRoleNames($tenant);
+        if (!$this->isRolesSubset($memberRoles, $rankAuthoritativeRoles)) {
             return false;
         }
 

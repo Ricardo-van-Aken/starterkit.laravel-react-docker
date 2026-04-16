@@ -10,7 +10,7 @@ import {
 import tenant from '@/routes/tenant';
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { type MemberWithAbilities } from '@/components/custom/tables/members-table';
+import { type MemberWithAbilities } from '@/components/custom/datatables/members-table';
 
 import { MembershipEditor } from '@/components/custom/membership/membership-editor';
 
@@ -19,7 +19,7 @@ interface EditMemberDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -28,7 +28,7 @@ export function EditMemberDialog({
     open,
     onOpenChange,
     availableRoles,
-    manageableRoles,
+    assignableRoles,
     availablePermissions,
 }: EditMemberDialogProps) {
     const { data, setData, patch, processing, reset } = useForm({
@@ -71,7 +71,7 @@ export function EditMemberDialog({
                             data={data}
                             setData={(key, value) => setData(key as 'roles' | 'permissions', value)}
                             availableRoles={availableRoles}
-                            manageableRoles={manageableRoles}
+                            assignableRoles={assignableRoles}
                             availablePermissions={availablePermissions}
                         />
                     </div>

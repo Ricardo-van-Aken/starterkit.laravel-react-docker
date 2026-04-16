@@ -45,24 +45,26 @@ export function DataTablePagination({ table, links: manualLinks, className }: Da
 
     return (
         <div className={cn("py-4 border-t px-4 flex items-center justify-between gap-4", className)}>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground whitespace-nowrap">
-                <span>Rows per page</span>
-                <Select
-                    value={String(table?.state?.pageSize || 10)}
-                    onValueChange={(value) => table?.onPageSizeChange?.(Number(value))}
-                >
-                    <SelectTrigger size="sm" className="w-[70px]">
-                        <SelectValue placeholder={table?.state?.pageSize || 10} />
-                    </SelectTrigger>
-                    <SelectContent side="top">
-                        {[10, 25, 50, 100].map((size) => (
-                            <SelectItem key={size} value={String(size)}>
-                                {size}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            {table?.onPageSizeChange && (
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground whitespace-nowrap">
+                    <span>Rows per page</span>
+                    <Select
+                        value={String(table?.state?.pageSize || 10)}
+                        onValueChange={(value) => table?.onPageSizeChange?.(Number(value))}
+                    >
+                        <SelectTrigger size="sm" className="w-[70px]">
+                            <SelectValue placeholder={table?.state?.pageSize || 10} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {[10, 25, 50, 100].map((size) => (
+                                <SelectItem key={size} value={String(size)}>
+                                    {size}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             <Pagination className="justify-end">
                 <PaginationContent>

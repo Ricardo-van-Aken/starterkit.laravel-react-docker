@@ -7,14 +7,14 @@ interface RoleEditorProps {
     selectedRoles: string[];
     onChange: (roles: string[]) => void;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
 }
 
 export function RoleEditor({
     selectedRoles,
     onChange,
     availableRoles,
-    manageableRoles,
+    assignableRoles,
 }: RoleEditorProps) {
     const toggleRole = (role: string, checked: boolean) => {
         if (checked) {
@@ -27,7 +27,7 @@ export function RoleEditor({
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {availableRoles.map((role) => {
-                const isRestrictedRole = !manageableRoles.includes(role);
+                const isRestrictedRole = !assignableRoles.includes(role);
                 
                 return (
                     <Tooltip key={role}>

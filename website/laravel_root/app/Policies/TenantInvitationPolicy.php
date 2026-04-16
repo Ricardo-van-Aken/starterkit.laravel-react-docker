@@ -7,7 +7,7 @@ use App\Enums\TenantRoleName;
 use App\Models\Tenant;
 use App\Models\TenantInvitation;
 use App\Models\User;
-use App\Actions\TenantMember\GetManageableTenantRolesAction;
+use App\Actions\TenantMember\GetAssignableTenantRolesAction;
 use App\Policies\Traits\ValidatesTenantRoles;
  
 class TenantInvitationPolicy
@@ -15,7 +15,7 @@ class TenantInvitationPolicy
     use ValidatesTenantRoles;
 
     public function __construct(
-        protected GetManageableTenantRolesAction $getManageableRoles
+        protected GetAssignableTenantRolesAction $getAssignableRoles
     ) {}
 
     /**
@@ -30,9 +30,10 @@ class TenantInvitationPolicy
             return false;
         }
 
-        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+        $assignableRoles = ($this->getAssignableRoles)($user, $tenant);
 
-        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $roles, $permissions, $manageableRoles, true)) {
+        // ASSIGNMENT CHECK: Can I assign these roles and permissions to the new invitation?
+        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $roles, $permissions, $assignableRoles, true)) {
             return false;
         }
 
@@ -53,17 +54,20 @@ class TenantInvitationPolicy
             return false;
         }
 
-        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
 
-        // Only enforce the "can manage current roles" gate when roles or permissions are being changed
-        if ($newRoles !== null || $newPermissions !== null) {
-            if (!$this->canManageCurrentRoles($invitation->getTenantRoleNames($tenant), $manageableRoles)) {
-                return false;
-            }
+        // RANK AUTHORITY CHECK: Can I update this invitation based on its current roles?
+        if (!$this->isRolesSubset($invitation->getTenantRoleNames($tenant), $rankAuthoritativeRoles)) {
+            return false;
         }
 
-        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $manageableRoles)) {
-            return false;
+        if ($newRoles !== null || $newPermissions !== null) {
+            $assignableRoles = ($this->getAssignableRoles)($user, $tenant);
+
+            // ASSIGNMENT CHECK: Can I assign the new roles and permissions to this member?
+            if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $assignableRoles)) {
+                return false;
+            }
         }
 
         return true;
@@ -97,9 +101,10 @@ class TenantInvitationPolicy
             return false;
         }
 
-        $manageableRoles = ($this->getManageableRoles)($user, $tenant);
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
 
-        if (!$this->canManageCurrentRoles($invitation->getTenantRoleNames($tenant), $manageableRoles)) {
+        // RANK AUTHORITY CHECK: Can I revoke this invitation based on its current roles?
+        if (!$this->isRolesSubset($invitation->getTenantRoleNames($tenant), $rankAuthoritativeRoles)) {
             return false;
         }
 

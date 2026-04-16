@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { IncomingMembershipInvitationsTable } from '@/components/custom/tables/incoming-membership-invitations-table';
+import { IncomingMembershipInvitationsTable } from '@/components/custom/datatables/incoming-membership-invitations-table';
+import { type PaginatedResponse } from '@/types';
 
 interface IncomingInvitationsProps {
-    invitations: any[];
+    invitations: PaginatedResponse<any>;
 }
 
 export function IncomingInvitationsCard({ invitations }: IncomingInvitationsProps) {

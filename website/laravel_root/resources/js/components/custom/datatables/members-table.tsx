@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import { UserInfo } from '@/components/starterkit/user-info';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTable } from '@/components/data-table/hooks/use-data-table';
 import { type ColumnDef, type FilterConfig } from '@/components/data-table/types';
@@ -14,6 +12,8 @@ import { type PaginatedResponse, type Abilities, type Member as BaseMember } fro
 import { EditMemberDialog } from '@/components/custom/dialogs/edit-member-dialog';
 import { ConfirmationDialog } from '@/components/custom/dialogs/confirmation-dialog';
 import { ViewMemberDialog } from '@/components/custom/dialogs/view-member-dialog';
+import { RolesCell } from '@/components/custom/columns/roles-column';
+import { PermissionsCell } from '@/components/custom/columns/permissions-column';
 import tenant from '@/routes/tenant';
 
 export interface MemberWithAbilities extends BaseMember {
@@ -23,14 +23,14 @@ export interface MemberWithAbilities extends BaseMember {
 interface MembersTableProps {
     members: PaginatedResponse<MemberWithAbilities>;
     availableRoles: string[];
-    manageableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
 export function MembersTable({ 
     members, 
     availableRoles, 
-    manageableRoles,
+    assignableRoles,
     availablePermissions, 
 }: MembersTableProps) {
     const [viewingMember, setViewingMember] = useState<MemberWithAbilities | null>(null);
@@ -59,7 +59,7 @@ export function MembersTable({
 
     const handleDelete = () => {
         if (!memberToDelete) return;
-        
+
         router.delete((tenant.members as any).destroy.url({ user: memberToDelete.uuid }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -95,23 +95,7 @@ export function MembersTable({
             accessorKey: 'roles',
             header: 'Role(s)',
             sortable: true,
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {row.roles.slice(0, 2).map((role) => (
-                        <Badge key={role} variant="secondary" className="capitalize">
-                            {role}
-                        </Badge>
-                    ))}
-                    {row.roles.length > 2 && (
-                        <Badge variant="outline" className="text-muted-foreground">
-                            +{row.roles.length - 2} more
-                        </Badge>
-                    )}
-                    {row.roles.length === 0 && (
-                        <span className="text-xs text-muted-foreground italic text-nowrap">No roles</span>
-                    )}
-                </div>
-            )
+            cell: ({ row }) => <RolesCell roles={row.roles} variant="secondary" />,
         },
         {
             accessorKey: 'permissions',
@@ -119,20 +103,7 @@ export function MembersTable({
             sortable: true,
             className: 'hidden lg:table-cell',
             headerClassName: 'hidden lg:table-cell',
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {row.permissions.slice(0, 3).map((permission) => (
-                        <span key={permission} className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
-                            {permission}
-                        </span>
-                    ))}
-                    {row.permissions.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
-                            +{row.permissions.length - 3} more
-                        </span>
-                    )}
-                </div>
-            )
+            cell: ({ row }) => <PermissionsCell permissions={row.permissions} />,
         },
         {
             id: 'actions',
@@ -246,7 +217,7 @@ export function MembersTable({
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 availableRoles={availableRoles}
-                manageableRoles={manageableRoles}
+                assignableRoles={assignableRoles}
                 availablePermissions={availablePermissions}
             />
 
