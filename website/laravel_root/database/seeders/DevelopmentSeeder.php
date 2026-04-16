@@ -95,7 +95,7 @@ class DevelopmentSeeder extends Seeder
 
                 // --- Random Population for all Tenants ---
                 // Add some random members (batch attach)
-                $randomMembers = $otherUsersPool->random(rand(2, 10));
+                $randomMembers = $otherUsersPool->random(random_int(2, 10));
                 
                 // For tenants excluding T1 & T2 (which already have mainUser as Admin), assign an explicit Admin
                 if ($i >= 2) {
@@ -110,18 +110,18 @@ class DevelopmentSeeder extends Seeder
                 foreach ($randomMembers as $member) {
                     if ($member->tenants()->where('tenants.id', $tenant->id)->exists()) continue;
                     $member->tenants()->attach($tenant->id);
-                    $this->assignVariedToModel($member, $tenant, rand(0, 4), $roles, $permissions);
+                    $this->assignVariedToModel($member, $tenant, random_int(0, 4), $roles, $permissions);
                 }
 
                 // Add some random invitations (batch create)
-                $invitationCount = rand(2, 10);
+                $invitationCount = random_int(2, 10);
                 $invitations = TenantInvitation::factory()->count($invitationCount)->create([
                     'tenant_id' => $tenant->id,
-                    'status' => fn() => $statusOptions[rand(0, count($statusOptions) - 1)],
+                    'status' => fn() => $statusOptions[random_int(0, count($statusOptions) - 1)],
                 ]);
 
                 foreach ($invitations as $inv) {
-                    $this->assignVariedToModel($inv, $tenant, rand(0, 4), $roles, $permissions);
+                    $this->assignVariedToModel($inv, $tenant, random_int(0, 4), $roles, $permissions);
                 }
             }
         });
