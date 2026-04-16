@@ -71,7 +71,7 @@ describe('Creating Invitations', function () {
         expect($invitation->hasPermissionTo(TenantPermissionName::UpdateTenantDetails))->toBeTrue();
 
         /* --- Assert Notifications --- */
-        Mail::assertSent(TenantInvitationMail::class, function ($mail) use ($existingUser) {
+        Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($existingUser) {
             return $mail->hasTo($existingUser->email);
         });
     });
@@ -207,10 +207,10 @@ describe('Creating Invitations', function () {
                 'status' => TenantInvitationStatus::Pending->value,
             ]);
 
-            Mail::assertSent(ClaimAccountMail::class, function ($mail) use ($newEmail) {
+            Mail::assertQueued(ClaimAccountMail::class, function ($mail) use ($newEmail) {
                 return $mail->hasTo($newEmail);
             });
-            Mail::assertSent(TenantInvitationMail::class, function ($mail) use ($newEmail) {
+            Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($newEmail) {
                 return $mail->hasTo($newEmail);
             });
         });
@@ -251,7 +251,7 @@ describe('Creating Invitations', function () {
 
             // Only the tenant invitation email should be sent, NOT a new claim account email
             Mail::assertNotSent(ClaimAccountMail::class);
-            Mail::assertSent(TenantInvitationMail::class, function ($mail) use ($newEmail) {
+            Mail::assertQueued(TenantInvitationMail::class, function ($mail) use ($newEmail) {
                 return $mail->hasTo($newEmail);
             });
         });

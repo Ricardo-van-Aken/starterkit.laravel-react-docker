@@ -31,8 +31,11 @@ class TenantMemberPolicy
 
         $manageableRoles = ($this->getManageableRoles)($user, $tenant);
 
-        if (!$this->canManageCurrentRoles($member->getTenantRoleNames($tenant), $manageableRoles)) {
-            return false;
+        // Only enforce the "can manage current roles" gate when roles or permissions are being changed
+        if ($newRoles !== null || $newPermissions !== null) {
+            if (!$this->canManageCurrentRoles($member->getTenantRoleNames($tenant), $manageableRoles)) {
+                return false;
+            }
         }
 
         if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $manageableRoles)) {

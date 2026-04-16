@@ -27,7 +27,7 @@ test('can create a new account invitation', function () {
         'email' => $email,
     ]);
 
-    Mail::assertSent(ClaimAccountMail::class, function ($mail) use ($email) {
+    Mail::assertQueued(ClaimAccountMail::class, function ($mail) use ($email) {
         return $mail->hasTo($email);
     });
 });
@@ -48,7 +48,7 @@ test('can refresh an existing account invitation', function () {
     expect($newInvitation->claim_token)->not->toBe('old-token');
     expect($newInvitation->expires_at->isFuture())->toBeTrue();
 
-    Mail::assertSent(ClaimAccountMail::class, function ($mail) use ($email) {
+    Mail::assertQueued(ClaimAccountMail::class, function ($mail) use ($email) {
         return $mail->hasTo($email);
     });
 });
