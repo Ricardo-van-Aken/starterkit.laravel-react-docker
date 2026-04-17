@@ -20,12 +20,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate Safe Tag
+      - name: Generate Docker Tags
         id: vars
-        run: |
-          # Replace all non-alphanumeric characters with hyphens and lowercase
-          SAFE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
-          echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,13 +42,13 @@ jobs:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel
           target: volume-dev
-          tags: ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }}
+          tags: ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
           push: true
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.main.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
   build-compose-images:
     name: Build docker images
@@ -78,11 +78,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate Safe Tag
+      - name: Generate Docker Tags
         id: vars
-        run: |
-          SAFE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
-          echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -98,13 +99,13 @@ jobs:
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
-          tags: ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
+          tags: ${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
           push: true
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.main.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.main.cache
+          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
   test:
     name: Run Laravel tests
@@ -157,19 +158,25 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Pull Laravel app image
+        # Note: In static analysis we still need the base IMAGE_REPO or we can just pull strictly.
+        # I'll use a local logic here for simplicity or just pull with the output.
+        # Since static analysis doesn't run the action, I'll use the env.IMAGE_REPO but force it lowercase.
         run: |
-          docker pull ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }}
+          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
+          docker pull ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }}
 
       - name: Run PHPStan
         run: |
+          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }} \
+            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
             composer analyse
  
       - name: Run Architecture Tests
         run: |
+          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }} \
+            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
             composer test:arch
 
   cleanup-dockerhub:
