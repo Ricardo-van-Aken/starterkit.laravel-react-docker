@@ -32,16 +32,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate Safe Tag
+      - name: Generate Docker Tags
         id: vars
-        run: |
-          # Replace all non-alphanumeric characters with hyphens and lowercase
-          SAFE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
-          echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
-          
-          # Ensure IMAGE_REPO is lowercase
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
-          echo "lower_repo=${LOWER_REPO}" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.ref_name }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -61,13 +57,11 @@ jobs:
             docker/docker-compose.yml
           targets: app, scheduler, nginx, redis, certbot
           set: |
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.lower_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }}
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.lower_repo }}:bake-cache.main
-            *.cache-to=type=registry,ref=${{ steps.vars.outputs.lower_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }},mode=max
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }}
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.main
+            *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }},mode=max
             app.target=${{ env.ENVIRONMENT == 'dev' && 'volume-dev' || 'volume-prod' }}
-            *.image=${{ steps.vars.outputs.lower_repo }}:${{ env.TAG_ADDITION }} # Override all images but this might be too aggressive
-            # Better to override specifically or let compose handle tags if they are already lowercase.
-            # Since compose uses env vars, and env vars might be uppercase, we override the repo part.
+            *.image=${{ steps.vars.outputs.image_repo }}:${{ env.TAG_ADDITION }}
 
   deploy-builds:
     runs-on: ubuntu-latest
