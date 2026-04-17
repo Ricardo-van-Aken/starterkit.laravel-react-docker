@@ -1,0 +1,110 @@
+name: Branch Cache Lifecycle
+
+on:
+  create:
+  delete:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - prime
+          - purge
+      branch:
+        description: 'Branch name (defaults to current branch if left empty)'
+        required: false
+        type: string
+
+jobs:
+  prime-cache:
+    if: >
+      (github.event_name == 'create' && github.event.ref_type == 'branch') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'prime')
+    name: Prime branch cache
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
+      BRANCH_NAME: ${{ github.event.inputs.branch || github.event.ref || github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Prime Laravel Cache (Production Target)
+        uses: docker/build-push-action@v5
+        with:
+          context: website
+          file: website/docker/img_laravel/Dockerfile.laravel
+          target: volume-prod
+          push: false
+          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.main.cache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.BRANCH_NAME }}.cache,mode=max
+
+  purge-cache:
+    if: >
+      (github.event_name == 'delete' && github.event.ref_type == 'branch') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'purge')
+    name: Purge branch cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete branch tags on Docker Hub
+        env:
+          DOCKERHUB_USER: ${{ vars.DOCKER_HUB_USERNAME }}
+          IMAGE_NAME: ${{ github.event.repository.name }}
+          BRANCH_NAME: ${{ github.event.inputs.branch || github.event.ref || github.ref_name }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "Fetching Docker Hub JWT…"
+          TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
+            -H "Content-Type: application/json" \
+            -d "{\"username\": \"${DOCKERHUB_USER}\", \"password\": \"${DOCKERHUB_TOKEN}\"}" \
+            | jq -r .token)
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to authenticate to Docker Hub"
+            exit 1
+          fi
+
+          echo "Listing tags for ${DOCKERHUB_USER}/${IMAGE_NAME} associated with branch ${BRANCH_NAME}…"
+          # This looks for tags that start with the branch name or are the branch name + .cache
+          TAGS=$(curl -s \
+            -H "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USER}/${IMAGE_NAME}/tags/?page_size=1000" \
+            | jq -r ".results[].name | select(. == \"${BRANCH_NAME}.cache\" or endswith(\".${BRANCH_NAME}\"))")
+
+          if [ -z "$TAGS" ]; then
+            echo "No tags found for branch ${BRANCH_NAME}"
+            exit 0
+          fi
+
+          EXIT_CODE=0
+          for tag in $TAGS; do
+            echo "Deleting ${IMAGE_NAME}:$tag"
+            if ! curl -sf -X DELETE \
+              -H "Authorization: JWT $TOKEN" \
+              "https://hub.docker.com/v2/repositories/${DOCKERHUB_USER}/${IMAGE_NAME}/tags/$tag/"; then
+              echo "Failed to delete ${IMAGE_NAME}:$tag"
+              EXIT_CODE=1
+            fi
+          done
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Purge completed with errors"
+            exit 1
+          fi
+
+          echo "Purge completed successfully"

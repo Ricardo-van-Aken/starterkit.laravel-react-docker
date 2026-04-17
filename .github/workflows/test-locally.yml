@@ -29,44 +29,19 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build Laravel base image
+      - name: Build and Push Laravel App Image
         uses: docker/build-push-action@v5
         with:
           context: website
-          file: website/docker/img_laravel/Dockerfile.laravel-base
-          tags: |
-            ${{ env.IMAGE_REPO }}:laravel-base.${{ env.RUN_ID }}
+          file: website/docker/img_laravel/Dockerfile.laravel
+          target: volume-dev
+          tags: ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }}
           push: true
-          load: true
-          cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache,mode=max
-
-      - name: Verify Laravel base image is available locally
-        run: |
-          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.${{ env.RUN_ID }}$"; then
-            echo "Laravel base image is available locally"
-            docker images | grep "laravel-base.${{ env.RUN_ID }}"
-          else
-            echo "Laravel base image is NOT available locally"
-            exit 1
-          fi
-
-      - name: Build Laravel app image
-        uses: docker/build-push-action@v5
-        with:
-          context: website
-          file: website/docker/img_laravel/Dockerfile.laravel-volume
-          build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.${{ env.RUN_ID }}
-          tags: |
-            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }}
-          push: true
-          pull: false # Don't pull base image from Docker Hub (we just built it locally)
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache,mode=max
+            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ github.ref_name }}.cache
+            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.main.cache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ github.ref_name }}.cache,mode=max
 
   build-compose-images:
     name: Build docker images
@@ -110,13 +85,13 @@ jobs:
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
-          tags: |
-            ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
+          tags: ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
           push: true
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}.cache,mode=max
+            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ github.ref_name }}.cache
+            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.main.cache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ github.ref_name }}.cache,mode=max
 
   test:
     name: Run Laravel tests
@@ -136,15 +111,11 @@ jobs:
       - name: Pull Docker Compose images needed to mock production
         working-directory: website
         run: |
-          IMAGE_REPO="${{ env.IMAGE_REPO }}" \
-          TAG_ADDITION="${{ env.RUN_ID }}" \
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
 
       - name: Start Docker services to mock production
         working-directory: website
         run: |
-          IMAGE_REPO="${{ env.IMAGE_REPO }}" \
-          TAG_ADDITION="${{ env.RUN_ID }}" \
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
@@ -187,8 +158,6 @@ jobs:
           docker run --rm \
             ${{ env.IMAGE_REPO }}:laravel-app.${{ env.RUN_ID }} \
             composer test:arch
-
-  
 
   cleanup-dockerhub:
     name: Cleanup temporary Docker Hub images

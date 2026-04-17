@@ -50,12 +50,13 @@ WORKDIR /var/www
 RUN usermod -u ${WWW_UID} www-data && groupmod -g ${WWW_GID} www-data
 
 # Add a testrunner user and group for running the db cloning script
-RUN groupadd -g 1002 testrunner
-RUN useradd -u 1002 -ms /bin/bash -g testrunner testrunner
+RUN addgroup -g 1002 testrunner && \
+    adduser -u 1002 -D -S -G testrunner -s /bin/bash testrunner
 
 # Create shared group for files/scripts used by both www-data user and testrunner user
-RUN groupadd -g 1003 shared
-RUN usermod -a -G shared www-data && usermod -a -G shared testrunner
+RUN addgroup -g 1003 shared && \
+    addgroup www-data shared && \
+    addgroup testrunner shared
 
 # Set ownership of the working directory to www user
 RUN chown -R www-data:www-data /var/www
@@ -70,20 +71,12 @@ EXPOSE 9000
 ARG DOCKERFILE_DIR=docker/img_laravel
 
 # Copy scripts
-COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials.sh           /usr/local/bin/read-db-credentials.sh
-COPY ${DOCKERFILE_DIR}/scripts/read-db-credentials-testing.sh   /usr/local/bin/read-db-credentials-testing.sh
-COPY ${DOCKERFILE_DIR}/scripts/read-redis-password.sh           /usr/local/bin/read-redis-password.sh
-COPY ${DOCKERFILE_DIR}/scripts/clone_db_for_testing.sh          /usr/local/bin/clone_db_for_testing.sh
-COPY ${DOCKERFILE_DIR}/scripts/test_cloned_db.sh                /usr/local/bin/test_cloned_db.sh
-COPY ${DOCKERFILE_DIR}/scripts/test.sh                          /usr/local/bin/test.sh
+COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/
 
-# Set permissions
-RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh
-RUN chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh
-
-RUN chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh
-RUN chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh
-
-RUN chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh
-RUN chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
-
+# Set permissions (Preserving original logic)
+RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh && \
+    chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
+    chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh && \
+    chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh && \
+    chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh && \
+    chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh

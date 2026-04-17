@@ -1,0 +1,192 @@
+# Global ARGs
+ARG PHP_VERSION=8.3
+
+#################################################
+###                                           ###
+###   Stage: Base Runtime (Minimal)           ###
+###                                           ###
+#################################################
+FROM php:${PHP_VERSION}-fpm-alpine AS base
+
+# Install runtime system dependencies
+RUN apk add --no-cache \
+    curl \
+    libpng \
+    libjpeg-turbo \
+    libzip \
+    bash \
+    shadow
+
+# Install PHP extensions
+# We use a virtual .build-deps stage to compile extensions and then remove them to keep the image lean
+RUN apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libzip-dev \
+    && docker-php-ext-configure gd --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql bcmath gd \
+    && pecl install redis && docker-php-ext-enable redis \
+    && apk del .build-deps
+
+# --- Users and Groups --- #
+ARG WWW_UID=82
+ARG WWW_GID=82
+
+# Set group ID and user ID for www-data user to 82. This user runs the laravel application
+RUN usermod -u ${WWW_UID} www-data && groupmod -g ${WWW_GID} www-data
+
+# Add a testrunner user and group for running the db cloning script
+RUN addgroup -g 1002 testrunner && \
+    adduser -u 1002 -D -S -G testrunner -s /bin/bash testrunner
+
+# Create shared group for files/scripts used by both www-data user and testrunner user
+RUN addgroup -g 1003 shared && \
+    addgroup www-data shared && \
+    addgroup testrunner shared
+
+WORKDIR /var/www
+
+# --- Scripts for loading in Docker secrets and cloning/testing the laravel database --- #
+
+ARG DOCKERFILE_DIR=docker/img_laravel
+
+# Copy scripts
+COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/
+
+# Set permissions (Preserving original logic)
+RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh && \
+    chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
+    chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh && \
+    chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh && \
+    chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh && \
+    chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
+
+
+#################################################
+###                                           ###
+###   Stage: Development Tools                ###
+###                                           ###
+#################################################
+FROM base AS development-tools
+
+# Install node/npm, git, unzip, composer, and mariadb-client (for db cloning)
+RUN apk add --no-cache \
+    git \
+    unzip \
+    nodejs \
+    npm \
+    mariadb-client
+
+# Get Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+
+#################################################
+###                                           ###
+###   Stage: Backend Builder (Base)           ###
+###                                           ###
+#################################################
+FROM development-tools AS builder-composer-base
+WORKDIR /app
+COPY laravel_root/composer.json laravel_root/composer.lock ./
+
+
+FROM builder-composer-base AS builder-composer-prod
+# Install production-only dependencies
+RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist
+# Copy full source and finalize for production
+COPY laravel_root/ .
+RUN composer run-script post-autoload-dump && \
+    composer dump-autoload --optimize
+
+
+FROM builder-composer-base AS builder-composer-dev
+# Install ALL dependencies (including dev/testing tools)
+RUN composer install --no-interaction --no-scripts --prefer-dist
+# Copy full source and finalize for testing
+COPY laravel_root/ .
+RUN composer run-script post-autoload-dump && \
+    composer dump-autoload --optimize
+
+
+#################################################
+###                                           ###
+###   Stage: Frontend Builder                 ###
+###                                           ###
+#################################################
+FROM development-tools AS frontend-builder
+WORKDIR /app
+
+# Wayfinder needs the full application source + PHP + Vendor to generate route types
+COPY laravel_root/ .
+COPY --from=builder-composer-dev /app/vendor ./vendor
+
+# Install dependencies and build
+RUN npm ci && npm run build
+
+
+#################################################
+###                                           ###
+###   Target: bind-mount                      ###
+###                                           ###
+#################################################
+FROM development-tools AS bind-mount
+USER www-data
+EXPOSE 9000
+
+
+#################################################
+###                                           ###
+###   Target: volume-dev                      ###
+###                                           ###
+#################################################
+FROM development-tools AS volume-dev
+
+# 1. Copy dependencies and assets from builders
+COPY --chown=www-data:www-data --from=builder-composer-dev /app/vendor ./vendor
+COPY --from=frontend-builder /app/public/build ./public/build
+
+# 2. Copy the pre-built application files last (Includes dev dependencies for testing)
+COPY --chown=www-data:www-data --from=builder-composer-dev /app/ .
+
+USER www-data
+EXPOSE 9000
+
+
+#################################################
+###                                           ###
+###   Target: volume-prod                     ###
+###                                           ###
+#################################################
+FROM base AS volume-prod
+
+# 1. Copy dependencies and assets from builders
+COPY --chown=www-data:www-data --from=builder-composer-prod /app/vendor ./vendor
+COPY --from=frontend-builder /app/public/build ./public/build
+
+# 2. Copy the pre-built application files last (Optimized production build)
+COPY --chown=www-data:www-data --from=builder-composer-prod /app/ .
+
+USER www-data
+EXPOSE 9000
+
+
+#################################################
+###                                           ###
+###   Target: scheduler                       ###
+###                                           ###
+#################################################
+FROM volume-prod AS scheduler
+USER root
+
+# In Alpine, crond is built-in (busybox), no extra install needed.
+# We just need to define the crontab for the www-data user.
+
+# Create crontab (Sourcing credentials before running artisan)
+# Note: Alpine crontabs are stored in /etc/crontabs/<user>
+RUN echo "* * * * * . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php /var/www/artisan schedule:run >> /dev/null 2>&1" > /etc/crontabs/www-data
+RUN chmod 0600 /etc/crontabs/www-data
+
+# Run crond in foreground, log to stdout
+CMD ["crond", "-f", "-L", "/dev/stdout"]
