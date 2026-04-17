@@ -20,6 +20,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate Safe Tag
+        id: vars
+        run: |
+          # Replace all non-alphanumeric characters with hyphens and lowercase
+          SAFE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
+          echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -39,9 +46,9 @@ jobs:
           push: true
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ github.ref_name }}.cache
+            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
             type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.main.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ github.ref_name }}.cache,mode=max
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
   build-compose-images:
     name: Build docker images
@@ -71,6 +78,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate Safe Tag
+        id: vars
+        run: |
+          SAFE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
+          echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -89,9 +102,9 @@ jobs:
           push: true
           load: false
           cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ github.ref_name }}.cache
+            type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache
             type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.main.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ github.ref_name }}.cache,mode=max
+          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
   test:
     name: Run Laravel tests
