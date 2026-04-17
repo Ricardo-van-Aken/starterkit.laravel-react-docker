@@ -122,13 +122,26 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
+
       - name: Pull Docker Compose images needed to mock production
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
 
       - name: Start Docker services to mock production
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
 
@@ -139,6 +152,9 @@ jobs:
       - name: Cleanup
         if: always()
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
 
@@ -157,26 +173,27 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
+
       - name: Pull Laravel app image
-        # Note: In static analysis we still need the base IMAGE_REPO or we can just pull strictly.
-        # I'll use a local logic here for simplicity or just pull with the output.
-        # Since static analysis doesn't run the action, I'll use the env.IMAGE_REPO but force it lowercase.
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
-          docker pull ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }}
+          docker pull ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
 
       - name: Run PHPStan
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             composer analyse
  
       - name: Run Architecture Tests
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             composer test:arch
 
   cleanup-dockerhub:
