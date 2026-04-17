@@ -4,12 +4,16 @@ services:
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
       context: ../
-      dockerfile: docker/img_laravel/${DOCKERFILE}
+      dockerfile: docker/img_laravel/Dockerfile.laravel
+      target: ${BUILD_TARGET:-bind-mount}
+      args:
+        WWW_UID: ${LOCAL_UID:-82}
+        WWW_GID: ${LOCAL_GID:-82}
     container_name: laravel_app
     restart: unless-stopped
     volumes:
-      - ${ENV_FILE}:/var/www/.env     # Bind mount: Application environment variables
-      - ${APP_FILES_DIR}:/var/www     # Volume or Bind mount: Application files to be served by nginx
+      - ${ENV_FILE:-.env}:/var/www/.env     # Bind mount: Application environment variables
+      - ${APP_FILES_DIR:-app_files}:/var/www     # Volume or Bind mount: Application files to be served by nginx
       - mysql-certs:/mysql-certs:ro
     secrets:
       - mysql_app_db_database
@@ -36,12 +40,16 @@ services:
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
       context: ../
-      dockerfile: docker/img_laravel/${DOCKERFILE}
+      dockerfile: docker/img_laravel/Dockerfile.laravel
+      target: ${BUILD_TARGET:-bind-mount}
+      args:
+        WWW_UID: ${LOCAL_UID:-82}
+        WWW_GID: ${LOCAL_GID:-82}
     container_name: laravel_queue_worker
     restart: unless-stopped
     volumes:
-      - ${ENV_FILE}:/var/www/.env     # Bind mount: Application environment variables
-      - ${APP_FILES_DIR}:/var/www     # Volume or Bind mount: Application files to be served by nginx
+      - ${ENV_FILE:-.env}:/var/www/.env     # Bind mount: Application environment variables
+      - ${APP_FILES_DIR:-app_files}:/var/www     # Volume or Bind mount: Application files to be served by nginx
       - mysql-certs:/mysql-certs:ro
     secrets:
       - mysql_app_db_database
@@ -60,6 +68,34 @@ services:
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-redis-password.sh; exec php artisan queue:work --tries=3 --timeout=90"]
     profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
+  # Laravel Scheduler
+  scheduler:
+    image: ${IMAGE_REPO}:laravel-scheduler.${TAG_ADDITION}
+    build:
+      context: ../
+      dockerfile: docker/img_laravel/Dockerfile.laravel
+      target: scheduler
+      args:
+        WWW_UID: ${LOCAL_UID:-82}
+        WWW_GID: ${LOCAL_GID:-82}
+    container_name: laravel_scheduler
+    restart: unless-stopped
+    volumes:
+      - ${ENV_FILE:-.env}:/var/www/.env
+      - ${APP_FILES_DIR:-app_files}:/var/www
+    depends_on:
+      - redis
+      - mysql_db
+    secrets:
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_app_db_ssl
+      - mysql_app_db_host
+      - mysql_app_db_port
+      - redis_password
+    profiles: ["all", "production"]
+
   # Nginx Web Server
   nginx:
     image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
@@ -72,7 +108,7 @@ services:
       - "80:80"     # HTTP
       - "443:443"   # HTTPS
     volumes:
-      - ${APP_FILES_DIR}:/var/www           # Volume or Bind mount: Application files to be served by nginx
+      - ${APP_FILES_DIR:-app_files}:/var/www           # Volume or Bind mount: Application files to be served by nginx
       - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
       - certbot_certs:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
     depends_on:

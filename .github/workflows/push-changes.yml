@@ -21,13 +21,11 @@ on:
 env:
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
   TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
-
   IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
-
 jobs:
-  build-laravel-image:
-    name: Build app image
+  build-images:
+    name: Build and Push All Images
     runs-on: ubuntu-latest
 
     steps:
@@ -43,90 +41,23 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build Laravel base image
-        uses: docker/build-push-action@v5
+      - name: Build and Push with Docker Bake
+        uses: docker/bake-action@v3
         with:
-          context: website
-          file: website/docker/img_laravel/Dockerfile.laravel-base
-          tags: |
-            ${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}
+          workdir: website
           push: true
-          load: true
-          cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}.cache,mode=max
-
-      - name: Verify Laravel base image is available locally
-        run: |
-          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}$"; then
-            echo "Laravel base image is available locally"
-            docker images | grep "laravel-base.${{ env.TAG_ADDITION }}"
-          else
-            echo "Laravel base image is NOT available locally"
-            exit 1
-          fi
-
-      - name: Build Laravel app image
-        uses: docker/build-push-action@v5
-        with:
-          context: website
-          file: website/docker/img_laravel/Dockerfile.laravel-volume
-          build-args: |
-            BASE_IMAGE=${{ env.IMAGE_REPO }}:laravel-base.${{ env.TAG_ADDITION }}
-          tags: |
-            ${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}
-          push: true
-          pull: false # Don't pull base image from Docker Hub (we just built it locally)
-          load: true
-          cache-from: |
-            type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:laravel-app.${{ env.TAG_ADDITION }}.cache,mode=max
-    
-  build-compose-images:
-    name: Build docker images
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image:
-          - name: website-nginx
-            context: website/docker/img_nginx
-            file: website/docker/img_nginx/Dockerfile.nginx
-            tag: website-nginx
-          - name: website-redis
-            context: website/docker/img_redis
-            file: website/docker/img_redis/Dockerfile.redis
-            tag: website-redis
-          - name: website-certbot
-            context: website/docker/img_certbot
-            file: website/docker/img_certbot/Dockerfile.certbot
-            tag: website-certbot
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v4
-        with:
-          context: ${{ matrix.image.context }}
-          push: true
-          file: ${{ matrix.image.file }}
-          tags: |
-            ${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}
-          cache-from: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_REPO }}:${{ matrix.image.tag }}.${{ env.TAG_ADDITION }}.cache,mode=max
+          files: |
+            docker/docker-compose.yml
+          targets: app, scheduler, nginx, redis, certbot
+          set: |
+            *.cache-from=type=registry,ref=${{ env.IMAGE_REPO }}:bake-cache.${{ github.ref_name }}
+            *.cache-from=type=registry,ref=${{ env.IMAGE_REPO }}:bake-cache.main
+            *.cache-to=type=registry,ref=${{ env.IMAGE_REPO }}:bake-cache.${{ github.ref_name }},mode=max
+            app.target=${{ env.ENVIRONMENT == 'dev' && 'volume-dev' || 'volume-prod' }}
 
   deploy-builds:
     runs-on: ubuntu-latest
-    needs: [build-compose-images, build-laravel-image]
+    needs: [build-images]
     env:
       DOCKER_USER: docker-runner
     steps:
