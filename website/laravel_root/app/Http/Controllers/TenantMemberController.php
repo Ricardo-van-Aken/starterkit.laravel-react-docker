@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\TenantMember\InviteTenantMemberAction;
 use App\Actions\TenantMember\ListTenantMembersAction;
 use App\Actions\TenantMember\RemoveTenantMemberAction;
 use App\Actions\TenantMember\UpdateTenantMemberAction;
+use App\Actions\TenantMember\GetAssignableTenantRolesAction;
+use App\Actions\TenantInvitation\ListOutgoingInvitationsAction;
 use App\Http\Requests\TenantMember\DestroyTenantMemberRequest;
+use App\Http\Requests\TenantMember\InviteTenantMemberRequest;
 use App\Http\Requests\TenantMember\UpdateTenantMemberRequest;
 use App\Http\Requests\TenantMember\IndexTenantMembersRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\TenantInvitation;
 use App\Models\User;
 use App\Policies\TenantMemberPolicy;
 use App\Policies\TenantRolePolicy;
@@ -28,27 +33,70 @@ class TenantMemberController extends Controller
     ) {}
 
     /**
-     * Display a listing of the tenant members.
+     * Display a listing of the tenant members and outstanding invitations.
      */
-    public function index(IndexTenantMembersRequest $request, ListTenantMembersAction $listMembersAction): Response
+    public function index(
+        IndexTenantMembersRequest $request, 
+        ListTenantMembersAction $listMembersAction, 
+        ListOutgoingInvitationsAction $listInvitationsAction,
+        GetAssignableTenantRolesAction $getAssignableRoles
+    ): Response
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
+ 
+        $validated = $request->validated();
+
         /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
-        
+
+        $invitationFilters = [
+            'status'     => $validated['inv_status'] ?? ['pending'],
+            'sort'       => $validated['inv_sort'] ?? 'expires_at',
+            'direction'  => $validated['inv_dir'] ?? 'desc',
+            'search'     => $validated['inv_search'] ?? '',
+            'expires_at' => $validated['inv_expires_at'] ?? null,
+        ];
+
+        $memberFilters = [
+            'search'    => $validated['mem_search'] ?? '',
+            'roles'     => $validated['mem_roles'] ?? [],
+            'sort'      => $validated['mem_sort'] ?? 'name',
+            'direction' => $validated['mem_dir'] ?? 'asc',
+        ];
+
+        $invPageSize = $request->integer('inv_per_page', 10);
+        $invPage = $request->integer('inv_page', 1);
+
+        $memPageSize = $request->integer('mem_per_page', 10);
+        $memPage = $request->integer('mem_page', 1);
+
         return Inertia::render('tenants/settings/members', [
-            'members' => $listMembersAction($tenant),
+            'members' => $listMembersAction(
+                $user,
+                $tenant, 
+                $memberFilters,
+                $memPageSize,
+                $memPage
+            ),
             'available_roles' => Role::where('guard_name', 'tenant')->pluck('name'),
+            'assignable_roles' => $getAssignableRoles($user, $tenant),
             'available_permissions' => Permission::where('guard_name', 'tenant')->pluck('name'),
-            'invitations' => [
-                [
-                    'email' => 'placeholder@example.com',
-                    'role' => 'Guest',
-                    'status' => 'Pending',
-                    'expires_at' => now()->addDays(7)->toDateTimeString(),
-                ]
-            ],
+            'invitations' => $listInvitationsAction(
+                $user,
+                $tenant, 
+                $invitationFilters,
+                $invPageSize,
+                $invPage
+            ),
+            'invitation_filters' => array_merge($invitationFilters, [
+                'page' => $invPage,
+                'pageSize' => $invPageSize,
+            ]),
+            'member_filters' => array_merge($memberFilters, [
+                'page' => $memPage,
+                'pageSize' => $memPageSize,
+            ]),
             'abilities' => [
                 'update'        => $user->can('update', $tenant),
                 'view_members'  => $user->can('viewAny', [TenantMemberPolicy::class, $tenant]),
@@ -59,19 +107,23 @@ class TenantMemberController extends Controller
     }
 
     /**
-     * Update the specified tenant member.
+     * Update an existing tenant member's roles and permissions.
      */
     public function update(UpdateTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var Tenant $tenant */
+        /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
-        /** @var array<int, string> $roles */
-        $roles = $request->validated('roles');
-        /** @var array<int, string> $permissions */
-        $permissions = $request->validated('permissions');
+        $validated = $request->validated();
+        $roles = $validated['roles'] ?? null;
+        $permissions = $validated['permissions'] ?? null;
 
-        ($this->updateTenantMemberAction)($tenant, $user, $roles, $permissions);
+        ($this->updateTenantMemberAction)(
+            $tenant,
+            $user,
+            $roles,
+            $permissions,
+        );
 
         return redirect()->back()->with('status', __('actions.member_updated'));
     }
@@ -81,7 +133,7 @@ class TenantMemberController extends Controller
      */
     public function destroy(DestroyTenantMemberRequest $request, User $user): RedirectResponse
     {
-        /** @var Tenant $tenant */
+        /** @var \App\Models\Tenant $tenant */
         $tenant = app(ActiveTenant::class)->get();
 
         ($this->removeTenantMemberAction)($tenant, $user);

@@ -10,6 +10,7 @@ arch()->preset()->security();
 arch()->preset()->laravel()
     ->ignoring([
         'App\Http\Controllers\TenantController',
+        'App\Http\Controllers\TenantInvitationController',
         'App\Http\Controllers\Auth\AccountDeletionNoticeController',
     ]);
 

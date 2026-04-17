@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $uuid
+ * @property string $name
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ */
 class Tenant extends Model
 {
     /** @use HasFactory<\Database\Factories\TenantFactory> */
@@ -70,5 +76,12 @@ class Tenant extends Model
         }
 
         return $query->count();
+    }
+    /**
+     * @return HasMany<TenantInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(TenantInvitation::class);
     }
 }

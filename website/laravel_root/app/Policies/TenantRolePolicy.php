@@ -13,9 +13,7 @@ class TenantRolePolicy
      */
     public function viewAny(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::ViewTenantRoles->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::ViewTenantRoles);
     }
 
     /**
@@ -23,9 +21,7 @@ class TenantRolePolicy
      */
     public function create(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::CreateTenantRoles->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::CreateTenantRoles);
     }
 
     /**
@@ -33,9 +29,7 @@ class TenantRolePolicy
      */
     public function update(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::EditTenantRoles->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::EditTenantRoles);
     }
 
     // Since there's no DeleteTenantRoles enum currently, we omit a delete method for now.

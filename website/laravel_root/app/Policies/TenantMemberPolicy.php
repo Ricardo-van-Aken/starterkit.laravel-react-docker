@@ -6,31 +6,47 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Enums\TenantPermissionName;
 use App\Enums\TenantRoleName;
+use App\Actions\TenantMember\GetAssignableTenantRolesAction;
+use App\Policies\Traits\ValidatesTenantRoles;
  
 class TenantMemberPolicy
 {
+    use ValidatesTenantRoles;
+
+    public function __construct(
+        protected GetAssignableTenantRolesAction $getAssignableRoles
+    ) {}
+
     /**
      * Determine whether the user can update the tenant member roles and permissions.
      *
-     * @param array<int, string> $newRoles
+     * @param array<int, string>|null $newRoles
+     * @param array<int, string>|null $newPermissions
      */
-    public function update(User $user, User $member, Tenant $tenant, array $newRoles = []): bool
+    public function update(User $user, User $member, Tenant $tenant, ?array $newRoles = null, ?array $newPermissions = null): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        $userIsAdmin = $user->hasTenantRole($tenant, TenantRoleName::Admin);
-
-        // Only an admin can update another admin
-        if ($member->hasTenantRole($tenant, TenantRoleName::Admin) && !$userIsAdmin) {
+        if (!$user->hasTenantPermission($tenant, TenantPermissionName::UpdateTenantMembers)) {
             return false;
         }
 
-        // Only an admin can give the admin role to a member
-        if (in_array(TenantRoleName::Admin->value, $newRoles) && !$userIsAdmin) {
+        /** @var array<int, string> $rankAuthoritativeRoles */
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
+
+        // RANK AUTHORITY CHECK: Can I update this member based on their current roles?
+        /** @var array<int, string> $memberRoles */
+        $memberRoles = $member->getTenantRoleNames($tenant);
+        if (!$this->isRolesSubset($memberRoles, $rankAuthoritativeRoles)) {
             return false;
         }
 
-        return $user->hasPermissionTo(TenantPermissionName::UpdateTenantMembers->value, 'tenant');
+        $assignableRoles = ($this->getAssignableRoles)($user, $tenant);
+
+        // ASSIGNMENT CHECK: Can I assign the new roles and permissions to this member?
+        if (!$this->canAssignNewRolesAndPermissions($user, $tenant, $newRoles, $newPermissions, $assignableRoles)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -38,15 +54,21 @@ class TenantMemberPolicy
      */
     public function delete(User $user, User $member, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        // Only an admin can delete another admin
-        if ($member->hasTenantRole($tenant, TenantRoleName::Admin) && 
-            !$user->hasTenantRole($tenant, TenantRoleName::Admin)) {
+        if (!$user->hasTenantPermission($tenant, TenantPermissionName::DeleteTenantMembers)) {
             return false;
         }
 
-        return $user->hasPermissionTo(TenantPermissionName::DeleteTenantMembers->value, 'tenant');
+        /** @var array<int, string> $rankAuthoritativeRoles */
+        $rankAuthoritativeRoles = $this->getRankAuthoritativeRoles($user, $tenant);
+
+        // RANK AUTHORITY CHECK: Can I delete this member based on their current roles?
+        /** @var array<int, string> $memberRoles */
+        $memberRoles = $member->getTenantRoleNames($tenant);
+        if (!$this->isRolesSubset($memberRoles, $rankAuthoritativeRoles)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -54,18 +76,6 @@ class TenantMemberPolicy
      */
     public function viewAny(User $user, Tenant $tenant): bool
     {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::ViewTenantMembers->value, 'tenant');
-    }
-
-    /**
-     * Determine whether the user can invite new members.
-     */
-    public function invite(User $user, Tenant $tenant): bool
-    {
-        setPermissionsTeamId($tenant->id);
-
-        return $user->hasPermissionTo(TenantPermissionName::InviteTenantMembers->value, 'tenant');
+        return $user->hasTenantPermission($tenant, TenantPermissionName::ViewTenantMembers);
     }
 }

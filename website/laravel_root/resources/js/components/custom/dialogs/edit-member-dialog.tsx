@@ -7,22 +7,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import tenant from '@/routes/tenant';
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { type Member } from '@/components/custom/tables/members-table';
+import { type MemberWithAbilities } from '@/components/custom/datatables/members-table';
 
-interface Role {
-    id: number;
-    name: string;
-}
+import { MembershipEditor } from '@/components/custom/membership/membership-editor';
+
 interface EditMemberDialogProps {
-    member: Member | null;
+    member: MemberWithAbilities | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     availableRoles: string[];
+    assignableRoles: string[];
     availablePermissions: string[];
 }
 
@@ -31,9 +28,10 @@ export function EditMemberDialog({
     open,
     onOpenChange,
     availableRoles,
+    assignableRoles,
     availablePermissions,
 }: EditMemberDialogProps) {
-    const { data, setData, put, processing, reset } = useForm({
+    const { data, setData, patch, processing, reset } = useForm({
         roles: [] as string[],
         permissions: [] as string[],
     });
@@ -51,7 +49,7 @@ export function EditMemberDialog({
         e.preventDefault();
         if (!member) return;
 
-        put((tenant.members as any).update.url({ user: member.id }), {
+        patch((tenant.members as any).update.url({ user: member.uuid }), {
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
         });
@@ -59,7 +57,7 @@ export function EditMemberDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[700px]">
                 <form onSubmit={handleUpdate}>
                     <DialogHeader>
                         <DialogTitle>Edit Member</DialogTitle>
@@ -67,54 +65,17 @@ export function EditMemberDialog({
                             Assign roles and permissions to {member?.name}.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <section className="space-y-3">
-                            <h4 className="text-sm font-medium leading-none">Roles</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                {availableRoles.map((role) => (
-                                    <div key={role} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`role-${role}`}
-                                            checked={data.roles.includes(role)}
-                                            onCheckedChange={(checked) => {
-                                                if (checked) {
-                                                    setData('roles', [...data.roles, role]);
-                                                } else {
-                                                    setData('roles', data.roles.filter((r) => r !== role));
-                                                }
-                                            }}
-                                        />
-                                        <Label htmlFor={`role-${role}`} className="capitalize cursor-pointer">
-                                            {role.replace('_', ' ')}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                        <section className="space-y-3">
-                            <h4 className="text-sm font-medium leading-none">Permissions</h4>
-                            <div className="grid gap-2">
-                                {availablePermissions.map((permission) => (
-                                    <div key={permission} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`perm-${permission}`}
-                                            checked={data.permissions.includes(permission)}
-                                            onCheckedChange={(checked) => {
-                                                if (checked) {
-                                                    setData('permissions', [...data.permissions, permission]);
-                                                } else {
-                                                    setData('permissions', data.permissions.filter((p) => p !== permission));
-                                                }
-                                            }}
-                                        />
-                                        <Label htmlFor={`perm-${permission}`} className="text-xs cursor-pointer">
-                                            {permission.replace(/_/g, ' ')}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                    
+                    <div className="py-2">
+                        <MembershipEditor
+                            data={data}
+                            setData={(key, value) => setData(key as 'roles' | 'permissions', value)}
+                            availableRoles={availableRoles}
+                            assignableRoles={assignableRoles}
+                            availablePermissions={availablePermissions}
+                        />
                     </div>
+
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel

@@ -4,9 +4,17 @@ namespace App\Http\Requests\TenantMember;
 
 use App\Models\User;
 use App\Policies\TenantMemberPolicy;
+use App\Rules\TenantPermissionRule;
+use App\Rules\TenantRoleRule;
 use App\Services\ActiveTenant;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * @method array{
+ *     roles?: list<string>,
+ *     permissions?: list<string>
+ * } validated()
+ */
 class UpdateTenantMemberRequest extends FormRequest
 {
     /**
@@ -16,26 +24,34 @@ class UpdateTenantMemberRequest extends FormRequest
     {
         /** @var \App\Models\User $user */
         $user = $this->user();
-        $tenant = app(ActiveTenant::class)->getOrFail();
-
-        /** @var \App\Models\User $memberUser */
         $memberUser = $this->route('user');
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = app(ActiveTenant::class)->get();
 
-        return $user->can('update', [TenantMemberPolicy::class, $memberUser, $tenant, $this->input('roles', [])]);
+        return $user->can('update', [
+            TenantMemberPolicy::class,
+            $memberUser,
+            $tenant,
+            $this->input('roles'),
+            $this->input('permissions'),
+        ]);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, string|object>|string>
      */
     public function rules(): array
     {
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = app(ActiveTenant::class)->get();
+
         return [
-            'roles' => ['required', 'array'], 
-            'roles.*' => ['string', 'exists:roles,name'],
-            'permissions' => ['present', 'array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
+            'roles'         => ['sometimes', 'array'],
+            'roles.*'       => ['string', new TenantRoleRule($tenant)],
+            'permissions'   => ['sometimes', 'array'],
+            'permissions.*' => ['string', new TenantPermissionRule],
         ];
     }
 }

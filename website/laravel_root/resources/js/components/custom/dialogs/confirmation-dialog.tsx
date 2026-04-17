@@ -1,14 +1,15 @@
 import * as React from "react"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+    AlertDialogAction,
+    AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 
 interface ConfirmationDialogProps {
     title: string
@@ -17,7 +18,9 @@ interface ConfirmationDialogProps {
     cancelText?: string
     variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
     onConfirm: () => void
-    children: React.ReactElement
+    children?: React.ReactElement
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
 }
 
 export function ConfirmationDialog({
@@ -28,31 +31,24 @@ export function ConfirmationDialog({
     variant = "default",
     onConfirm,
     children,
+    open,
+    onOpenChange,
 }: ConfirmationDialogProps) {
-    const [open, setOpen] = React.useState(false)
-
-    const handleConfirm = () => {
-        onConfirm()
-        setOpen(false)
-    }
-
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={children} />
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>
-                        {cancelText}
-                    </Button>
-                    <Button variant={variant} onClick={handleConfirm}>
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            {children && <AlertDialogTrigger render={children} />}
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogDescription>{description}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+                    <AlertDialogAction variant={variant} onClick={onConfirm}>
                         {confirmText}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 }

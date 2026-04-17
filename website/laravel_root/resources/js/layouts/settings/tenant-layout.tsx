@@ -50,7 +50,12 @@ const sidebarNavItems: TenantNavItem[] = [
     },
 ];
 
-export default function TenantSettingsLayout({ children }: React.PropsWithChildren) {
+interface TenantSettingsLayoutProps {
+    children: React.ReactNode;
+    maxWidth?: 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'none';
+}
+
+export default function TenantSettingsLayout({ children, maxWidth = 'xl' }: TenantSettingsLayoutProps) {
     const { abilities } = usePage<SharedData & { abilities?: Record<string, boolean> }>().props;
 
     // When server-side rendering, we only render the layout on the client...
@@ -59,6 +64,26 @@ export default function TenantSettingsLayout({ children }: React.PropsWithChildr
     }
 
     const currentPath = window.location.pathname;
+
+    const outerMaxWidthClass = {
+        'xl': 'md:max-w-2xl',
+        '2xl': 'md:max-w-3xl',
+        '3xl': 'md:max-w-4xl',
+        '4xl': 'md:max-w-5xl',
+        '5xl': 'md:max-w-6xl',
+        '6xl': 'md:max-w-7xl',
+        none: '',
+    }[maxWidth];
+
+    const innerMaxWidthClass = {
+        'xl': 'max-w-xl',
+        '2xl': 'max-w-2xl',
+        '3xl': 'max-w-3xl',
+        '4xl': 'max-w-4xl',
+        '5xl': 'max-w-5xl',
+        '6xl': 'max-w-6xl',
+        none: '',
+    }[maxWidth];
 
     return (
         <div className="px-4 py-6">
@@ -118,10 +143,12 @@ export default function TenantSettingsLayout({ children }: React.PropsWithChildr
                     </TooltipProvider>
                 </aside>
 
-                <Separator className="my-6 lg:hidden" />
+                <div className="flex-1 lg:hidden">
+                    <Separator className="my-6" />
+                </div>
 
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                <div className={cn('flex-1', outerMaxWidthClass)}>
+                    <section className={cn('space-y-12', innerMaxWidthClass)}>
                         {children}
                     </section>
                 </div>

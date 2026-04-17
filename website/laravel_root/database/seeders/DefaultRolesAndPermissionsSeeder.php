@@ -42,20 +42,52 @@ class DefaultRolesAndPermissionsSeeder extends Seeder
             TenantPermissionName::ViewOrganisationUnits->value,
             TenantPermissionName::CreateOrganisationUnits->value,
             TenantPermissionName::UpdateOrganisationUnits->value,
-            
+
+            TenantPermissionName::ViewTenantMembers->value,
             TenantPermissionName::InviteTenantMembers->value,
             TenantPermissionName::UpdateTenantMembers->value,
+            TenantPermissionName::ManageTenantMemberRoles->value,
+            TenantPermissionName::DeleteTenantMembers->value,
 
             TenantPermissionName::ViewOrgUnitRoles->value,
             TenantPermissionName::ViewTenantRoles->value,
         ]);
 
-        // 3. Tenant Finance
+        // 3. Tenant Support (Combined HR & Operations)
+        $tenantSupport = Role::findOrCreate(TenantRoleName::Support->value, 'tenant');
+        $tenantSupport->syncPermissions([
+            // Structure (Operations)
+            TenantPermissionName::ViewOrganisationUnits->value,
+            TenantPermissionName::CreateOrganisationUnits->value,
+            TenantPermissionName::UpdateOrganisationUnits->value,
+            
+            // Personnel (HR)
+            TenantPermissionName::ViewTenantMembers->value,
+            TenantPermissionName::InviteTenantMembers->value,
+            TenantPermissionName::UpdateTenantMembers->value,
+            TenantPermissionName::ManageTenantMemberRoles->value,
+            TenantPermissionName::DeleteTenantMembers->value,
+
+            TenantPermissionName::ViewOrgUnitRoles->value,
+            TenantPermissionName::ViewTenantRoles->value,
+        ]);
+
+        // 4. Tenant Finance
         $tenantFinance = Role::findOrCreate(TenantRoleName::Finance->value, 'tenant');
         $tenantFinance->syncPermissions([
             TenantPermissionName::ViewBillingInformation->value,
             TenantPermissionName::EditBillingInformation->value,
             TenantPermissionName::ViewOrganisationUnits->value,
+        ]);
+
+        // 5. Tenant Auditor (Read-Only)
+        $tenantAuditor = Role::findOrCreate(TenantRoleName::Auditor->value, 'tenant');
+        $tenantAuditor->syncPermissions([
+            TenantPermissionName::ViewOrganisationUnits->value,
+            TenantPermissionName::ViewTenantMembers->value,
+            TenantPermissionName::ViewBillingInformation->value,
+            TenantPermissionName::ViewTenantRoles->value,
+            TenantPermissionName::ViewOrgUnitRoles->value,
         ]);
 
 

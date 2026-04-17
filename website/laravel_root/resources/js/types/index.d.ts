@@ -35,11 +35,14 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
-export interface User {
+export interface UserInfo {
     uuid: string;
     name: string;
     email: string;
     avatar?: string;
+}
+
+export interface User extends UserInfo {
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
@@ -48,8 +51,12 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
+export interface Member extends UserInfo {
+    roles: string[];
+    permissions: string[];
+}
+
 export interface Tenant {
-    id: number;
     uuid: string;
     name: string;
     roles?: string[];
@@ -66,4 +73,28 @@ export interface TenantIndexItem extends Tenant {
 export interface TenantDashboardItem extends Tenant {
     users_count: number;
     organisation_units_count: number;
+}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+}
+
+export interface MembershipInvitation {
+    uuid: string;
+    email: string;
+    roles: string[];
+    permissions: string[];
+    status: string;
+    expires_at: string;
 }

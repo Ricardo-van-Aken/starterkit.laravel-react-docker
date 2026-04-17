@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Tenant;
 use App\Models\OrganisationUnit;
 use App\Models\Role;
-use App\Enums\TenantRoleName;
 use App\Enums\OrgUnitRoleName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +13,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Traits\HasTenantAuthorization;
+use App\Models\Traits\HasOrgUnitAuthorization;
+use App\Notifications\VerifyEmailQueued;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property \Illuminate\Support\Carbon|null $scheduled_for_deletion_at
@@ -22,7 +25,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasUuids;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasUuids, HasTenantAuthorization, HasOrgUnitAuthorization;
 
     /**
      * The attributes that are mass assignable.
@@ -33,7 +36,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'max_tenants',
     ];
 
     /**
@@ -87,44 +89,30 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(OrganisationUnit::class, 'organisation_unit_user');
     }
 
-    public function assignTenantRole(Tenant $tenant, string|TenantRoleName $role): self
+    /** @return HasMany<TenantInvitation, $this> */
+    public function tenantInvitations(): HasMany
     {
-        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
-
-        $this->assignRole(Role::findByName($roleName, 'tenant'));
-
-        return $this;
-    }
-
-    public function assignOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): self
-    {
-        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
-
-        $this->assignRole(Role::findByName($roleName, 'organisation_unit'));
-
-        return $this;
-    }
-
-    public function hasTenantRole(Tenant $tenant, string|TenantRoleName $role): bool
-    {
-        $roleName = $role instanceof TenantRoleName ? $role->value : $role;
-        setPermissionsTeamId($tenant->id);
-
-        return $this->hasRole($roleName, 'tenant');
-    }
-
-    public function hasOrgUnitRole(OrganisationUnit $orgUnit, string|OrgUnitRoleName $role): bool
-    {
-        $roleName = $role instanceof OrgUnitRoleName ? $role->value : $role;
-        setPermissionsTeamId($orgUnit->id);
-
-        return $this->hasRole($roleName, 'organisation_unit');
+        return $this->hasMany(TenantInvitation::class);
     }
 
     public function canCreateTenant(): bool
     {
         return $this->tenants()->count() < $this->max_tenants;
+    }
+
+    /**
+     * @return HasMany<TenantInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(TenantInvitation::class, 'email', 'email');
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailQueued);
     }
 }

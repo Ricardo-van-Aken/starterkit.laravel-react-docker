@@ -31,6 +31,35 @@ services:
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
     profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
+  # Laravel Queue Worker
+  queue_worker:
+    image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
+    build:
+      context: ../
+      dockerfile: docker/img_laravel/${DOCKERFILE}
+    container_name: laravel_queue_worker
+    restart: unless-stopped
+    volumes:
+      - ${ENV_FILE}:/var/www/.env     # Bind mount: Application environment variables
+      - ${APP_FILES_DIR}:/var/www     # Volume or Bind mount: Application files to be served by nginx
+      - mysql-certs:/mysql-certs:ro
+    secrets:
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_app_db_ssl
+      - mysql_app_db_host
+      - mysql_app_db_port
+      - redis_password
+    depends_on:
+      redis:
+        condition: service_started
+      mysql_db:
+        condition: service_healthy
+        required: false
+    command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-redis-password.sh; exec php artisan queue:work --tries=3 --timeout=90"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+
   # Nginx Web Server
   nginx:
     image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
