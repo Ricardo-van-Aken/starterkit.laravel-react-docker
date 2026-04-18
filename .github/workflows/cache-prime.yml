@@ -15,8 +15,10 @@ jobs:
     name: Prime branch cache
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout code (full history for parent detection)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Resolve Branch Name
         id: branch
@@ -28,17 +30,26 @@ jobs:
           fi
           echo "raw_branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Generate Docker Tags
+      - name: Generate Docker Tags for Current Branch
         id: vars
         uses: ./.github/actions/docker-tag
         with:
           branch_name: ${{ steps.branch.outputs.raw_branch }}
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Detect Closest Relative Branch
+        id: relative
+        uses: ./.github/actions/get-closest-relative
         with:
-          ref: ${{ steps.branch.outputs.raw_branch }}
+          current_branch: ${{ steps.branch.outputs.raw_branch }}
+          include_branches: remote
+
+      - name: Generate Docker Tags for Relative Branch
+        id: relative_vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ steps.relative.outputs.short_name }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,12 +60,14 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Prime Laravel Cache (Production Target)
+      - name: Prime Build
         uses: docker/build-push-action@v5
         with:
           context: website
           file: website/docker/img_laravel/Dockerfile.laravel
           target: volume-prod
           push: false
-          cache-from: type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+          cache-from: |
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.relative_vars.outputs.safe_tag }}.cache
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
           cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
