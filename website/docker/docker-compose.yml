@@ -5,7 +5,7 @@ services:
     build:
       context: ../
       dockerfile: docker/img_laravel/Dockerfile.laravel
-      target: ${BUILD_TARGET:-bind-mount}
+      target: ${LARAVEL_VARIANT:-bind-mount}
       args:
         WWW_UID: ${LOCAL_UID:-82}
         WWW_GID: ${LOCAL_GID:-82}
@@ -41,7 +41,7 @@ services:
     build:
       context: ../
       dockerfile: docker/img_laravel/Dockerfile.laravel
-      target: ${BUILD_TARGET:-bind-mount}
+      target: ${LARAVEL_VARIANT:-bind-mount}
       args:
         WWW_UID: ${LOCAL_UID:-82}
         WWW_GID: ${LOCAL_GID:-82}
@@ -78,6 +78,7 @@ services:
       args:
         WWW_UID: ${LOCAL_UID:-82}
         WWW_GID: ${LOCAL_GID:-82}
+        SCHEDULER_BASE: ${LARAVEL_VARIANT:-volume-prod}
     container_name: laravel_scheduler
     restart: unless-stopped
     volumes:
@@ -94,7 +95,7 @@ services:
       - mysql_app_db_host
       - mysql_app_db_port
       - redis_password
-    profiles: ["all", "production"]
+    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
   # Nginx Web Server
   nginx:

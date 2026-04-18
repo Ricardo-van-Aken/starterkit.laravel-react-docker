@@ -1,0 +1,29 @@
+name: 'Get Closest Relative Branch'
+description: 'Identifies the closest relative branch, based on commit-distance, using a graph distance algorithm.'
+
+inputs:
+  current_branch:
+    description: 'The name of the branch to scan from'
+    required: true
+  include_branches:
+    description: 'Which branches to search: local, remote, or both'
+    required: false
+    default: 'both'
+
+outputs:
+  branch:
+    description: 'The identified closest relative full branch reference'
+    value: ${{ steps.detect.outputs.branch }}
+  short_name:
+    description: 'The identified closest relative branch name'
+    value: ${{ steps.detect.outputs.short_name }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: detect
+      shell: bash
+      run: |
+        ${{ github.action_path }}/get-closest-relative.sh \
+          --commit="${{ inputs.current_branch }}" \
+          --scope="${{ inputs.include_branches }}"

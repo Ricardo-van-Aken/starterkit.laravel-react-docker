@@ -1,5 +1,5 @@
-# Global ARGs
 ARG PHP_VERSION=8.3
+ARG SCHEDULER_BASE=volume-prod
 
 #################################################
 ###                                           ###
@@ -177,7 +177,8 @@ EXPOSE 9000
 ###   Target: scheduler                       ###
 ###                                           ###
 #################################################
-FROM volume-prod AS scheduler
+# Global ARG SCHEDULER_BASE is used here
+FROM ${SCHEDULER_BASE} AS scheduler
 USER root
 
 # In Alpine, crond is built-in (busybox), no extra install needed.

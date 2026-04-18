@@ -12,51 +12,24 @@ env:
   RUN_ID: ${{ github.run_id }}
 
 jobs:
-  build-laravel-image:
-    name: Build app image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Generate Docker Tags
-        id: vars
-        uses: ./.github/actions/docker-tag
-        with:
-          branch_name: ${{ github.head_ref }}
-          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Build and Push Laravel App Image
-        uses: docker/build-push-action@v5
-        with:
-          context: website
-          file: website/docker/img_laravel/Dockerfile.laravel
-          target: volume-dev
-          tags: ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
-          push: true
-          load: false
-          cache-from: |
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
-          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
-  build-compose-images:
+  build-images:
     name: Build docker images
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         image:
+          - name: laravel-app
+            context: website
+            file: website/docker/img_laravel/Dockerfile.laravel
+            target: volume-dev
+            tag: laravel-app
+          - name: laravel-scheduler
+            context: website
+            file: website/docker/img_laravel/Dockerfile.laravel
+            target: scheduler
+            tag: laravel-scheduler
+            build-args: SCHEDULER_BASE=volume-dev
           - name: nginx
             context: website/docker/img_nginx
             file: website/docker/img_nginx/Dockerfile.nginx
@@ -94,11 +67,13 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build ${{ matrix.image.tag }} image
+      - name: Build and Push ${{ matrix.image.tag }} image
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          build-args: ${{ matrix.image.build-args }}
           tags: ${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
           push: true
           load: false
@@ -110,7 +85,7 @@ jobs:
   test:
     name: Run Laravel tests
     runs-on: ubuntu-latest
-    needs: [build-laravel-image, build-compose-images]
+    needs: [build-images]
     
     steps:
       - name: Checkout code
@@ -122,13 +97,26 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
+
       - name: Pull Docker Compose images needed to mock production
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
 
       - name: Start Docker services to mock production
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
 
@@ -139,13 +127,16 @@ jobs:
       - name: Cleanup
         if: always()
         working-directory: website
+        env:
+          TAG_ADDITION: ${{ env.RUN_ID }}
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
           docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
 
   static-analysis:
     name: Run static analysis
     runs-on: ubuntu-latest
-    needs: [build-laravel-image]
+    needs: [build-images]
 
     steps:
       - name: Checkout code
@@ -157,26 +148,27 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
+
       - name: Pull Laravel app image
-        # Note: In static analysis we still need the base IMAGE_REPO or we can just pull strictly.
-        # I'll use a local logic here for simplicity or just pull with the output.
-        # Since static analysis doesn't run the action, I'll use the env.IMAGE_REPO but force it lowercase.
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
-          docker pull ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }}
+          docker pull ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
 
       - name: Run PHPStan
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             composer analyse
  
       - name: Run Architecture Tests
         run: |
-          LOWER_REPO=$(echo "${{ env.IMAGE_REPO }}" | tr '[:upper:]' '[:lower:]')
           docker run --rm \
-            ${LOWER_REPO}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             composer test:arch
 
   cleanup-dockerhub:
