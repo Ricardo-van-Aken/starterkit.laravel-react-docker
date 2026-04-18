@@ -14,6 +14,38 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.ref_type == 'branch'
     name: Prime branch cache
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: laravel-app
+            context: website
+            file: website/docker/img_laravel/Dockerfile.laravel
+            target: volume-dev
+            tag: laravel-app
+          - name: laravel-scheduler
+            context: website
+            file: website/docker/img_laravel/Dockerfile.laravel
+            target: scheduler
+            tag: laravel-scheduler
+            build-args: SCHEDULER_BASE=volume-dev
+          - name: nginx
+            context: website/docker/img_nginx
+            file: website/docker/img_nginx/Dockerfile.nginx
+            tag: website-nginx
+          - name: redis
+            context: website/docker/img_redis
+            file: website/docker/img_redis/Dockerfile.redis
+            tag: website-redis
+          - name: mysql-db
+            context: website/docker/img_mysqldb
+            file: website/docker/img_mysqldb/Dockerfile.mysql
+            tag: mysql-db
+          - name: cert-local
+            context: website/docker/img_certlocal
+            file: website/docker/img_certlocal/Dockerfile.cert-local
+            tag: cert-local
+
     steps:
       - name: Checkout code (full history for parent detection)
         uses: actions/checkout@v4
@@ -63,11 +95,12 @@ jobs:
       - name: Prime Build
         uses: docker/build-push-action@v5
         with:
-          context: website
-          file: website/docker/img_laravel/Dockerfile.laravel
-          target: volume-prod
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          build-args: ${{ matrix.image.build-args }}
           push: false
           cache-from: |
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.relative_vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
-          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.relative_vars.outputs.safe_tag }}.cache
+            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.main.cache
+          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
