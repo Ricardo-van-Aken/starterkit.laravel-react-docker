@@ -13,7 +13,7 @@
 .DS_Store
 .env
 .env.backup
-.env.prod
+.env.production
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
