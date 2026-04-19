@@ -163,13 +163,13 @@ jobs:
         run: |
           docker run --rm \
             ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
-            composer analyse
+            php vendor/bin/phpstan analyse --memory-limit=2G
  
       - name: Run Architecture Tests
         run: |
           docker run --rm \
             ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
-            composer test:arch
+            php vendor/bin/pest tests/Architecture
 
   cleanup-dockerhub:
     name: Cleanup temporary Docker Hub images
