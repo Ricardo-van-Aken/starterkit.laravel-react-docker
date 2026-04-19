@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
   TAG_ADDITION: test
   RUN_ID: ${{ github.run_id }}
 
@@ -163,7 +162,7 @@ jobs:
         run: |
           docker run --rm \
             ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
-            php vendor/bin/phpstan analyse --memory-limit=2G app config database routes
+            php vendor/bin/phpstan analyse --memory-limit=2G
  
       - name: Run Architecture Tests
         run: |
@@ -180,12 +179,22 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.head_ref }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
+
       - name: Delete temporary Docker Hub tags
         env:
-          DOCKERHUB_USER: ${{ vars.DOCKER_HUB_USERNAME }}
-          IMAGE_NAME: ${{ github.event.repository.name }}
+          DOCKERHUB_REPO: ${{ steps.vars.outputs.image_repo }}
           RUN_ID: ${{ github.run_id }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          DOCKERHUB_USER: ${{ vars.DOCKER_HUB_USERNAME }}
         run: |
           set -euo pipefail
 
@@ -200,10 +209,10 @@ jobs:
             exit 1
           fi
 
-          echo "Listing tags for ${DOCKERHUB_USER}/${IMAGE_NAME}…"
+          echo "Listing tags for ${DOCKERHUB_REPO}…"
           TAGS=$(curl -s \
             -H "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/repositories/${DOCKERHUB_USER}/${IMAGE_NAME}/tags/?page_size=1000" \
+            "https://hub.docker.com/v2/repositories/${DOCKERHUB_REPO}/tags/?page_size=1000" \
             | jq -r ".results[].name | select(endswith(\".${RUN_ID}\"))")
 
           if [ -z "$TAGS" ]; then
@@ -213,11 +222,11 @@ jobs:
 
           EXIT_CODE=0
           for tag in $TAGS; do
-            echo "Deleting ${IMAGE_NAME}:$tag"
+            echo "Deleting ${DOCKERHUB_REPO}:$tag"
             if ! curl -sf -X DELETE \
               -H "Authorization: JWT $TOKEN" \
-              "https://hub.docker.com/v2/repositories/${DOCKERHUB_USER}/${IMAGE_NAME}/tags/$tag/"; then
-              echo "Failed to delete ${IMAGE_NAME}:$tag"
+              "https://hub.docker.com/v2/repositories/${DOCKERHUB_REPO}/tags/$tag/"; then
+              echo "Failed to delete ${DOCKERHUB_REPO}:$tag"
               EXIT_CODE=1
             fi
           done

@@ -21,7 +21,6 @@ on:
 env:
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
   TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
-  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
   build-images:
@@ -49,7 +48,7 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Build and Push with Docker Bake
-        uses: docker/bake-action@v3
+        uses: docker/bake-action@v6
         with:
           workdir: website
           push: true
@@ -61,7 +60,7 @@ jobs:
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.main
             *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }},mode=max
             app.target=${{ env.ENVIRONMENT == 'dev' && 'volume-dev' || 'volume-prod' }}
-            *.image=${{ steps.vars.outputs.image_repo }}:${{ env.TAG_ADDITION }}
+            *.image=${{ steps.vars.outputs.image_repo }}:${{ steps.vars.outputs.safe_tag }}
 
   deploy-builds:
     runs-on: ubuntu-latest
