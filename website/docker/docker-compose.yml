@@ -38,13 +38,6 @@ services:
   # Laravel Queue Worker
   queue_worker:
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
-    build:
-      context: ../
-      dockerfile: docker/img_laravel/Dockerfile.laravel
-      target: ${LARAVEL_VARIANT:-bind-mount}
-      args:
-        WWW_UID: ${LOCAL_UID:-82}
-        WWW_GID: ${LOCAL_GID:-82}
     container_name: laravel_queue_worker
     restart: unless-stopped
     volumes:
