@@ -163,7 +163,7 @@ jobs:
         run: |
           docker run --rm \
             ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
-            php vendor/bin/phpstan analyse --memory-limit=2G app config database routes
+            php vendor/bin/phpstan analyse --memory-limit=2G
  
       - name: Run Architecture Tests
         run: |
