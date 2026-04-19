@@ -38,13 +38,6 @@ services:
   # Laravel Queue Worker
   queue_worker:
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
-    build:
-      context: ../
-      dockerfile: docker/img_laravel/Dockerfile.laravel
-      target: ${LARAVEL_VARIANT:-bind-mount}
-      args:
-        WWW_UID: ${LOCAL_UID:-82}
-        WWW_GID: ${LOCAL_GID:-82}
     container_name: laravel_queue_worker
     restart: unless-stopped
     volumes:
@@ -65,6 +58,8 @@ services:
       mysql_db:
         condition: service_healthy
         required: false
+      app:
+        condition: service_started
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-redis-password.sh; exec php artisan queue:work --tries=3 --timeout=90"]
     profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
 
@@ -87,6 +82,7 @@ services:
     depends_on:
       - redis
       - mysql_db
+      - app
     secrets:
       - mysql_app_db_database
       - mysql_app_db_username

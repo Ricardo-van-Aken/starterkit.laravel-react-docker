@@ -1,13 +1,14 @@
-# Ignore everything except laravel_root
-# *
-# !laravel_root/
+# Ignore everything by default
+*
 
-# Within laravel_root, ignore local dependencies (will be installed in container)
+# Allow the application and the docker configuration
+!laravel_root/
+!docker/
+
+# Re-ignore dependencies and local artifacts within those folders
 laravel_root/node_modules/
 laravel_root/vendor/
-
-# Build artifacts (will be built in container, or mounted from host system)
 laravel_root/public/build/
-
-# Environment files (mounted from host system)
 laravel_root/.env*
+laravel_root/.git/
+laravel_root/.github/

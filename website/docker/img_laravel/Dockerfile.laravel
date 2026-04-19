@@ -3,22 +3,20 @@ ARG SCHEDULER_BASE=volume-prod
 
 #################################################
 ###                                           ###
-###   Stage: Base Runtime (Minimal)           ###
+###   Stage: Runtime Base (Minimal)           ###
 ###                                           ###
 #################################################
-FROM php:${PHP_VERSION}-fpm-alpine AS base
+FROM php:${PHP_VERSION}-fpm-alpine AS runtime-base
 
 # Install runtime system dependencies
 RUN apk add --no-cache \
-    curl \
     libpng \
     libjpeg-turbo \
-    libzip \
-    bash \
-    shadow
+    mariadb-client \
+    shadow \
+    bash
 
 # Install PHP extensions
-# We use a virtual .build-deps stage to compile extensions and then remove them to keep the image lean
 RUN apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
     libpng-dev \
@@ -33,7 +31,7 @@ RUN apk add --no-cache --virtual .build-deps \
 ARG WWW_UID=82
 ARG WWW_GID=82
 
-# Set group ID and user ID for www-data user to 82. This user runs the laravel application
+# Set group ID and user ID for www-data user. This user runs the laravel application
 RUN usermod -u ${WWW_UID} www-data && groupmod -g ${WWW_GID} www-data
 
 # Add a testrunner user and group for running the db cloning script
@@ -48,13 +46,12 @@ RUN addgroup -g 1003 shared && \
 WORKDIR /var/www
 
 # --- Scripts for loading in Docker secrets and cloning/testing the laravel database --- #
-
 ARG DOCKERFILE_DIR=docker/img_laravel
 
 # Copy scripts
 COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/
 
-# Set permissions (Preserving original logic)
+# Set permissions
 RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh && \
     chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
     chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh && \
@@ -65,75 +62,97 @@ RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           
 
 #################################################
 ###                                           ###
-###   Stage: Development Tools                ###
+###   Target: bind-mount                      ###
 ###                                           ###
 #################################################
-FROM base AS development-tools
+# Fast tool-rich base for local development with mounting of host system files. Doesnt do any building of
+# assets in the image build.
+FROM runtime-base AS bind-mount
 
-# Install node/npm, git, unzip, composer, and mariadb-client (for db cloning)
+# Install node/npm, git, unzip, and composer for local development and runtime tasks
 RUN apk add --no-cache \
     git \
     unzip \
     nodejs \
-    npm \
-    mariadb-client
+    npm
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-
-#################################################
-###                                           ###
-###   Stage: Backend Builder (Base)           ###
-###                                           ###
-#################################################
-FROM development-tools AS builder-composer-base
-WORKDIR /app
-COPY laravel_root/composer.json laravel_root/composer.lock ./
-
-
-FROM builder-composer-base AS builder-composer-prod
-# Install production-only dependencies
-RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist
-# Copy full source and finalize for production
-COPY laravel_root/ .
-RUN composer run-script post-autoload-dump && \
-    composer dump-autoload --optimize
-
-
-FROM builder-composer-base AS builder-composer-dev
-# Install ALL dependencies (including dev/testing tools)
-RUN composer install --no-interaction --no-scripts --prefer-dist
-# Copy full source and finalize for testing
-COPY laravel_root/ .
-RUN composer run-script post-autoload-dump && \
-    composer dump-autoload --optimize
-
-
-#################################################
-###                                           ###
-###   Stage: Frontend Builder                 ###
-###                                           ###
-#################################################
-FROM development-tools AS frontend-builder
-WORKDIR /app
-
-# Wayfinder needs the full application source + PHP + Vendor to generate route types
-COPY laravel_root/ .
-COPY --from=builder-composer-dev /app/vendor ./vendor
-
-# Install dependencies and build
-RUN npm ci && npm run build
-
-
-#################################################
-###                                           ###
-###   Target: bind-mount                      ###
-###                                           ###
-#################################################
-FROM development-tools AS bind-mount
 USER www-data
 EXPOSE 9000
+
+
+#################################################
+###                                           ###
+###   Backend: Composer Dependencies          ###
+###                                           ###
+#################################################
+# Since composer checks if system dependencies for the packages are met during installation, we use our app
+# image base as the base image. This ensures the final app image has the same installed dependencies that
+# composer checks for.
+FROM runtime-base AS backend-deps-base
+RUN apk add --no-cache git unzip
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+WORKDIR /app
+
+FROM backend-deps-base AS backend-deps-prod
+COPY laravel_root/composer.json laravel_root/composer.lock ./
+# We dont run scripts, because these depend on application files which are not present in this stage.
+RUN composer install --no-dev --no-scripts
+
+FROM backend-deps-base AS backend-deps-dev
+COPY laravel_root/composer.json laravel_root/composer.lock ./
+# We dont run scripts, because these depend on application files which are not present in this stage.
+RUN composer install --no-scripts
+
+
+#################################################
+###                                           ###
+###   Frontend: NPM Dependencies              ###
+###                                           ###
+#################################################
+# Use official minimal node image for dependency download only
+FROM node:20-alpine AS frontend-deps
+WORKDIR /app
+COPY laravel_root/package.json laravel_root/package-lock.json ./
+RUN npm ci
+
+
+#################################################
+###                                           ###
+###   Full-Stack Builder                      ###
+###                                           ###
+#################################################
+# Unified builder for Vite assets and Composer optimization
+FROM runtime-base AS builder-base
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN apk add --no-cache nodejs npm
+WORKDIR /var/www
+
+FROM builder-base AS builder-prod
+# Import pre-downloaded dependencies
+COPY --from=backend-deps-prod /app/vendor ./vendor
+COPY --from=frontend-deps /app/node_modules ./node_modules
+# Copy full application context
+COPY laravel_root/ .
+# Compilation (Wayfinder needs the app context and vendor)
+RUN npx vite build
+# Assembly & Optimization
+RUN composer run-script post-autoload-dump && \
+    composer dump-autoload --optimize
+
+FROM builder-base AS builder-dev
+# Import pre-downloaded dependencies
+COPY --from=backend-deps-dev /app/vendor ./vendor
+COPY --from=frontend-deps /app/node_modules ./node_modules
+# Copy full application context
+COPY laravel_root/ .
+# Compilation (Wayfinder needs the full app context)
+RUN npx vite build --mode development
+# Assembly & Optimization
+RUN composer run-script post-autoload-dump && \
+    composer dump-autoload --optimize
 
 
 #################################################
@@ -141,14 +160,25 @@ EXPOSE 9000
 ###   Target: volume-dev                      ###
 ###                                           ###
 #################################################
-FROM development-tools AS volume-dev
-
-# 1. Copy dependencies and assets from builders
-COPY --chown=www-data:www-data --from=builder-composer-dev /app/vendor ./vendor
-COPY --from=frontend-builder /app/public/build ./public/build
-
-# 2. Copy the pre-built application files last (Includes dev dependencies for testing)
-COPY --chown=www-data:www-data --from=builder-composer-dev /app/ .
+# Clean runtime identical to production
+FROM runtime-base AS volume-dev
+# Copy runtime-essential application files from dev builder (includes tests, NO node_modules)
+COPY --chown=www-data:www-data --from=builder-dev /var/www/app ./app
+COPY --chown=www-data:www-data --from=builder-dev /var/www/bootstrap ./bootstrap
+COPY --chown=www-data:www-data --from=builder-dev /var/www/config ./config
+COPY --chown=www-data:www-data --from=builder-dev /var/www/database ./database
+COPY --chown=www-data:www-data --from=builder-dev /var/www/lang ./lang
+COPY --chown=www-data:www-data --from=builder-dev /var/www/public ./public
+COPY --chown=www-data:www-data --from=builder-dev /var/www/resources ./resources
+COPY --chown=www-data:www-data --from=builder-dev /var/www/routes ./routes
+COPY --chown=www-data:www-data --from=builder-dev /var/www/storage ./storage
+COPY --chown=www-data:www-data --from=builder-dev /var/www/tests ./tests
+COPY --chown=www-data:www-data --from=builder-dev /var/www/vendor ./vendor
+COPY --chown=www-data:www-data --from=builder-dev /var/www/artisan .
+COPY --chown=www-data:www-data --from=builder-dev /var/www/composer.json .
+COPY --chown=www-data:www-data --from=builder-dev /var/www/composer.lock .
+COPY --chown=www-data:www-data --from=builder-dev /var/www/phpstan.neon .
+COPY --chown=www-data:www-data --from=builder-dev /var/www/phpunit*.xml .
 
 USER www-data
 EXPOSE 9000
@@ -159,14 +189,22 @@ EXPOSE 9000
 ###   Target: volume-prod                     ###
 ###                                           ###
 #################################################
-FROM base AS volume-prod
-
-# 1. Copy dependencies and assets from builders
-COPY --chown=www-data:www-data --from=builder-composer-prod /app/vendor ./vendor
-COPY --from=frontend-builder /app/public/build ./public/build
-
-# 2. Copy the pre-built application files last (Optimized production build)
-COPY --chown=www-data:www-data --from=builder-composer-prod /app/ .
+# Minimal production-ready runtime
+FROM runtime-base AS volume-prod
+# Copy runtime-essential application files from prod builder (NO tests, NO node_modules)
+COPY --chown=www-data:www-data --from=builder-prod /var/www/app ./app
+COPY --chown=www-data:www-data --from=builder-prod /var/www/bootstrap ./bootstrap
+COPY --chown=www-data:www-data --from=builder-prod /var/www/config ./config
+COPY --chown=www-data:www-data --from=builder-prod /var/www/database ./database
+COPY --chown=www-data:www-data --from=builder-prod /var/www/lang ./lang
+COPY --chown=www-data:www-data --from=builder-prod /var/www/public ./public
+COPY --chown=www-data:www-data --from=builder-prod /var/www/resources ./resources
+COPY --chown=www-data:www-data --from=builder-prod /var/www/routes ./routes
+COPY --chown=www-data:www-data --from=builder-prod /var/www/storage ./storage
+COPY --chown=www-data:www-data --from=builder-prod /var/www/vendor ./vendor
+COPY --chown=www-data:www-data --from=builder-prod /var/www/artisan .
+COPY --chown=www-data:www-data --from=builder-prod /var/www/composer.json .
+COPY --chown=www-data:www-data --from=builder-prod /var/www/composer.lock .
 
 USER www-data
 EXPOSE 9000
@@ -177,17 +215,12 @@ EXPOSE 9000
 ###   Target: scheduler                       ###
 ###                                           ###
 #################################################
-# Global ARG SCHEDULER_BASE is used here
 FROM ${SCHEDULER_BASE} AS scheduler
 USER root
 
-# In Alpine, crond is built-in (busybox), no extra install needed.
-# We just need to define the crontab for the www-data user.
-
-# Create crontab (Sourcing credentials before running artisan)
-# Note: Alpine crontabs are stored in /etc/crontabs/<user>
+# Define crontab for the www-data user
 RUN echo "* * * * * . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php /var/www/artisan schedule:run >> /dev/null 2>&1" > /etc/crontabs/www-data
 RUN chmod 0600 /etc/crontabs/www-data
 
-# Run crond in foreground, log to stdout
+# Run crond in foreground
 CMD ["crond", "-f", "-L", "/dev/stdout"]
