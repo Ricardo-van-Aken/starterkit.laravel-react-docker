@@ -50,10 +50,9 @@ jobs:
       - name: Build and Push with Docker Bake
         uses: docker/bake-action@v6
         with:
-          workdir: website
           push: true
           files: |
-            docker/docker-compose.yml
+            website/docker/docker-compose.yml
           targets: app, scheduler, nginx, redis, certbot
           set: |
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }}
