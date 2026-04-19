@@ -50,15 +50,15 @@ jobs:
         uses: docker/bake-action@v6
         with:
           push: true
-          workdir: website/docker
+          workdir: website
           files: |
-            docker-compose.yml
+            docker/docker-compose.yml
           env-files: |
-            ${{ format('.env.{0}', env.ENVIRONMENT) }}
+            ${{ format('docker/.env.{0}', env.ENVIRONMENT) }}
           targets: app, scheduler, nginx, redis, certbot
           set: |
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.main.deploy-cache
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.main.cache
             *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
         env:
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
