@@ -3,8 +3,8 @@ name: Push changes
 on:
   push:
     branches:
-      - staging
       - dev
+      - staging
       - production
 
   workflow_dispatch:
@@ -14,13 +14,12 @@ on:
         required: true
         type: choice
         options:
-          - staging
           - dev
+          - staging
           - production
 
 env:
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
-  TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
 
 jobs:
   build-images:
@@ -35,7 +34,7 @@ jobs:
         id: vars
         uses: ./.github/actions/docker-tag
         with:
-          branch_name: ${{ github.ref_name }}
+          branch_name: ${{ env.ENVIRONMENT }}
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
@@ -53,13 +52,12 @@ jobs:
           push: true
           files: |
             website/docker/docker-compose.yml
+          env-files: |
+            ${{ format('website/docker/.env.{0}', env.ENVIRONMENT) }}
           targets: app, scheduler, nginx, redis, certbot
           set: |
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }}
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.main
-            *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }},mode=max
-            app.target=${{ env.ENVIRONMENT == 'dev' && 'volume-dev' || 'volume-prod' }}
-            *.image=${{ steps.vars.outputs.image_repo }}:${{ steps.vars.outputs.safe_tag }}
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
 
   deploy-builds:
     runs-on: ubuntu-latest
