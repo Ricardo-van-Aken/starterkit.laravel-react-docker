@@ -205,8 +205,6 @@ COPY --chown=www-data:www-data --from=builder-prod /var/www/vendor ./vendor
 COPY --chown=www-data:www-data --from=builder-prod /var/www/artisan .
 COPY --chown=www-data:www-data --from=builder-prod /var/www/composer.json .
 COPY --chown=www-data:www-data --from=builder-prod /var/www/composer.lock .
-COPY --chown=www-data:www-data --from=builder-prod /var/www/phpstan.neon .
-COPY --chown=www-data:www-data --from=builder-prod /var/www/phpunit*.xml .
 
 USER www-data
 EXPOSE 9000
