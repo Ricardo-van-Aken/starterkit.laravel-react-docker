@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This PHPUnit configuration file is used to run tests with isolated storage (mysql db and redis) -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <!-- App environment -->
+        <env name="APP_ENV" value="testing"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+
+        <!-- Database: use the cloned MySQL test database (credentials come from Docker secrets) -->
+        <env name="DB_CONNECTION" value="mysql_testing"/>
+
+        <!-- Cache: use Redis testing connection (DB index 11) to isolate from production data -->
+        <env name="CACHE_STORE" value="redis"/>
+        <env name="REDIS_CACHE_CONNECTION" value="cache_testing"/>
+
+        <!-- Queues: use Redis testing connection (DB index 12) -->
+        <env name="QUEUE_CONNECTION" value="redis"/>
+        <env name="REDIS_QUEUE_CONNECTION" value="queue_testing"/>
+
+        <!-- Sessions: use Redis testing connection (DB index 13) -->
+        <env name="SESSION_DRIVER" value="redis"/>
+        <env name="SESSION_CONNECTION" value="session_testing"/>
+
+        <!-- Mail: use array driver so no real emails are dispatched -->
+        <env name="MAIL_MAILER" value="array"/>
+
+        <!-- Broadcasting: disable to avoid dependency on Pusher/Reverb -->
+        <env name="BROADCAST_CONNECTION" value="null"/>
+
+        <!-- Disable optional monitoring/debug packages -->
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

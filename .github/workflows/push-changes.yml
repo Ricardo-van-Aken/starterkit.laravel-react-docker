@@ -19,51 +19,25 @@ on:
           - production
 
 env:
-  # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
-  TF_VAR_region: ${{ vars.DO_STATE_BUCKET_REGION }}
-  TF_VAR_bucket_name: ${{ vars.DO_STATE_BUCKET_NAME }}  
-  AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
-
-  # Terraforms DigitalOcean provider authorization.
-  TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-
-  # Terraform [TODO: description]
-  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }} # Environment key gebruiken
-
-  DOCKER_USER: ${{ vars.DOCKER_USER }}
-
-  WORKSPACE: ${{ github.workspace }}
-
   ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
-
-  IMAGE_NAME: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
+  TAG_ADDITION: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
+  IMAGE_REPO: ${{ vars.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
-  build-common-images:
-    name: Build docker images
+  build-images:
+    name: Build and Push All Images
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image:
-          - name: website-nginx
-            context: website/docker/img_nginx
-            file: website/docker/img_nginx/Dockerfile.nginx
-            
-          - name: website-redis
-            context: website/docker/img_redis
-            file: website/docker/img_redis/Dockerfile.redis
-            
-          - name: website-certbot
-            context: website/docker/img_certbot
-            file: website/docker/img_certbot/Dockerfile.certbot
-            
-          - name: laravel-base
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel-base
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Generate Docker Tags
+        id: vars
+        uses: ./.github/actions/docker-tag
+        with:
+          branch_name: ${{ github.ref_name }}
+          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -74,50 +48,26 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push image
-        uses: docker/build-push-action@v4
+      - name: Build and Push with Docker Bake
+        uses: docker/bake-action@v3
         with:
-          context: ${{ matrix.image.context }}
+          workdir: website
           push: true
-          file: ${{ matrix.image.file }}
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.image.name }}.${{ env.ENVIRONMENT }}.cache,mode=max
-
-  build-app-image:
-    name: Build the laravel app
-    runs-on: ubuntu-latest
-    needs: build-common-images
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Build and push app image
-        uses: docker/build-push-action@v4
-        with:
-          context: website/
-          push: true
-          file: website/docker/img_laravel/Dockerfile.laravel-volume
-          tags: |
-            ${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}
-          build-args: |
-            BASE_IMAGE=${{ env.IMAGE_NAME }}:laravel-base.${{ env.ENVIRONMENT }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}.cache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:laravel-app.${{ env.ENVIRONMENT }}.cache,mode=max
+          files: |
+            docker/docker-compose.yml
+          targets: app, scheduler, nginx, redis, certbot
+          set: |
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }}
+            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.main
+            *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:bake-cache.${{ steps.vars.outputs.safe_tag }},mode=max
+            app.target=${{ env.ENVIRONMENT == 'dev' && 'volume-dev' || 'volume-prod' }}
+            *.image=${{ steps.vars.outputs.image_repo }}:${{ env.TAG_ADDITION }}
 
   deploy-builds:
     runs-on: ubuntu-latest
-    needs: build-app-image
+    needs: [build-images]
+    env:
+      DOCKER_USER: docker-runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -129,11 +79,15 @@ jobs:
 
       - uses: ./.github/actions/terraform/utils/state
         id: outputs
+        env:
+          # DigitalOcean Spaces bucket name and access key, used for terraform remote state.
+          AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
         with:
           output_keys: "droplet_ipv4"
           working_dir: deployment/terraform/environments/common
           workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
-          environment: $ENVIRONMENT
+          environment: ${{ env.ENVIRONMENT }} # Use current environment as workspace for terraform
 
       - uses: ./.github/actions/ansible/deploy-builds
         env:
@@ -141,5 +95,6 @@ jobs:
           ANSIBLE_HOST_KEY_CHECKING: "True"
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME }}
+          WORKSPACE: ${{ github.workspace }} # Required in ansible step for finding files in repo
         with:
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

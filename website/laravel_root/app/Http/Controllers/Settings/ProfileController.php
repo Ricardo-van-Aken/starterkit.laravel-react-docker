@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\User\ScheduleUserDeletionAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -18,8 +19,11 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
+        $user = $request->user();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail, // @phpstan-ignore-line
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -29,13 +33,17 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        # User is always present as this controller is behind auth middleware
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
         return to_route('profile.edit');
     }
@@ -43,21 +51,20 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, ScheduleUserDeletionAction $action): RedirectResponse
     {
         $request->validate([
             'password' => ['required', 'current_password'],
+            'force_delete_tenants' => ['nullable', 'boolean'],
         ]);
 
+        /** @var \App\Models\User $user - User is always present as this controller should be behind auth middleware */
         $user = $request->user();
 
-        Auth::logout();
+        $forceDelete = $request->boolean('force_delete_tenants');
 
-        $user->delete();
+        $action($user, $forceDelete);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
+        return redirect()->route('deletion.notice');
     }
 }

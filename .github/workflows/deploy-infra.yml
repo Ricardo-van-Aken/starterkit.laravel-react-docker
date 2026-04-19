@@ -34,7 +34,6 @@ env:
   TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
 
-  DOCKER_USER: ${{ vars.DOCKER_USER }}
   WORKSPACE: ${{ github.workspace }}
 
 jobs:
@@ -139,6 +138,7 @@ jobs:
     needs: terraform-apply
     if: github.event.inputs.action == 'apply'
     env:
+      DOCKER_USER: docker-runner
       DROPLET_IP: "${{ needs.terraform-apply.outputs.droplet_ipv4 }}"
       ANSIBLE_HOST_KEY_CHECKING: "True"
 

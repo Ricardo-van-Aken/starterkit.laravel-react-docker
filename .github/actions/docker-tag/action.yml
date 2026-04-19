@@ -1,0 +1,45 @@
+name: 'Docker Tag & Repo Sanitizer'
+description: 'Standardizes Docker Hub repository names and sanitizes branch names for safe use as Docker tags.'
+
+inputs:
+  branch_name:
+    description: 'The raw branch name'
+    required: true
+  docker_username:
+    description: 'Docker Hub username'
+    required: true
+  repo_name:
+    description: 'GitHub repository name'
+    required: false
+    default: ${{ github.event.repository.name }}
+
+outputs:
+  safe_tag:
+    description: 'The sanitized, Docker-safe branch tag'
+    value: ${{ steps.sanitize.outputs.safe_tag }}
+  image_repo:
+    description: 'The lowercased Docker repository path'
+    value: ${{ steps.sanitize.outputs.image_repo }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: sanitize
+      shell: bash
+      run: |
+        # 1. Sanitize the branch name (replace non-alphanumeric with hyphens and lowercase)
+        # Note: We use the input directly but handle empty cases if necessary
+        RAW_BRANCH="${{ inputs.branch_name }}"
+        SAFE_TAG=$(echo "$RAW_BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
+        
+        # 2. Construct and lowercase the image repository
+        IMAGE_REPO="${{ inputs.docker_username }}/${{ inputs.repo_name }}"
+        LOWER_REPO=$(echo "$IMAGE_REPO" | tr '[:upper:]' '[:lower:]')
+        
+        # 3. Export outputs
+        echo "safe_tag=${SAFE_TAG}" >> $GITHUB_OUTPUT
+        echo "image_repo=${LOWER_REPO}" >> $GITHUB_OUTPUT
+        
+        # Logging for debugging
+        echo "::debug::Sanitized Tag: $SAFE_TAG"
+        echo "::debug::Lowercase Repo: $LOWER_REPO"

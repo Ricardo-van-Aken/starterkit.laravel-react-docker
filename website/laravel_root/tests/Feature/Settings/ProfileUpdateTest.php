@@ -1,85 +1,255 @@
 <?php
 
+use App\Enums\TenantRoleName;
+use App\Models\Tenant;
 use App\Models\User;
 
-test('profile page is displayed', function () {
-    $user = User::factory()->create();
+/**
+ * @property \App\Models\Tenant $tenant
+ * @property \App\Models\User $user
+ */
 
-    $response = $this
-        ->actingAs($user)
-        ->get(route('profile.edit'));
-
-    $response->assertOk();
+beforeEach(function () {
+    /* --- Setup --- */
+    $this->user = User::factory()->create([
+        'name' => 'Test User Name',
+    ]);
 });
 
-test('profile information can be updated', function () {
+/**
+ * Helper to create another admin for the tenant.
+ */
+function createAnotherAdmin(Tenant $tenant): User
+{
     $user = User::factory()->create();
+    $user->tenants()->attach($tenant->id);
+    $user->assignTenantRole($tenant, TenantRoleName::Admin);
 
-    $response = $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+    return $user;
+}
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+/*
+|--------------------------------------------------------------------------
+| Profile Information
+|--------------------------------------------------------------------------
+*/
+describe('Profile Information', function () {
+    test('profile page is displayed', function () {
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->get(route('profile.edit'));
 
-    $user->refresh();
+        /* --- Assert HTTP response status --- */
+        $response->assertOk();
+    });
 
-    expect($user->name)->toBe('Test User');
-    expect($user->email)->toBe('test@example.com');
-    expect($user->email_verified_at)->toBeNull();
+    test('profile information can be updated', function () {
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->patch(route('profile.update'), [
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
+
+        /* --- Assert DB state --- */
+        $this->user->refresh();
+        expect($this->user->name)->toBe('Test User');
+        expect($this->user->email)->toBe('test@example.com');
+        expect($this->user->email_verified_at)->toBeNull();
+    });
+
+    test('email verification status is unchanged when the email address is unchanged', function () {
+        /* --- Setup --- */
+        $this->user->forceFill(['email_verified_at' => now()])->save();
+
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->patch(route('profile.update'), [
+                'name' => 'New Name',
+                'email' => $this->user->email,
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
+
+        /* --- Assert DB state --- */
+        expect($this->user->refresh()->email_verified_at)->not->toBeNull();
+    });
 });
 
-test('email verification status is unchanged when the email address is unchanged', function () {
-    $user = User::factory()->create();
+/*
+|--------------------------------------------------------------------------
+| Account Deletion
+|--------------------------------------------------------------------------
+*/
+describe('Account Deletion', function () {
+    test('user can schedule their account for deletion', function () {
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+            ]);
 
-    $response = $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
-            'name' => 'Test User',
-            'email' => $user->email,
-        ]);
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
+    });
 
-    expect($user->refresh()->email_verified_at)->not->toBeNull();
+    test('correct password must be provided to delete account', function () {
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'wrong-password',
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        $response->assertSessionHasErrors('password');
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
+
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
+    });
 });
 
-test('user can delete their account', function () {
-    $user = User::factory()->create();
+/*
+|--------------------------------------------------------------------------
+| Account Deletion Safeguards (Last Admin)
+|--------------------------------------------------------------------------
+*/
+describe('Account Deletion Safeguards', function () {
+    beforeEach(function () {
+        $this->tenant = Tenant::factory()->create();
+        $this->user->tenants()->attach($this->tenant->id);
+        $this->user->assignTenantRole($this->tenant, TenantRoleName::Admin);
+    });
 
-    $response = $this
-        ->actingAs($user)
-        ->delete(route('profile.destroy'), [
-            'password' => 'password',
-        ]);
+    test('last admin cannot delete their account without forcing tenant removal', function () {
+        /* --- Request --- */
+        $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+                'force_delete_tenants' => false,
+            ]);
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('home'));
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302); // Redirect back with errors
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
+        
+        /* --- Assert HTTP response message/error --- */
+        expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
 
-    $this->assertGuest();
-    expect($user->fresh())->toBeNull();
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
+    });
+
+    test('admin can schedule deletion if another active admin exists', function () {
+        /* --- Setup --- */
+        createAnotherAdmin($this->tenant);
+
+        /* --- Request --- */
+        $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
+
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
+    });
+
+    test('admin cannot schedule deletion if other admins are already scheduled for deletion', function () {
+        /* --- Setup --- */
+        $otherAdmin = createAnotherAdmin($this->tenant);
+        $otherAdmin->forceFill(['scheduled_for_deletion_at' => now()->addDays(10)])->save();
+
+        /* --- Request --- */
+        $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302); // Redirect back with errors
+        expect($response->getTargetUrl())->toBe(route('profile.edit'));
+        
+        /* --- Assert HTTP response message/error --- */
+        expect(session('errors')->get('error'))->toContain(__('tenant.last_admin_safeguard'));
+
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
+    });
+
+    test('admin can force delete account even if last admin', function () {
+        /* --- Request --- */
+        $response = $this->actingAs($this->user)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+                'force_delete_tenants' => true,
+            ]);
+
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('deletion.notice'));
+
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->not->toBeNull();
+    });
 });
 
-test('correct password must be provided to delete account', function () {
-    $user = User::factory()->create();
+/*
+|--------------------------------------------------------------------------
+| Account Restoration
+|--------------------------------------------------------------------------
+*/
+describe('Account Restoration', function () {
+    test('user can undo account deletion', function () {
+        /* --- Setup --- */
+        $this->user->forceFill(['scheduled_for_deletion_at' => now()->addDays(30)])->save();
 
-    $response = $this
-        ->actingAs($user)
-        ->from(route('profile.edit'))
-        ->delete(route('profile.destroy'), [
-            'password' => 'wrong-password',
-        ]);
+        /* --- Request --- */
+        $response = $this
+            ->actingAs($this->user)
+            ->post(route('deletion.restore'));
 
-    $response
-        ->assertSessionHasErrors('password')
-        ->assertRedirect(route('profile.edit'));
+        /* --- Assert HTTP response status --- */
+        expect($response->status())->toBe(302);
+        expect(session('errors'))->toBeNull();
+        expect($response->getTargetUrl())->toBe(route('dashboard'));
 
-    expect($user->fresh())->not->toBeNull();
+        /* --- Assert HTTP response message/error --- */
+        expect(session('status'))->toBe('Account restored successfully.');
+
+        /* --- Assert DB state --- */
+        expect($this->user->fresh()->scheduled_for_deletion_at)->toBeNull();
+    });
 });
