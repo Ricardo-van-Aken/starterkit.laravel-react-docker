@@ -58,6 +58,9 @@ jobs:
           set: |
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache
             *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+        env:
+          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
+          TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
 
   deploy-builds:
     runs-on: ubuntu-latest
