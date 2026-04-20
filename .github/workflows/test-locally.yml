@@ -14,38 +14,6 @@ jobs:
   build-images:
     name: Build docker images
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - name: laravel-app
-            context: website/services/laravel
-            file: website/services/laravel/Dockerfile
-            target: volume-dev
-            tag: laravel-app
-          - name: laravel-scheduler
-            context: website/services/laravel
-            file: website/services/laravel/Dockerfile
-            target: scheduler
-            tag: laravel-scheduler
-            build-args: SCHEDULER_BASE=volume-dev
-          - name: nginx
-            context: website/services/nginx
-            file: website/services/nginx/Dockerfile
-            tag: website-nginx
-          - name: redis
-            context: website/services/redis
-            file: website/services/redis/Dockerfile
-            tag: website-redis
-          - name: mysql-db
-            context: website/services/mysqldb
-            file: website/services/mysqldb/Dockerfile
-            tag: mysql-db
-          - name: cert-local
-            context: website/services/certlocal
-            file: website/services/certlocal/Dockerfile
-            tag: cert-local
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,20 +34,57 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and Push ${{ matrix.image.tag }} image
-        uses: docker/build-push-action@v5
+      - name: Build and Push with Docker Bake
+        uses: docker/bake-action@v7
         with:
-          context: ${{ matrix.image.context }}
-          file: ${{ matrix.image.file }}
-          target: ${{ matrix.image.target }}
-          build-args: ${{ matrix.image.build-args }}
-          tags: ${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
           push: true
-          load: false
-          cache-from: |
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.main.cache
-          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+          source: ./website
+          files: |
+            docker-compose.yml
+          targets: |
+            app
+            scheduler
+            nginx
+            redis
+            mysql_db
+            cert_local
+          set: |
+            # Target overrides for the test environment
+            app.target=volume-dev
+            scheduler.args.SCHEDULER_BASE=volume-dev
+
+            # Run-specific tags for unique identification during tests
+            app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
+            scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ env.RUN_ID }}
+            nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ env.RUN_ID }}
+            redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ env.RUN_ID }}
+            mysql_db.tags=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ env.RUN_ID }}
+            cert_local.tags=${{ steps.vars.outputs.image_repo }}:cert-local.${{ env.RUN_ID }}
+
+            # Cache pooling from branch and main
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+            app.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.main.cache
+            scheduler.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.main.cache
+            nginx.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.main.cache
+            redis.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache
+            mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.main.cache
+            mysql_db.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache
+            cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.main.cache
+            cert_local.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
   test:
     name: Run Laravel tests
