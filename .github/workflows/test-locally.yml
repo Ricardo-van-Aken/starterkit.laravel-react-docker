@@ -49,11 +49,9 @@ jobs:
             mysql_db
             cert_local
           set: |
-            # Target overrides for the test environment
             app.target=volume-dev
             scheduler.args.SCHEDULER_BASE=volume-dev
 
-            # Run-specific tags for unique identification during tests
             app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
             scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ env.RUN_ID }}
             nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ env.RUN_ID }}
@@ -61,27 +59,26 @@ jobs:
             mysql_db.tags=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ env.RUN_ID }}
             cert_local.tags=${{ steps.vars.outputs.image_repo }}:cert-local.${{ env.RUN_ID }}
 
-            # Cache pooling from branch and main
             app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
             app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
             app.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
+            
             scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache
             scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.main.cache
             scheduler.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
+            
             nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache
             nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.main.cache
             nginx.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
+            
             redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache
             redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.main.cache
             redis.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
+            
             mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache
             mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.main.cache
             mysql_db.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
+            
             cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache
             cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.main.cache
             cert_local.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
