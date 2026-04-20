@@ -19,12 +19,14 @@ on:
           - production
 
 env:
-  ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
+  ENVIRONMENT: ${{ github.event.inputs.environment || github.ref_name }}
 
 jobs:
   build-images:
     name: Build and Push All Images
     runs-on: ubuntu-latest
+    env:
+      APP_TARGET: ${{ fromJSON('{"dev": "volume-dev", "staging": "volume-dev", "production": "volume-prod"}')[env.ENVIRONMENT] }}
 
     steps:
       - name: Checkout code
@@ -86,7 +88,8 @@ jobs:
             redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
             certbot.tags=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}
 
-            scheduler.args.SCHEDULER_BASE=volume-dev
+            app.target=${{ env.APP_TARGET }}
+            scheduler.args.SCHEDULER_BASE=${{ env.APP_TARGET }}
         env:
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
           TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
