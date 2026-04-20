@@ -10,7 +10,8 @@ ARG SCHEDULER_BASE=volume-prod
 FROM php@sha256:9158b5d619387f3aeb903281228edfce08cab963e1591158532cf0271d3e61cc AS runtime-base
 
 # Install runtime system dependencies
-RUN apk add --no-cache \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
+    apk add \
     libpng \
     libjpeg-turbo \
     mariadb-client \
@@ -18,7 +19,8 @@ RUN apk add --no-cache \
     bash
 
 # Install PHP extensions
-RUN apk add --no-cache --virtual .build-deps \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
+    apk add --virtual .build-deps \
     $PHPIZE_DEPS \
     libpng-dev \
     libjpeg-turbo-dev \
@@ -71,7 +73,8 @@ RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           
 FROM runtime-base AS build-tools
 
 # Install node/npm, git, unzip, and composer for local development and runtime tasks
-RUN apk add --no-cache \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
+    apk add \
     git \
     unzip \
     nodejs \
@@ -108,12 +111,14 @@ WORKDIR /app
 FROM backend-deps-base AS backend-deps-prod
 COPY laravel_root/composer.json laravel_root/composer.lock ./
 # We dont run scripts, because these depend on application files which are not present in this stage.
-RUN composer install --no-dev --no-scripts
+RUN --mount=type=cache,id=composer-cache,target=/root/.composer/cache \
+    composer install --no-dev --no-scripts
 
 FROM backend-deps-base AS backend-deps-dev
 COPY laravel_root/composer.json laravel_root/composer.lock ./
 # We dont run scripts, because these depend on application files which are not present in this stage.
-RUN composer install --no-scripts
+RUN --mount=type=cache,id=composer-cache,target=/root/.composer/cache \
+    composer install --no-scripts
 
 
 #################################################
@@ -125,8 +130,7 @@ RUN composer install --no-scripts
 FROM build-tools AS frontend-deps
 WORKDIR /app
 COPY laravel_root/package.json laravel_root/package-lock.json ./
-RUN npm ci
-
+RUN --mount=type=cache,id=npm-cache,target=/root/.npm npm ci
 
 #################################################
 ###                                           ###
@@ -141,25 +145,23 @@ FROM builder-base AS builder-prod
 # Import pre-downloaded dependencies
 COPY --from=backend-deps-prod /app/vendor ./vendor
 COPY --from=frontend-deps /app/node_modules ./node_modules
-# Copy full application context
+# Copy full application context for compilation (Wayfinder needs the app context and vendor)
 COPY laravel_root/ .
-# Compilation (Wayfinder needs the app context and vendor)
-RUN npx vite build
+RUN --mount=type=cache,id=vite-cache,target=/var/www/node_modules/.vite \
+    npx vite build
 # Assembly & Optimization
-RUN composer run-script post-autoload-dump && \
-    composer dump-autoload --optimize
+RUN composer dump-autoload --optimize
 
 FROM builder-base AS builder-dev
 # Import pre-downloaded dependencies
 COPY --from=backend-deps-dev /app/vendor ./vendor
 COPY --from=frontend-deps /app/node_modules ./node_modules
-# Copy full application context
+# Copy full application context for compilation (Wayfinder needs the app context and vendor)
 COPY laravel_root/ .
-# Compilation (Wayfinder needs the full app context)
-RUN npx vite build --mode development
+RUN --mount=type=cache,id=vite-cache,target=/var/www/node_modules/.vite \
+    npx vite build
 # Assembly & Optimization
-RUN composer run-script post-autoload-dump && \
-    composer dump-autoload --optimize
+RUN composer dump-autoload --optimize
 
 
 #################################################

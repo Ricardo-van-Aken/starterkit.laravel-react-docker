@@ -1,10 +1,38 @@
+# --- Laravel Root Basics ---
+laravel_root/.git
+laravel_root/.gitignore
 laravel_root/node_modules
 laravel_root/vendor
+laravel_root/.env
+laravel_root/.env.*
+
+# --- Storage & Cache (Ignore contents, keep folders) ---
 laravel_root/storage/logs/*
 laravel_root/storage/framework/cache/*
 laravel_root/storage/framework/sessions/*
 laravel_root/storage/framework/views/*
-laravel_root/.env
-laravel_root/.env.*
-laravel_root/.git
-laravel_root/.gitignore
+laravel_root/storage/pail/*
+laravel_root/bootstrap/cache/*
+laravel_root/bootstrap/ssr/*
+
+# --- Build Artifacts & Testing ---
+laravel_root/public/build
+laravel_root/public/hot
+laravel_root/public/storage
+laravel_root/.phpunit.cache
+laravel_root/.phpunit.result.cache
+laravel_root/database/*.sqlite*
+
+# --- Local Dev & IDEs (Synced from .gitignore) ---
+laravel_root/.idea
+laravel_root/.vscode
+laravel_root/.zed
+laravel_root/.fleet
+laravel_root/.nova
+laravel_root/.phpactor.json
+laravel_root/Homestead.json
+laravel_root/Homestead.yaml
+
+# --- System Garbage ---
+**/.DS_Store
+**/Thumbs.db

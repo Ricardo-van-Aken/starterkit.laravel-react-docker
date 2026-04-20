@@ -153,7 +153,12 @@ prepare_images() {
       : > "$final_log"
 
       # Build while silencing terminal and capturing raw logs
-      if ! docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}" --env-file "${env_file}" --profile "${profile}" build --parallel > "$raw_log" 2>&1; then
+      echo -e "${YELLOW}Building with Docker Bake (logging to $final_log)...${RESET}"
+      
+      # Export env file variables for Bake interpolation
+      set -o allexport; source "${env_file}"; set +o allexport
+      
+      if ! docker buildx bake -f "${COMPOSE_FILE}" --load > "$raw_log" 2>&1; then
         err "Build failed. Consult \"$raw_log\" for details."
         exit 1
       fi
@@ -163,7 +168,12 @@ prepare_images() {
       rm "$raw_log"
     else
       # Standard interactive build in terminal
-      if ! docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}" --env-file "${env_file}" --profile "${profile}" build --parallel; then
+      echo -e "${YELLOW}Building with Docker Bake...${RESET}"
+      
+      # Export env file variables for Bake interpolation
+      set -o allexport; source "${env_file}"; set +o allexport
+      
+      if ! docker buildx bake -f "${COMPOSE_FILE}" --load; then
         err "Build failed."
         exit 1
       fi
@@ -249,13 +259,19 @@ main() {
 
   local -r start_time=$(date +%s)
   
-  # Execution flow.
+  # Start container cleanup in the background.
+  cleanup_previous "${env_file}" &
+  local -r cleanup_pid=$!
+
+  # Build or pull images.
   local -r build_start=$(date +%s)
   prepare_images "${selected_mode}" "${env_file}" "${profile}" "${log_to_file}"
   local -r build_end=$(date +%s)
   local -r build_duration=$((build_end - build_start))
 
-  cleanup_previous "${env_file}"
+  # Step 3: Wait for cleanup to finish before starting new containers.
+  wait "${cleanup_pid}"
+  
   deploy "${selected_mode}" "${env_file}" "${profile}"
   
   local -r end_time=$(date +%s)

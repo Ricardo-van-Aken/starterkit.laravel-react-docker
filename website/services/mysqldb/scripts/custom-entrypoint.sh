@@ -26,7 +26,7 @@ chown -R mysql:mysql /mysql-certs
   --ssl=1 \
   --ssl-ca=/mysql-certs/ca.pem \
   --ssl-cert=/mysql-certs/server-cert.pem \
-  --ssl-key=/mysql-certs/server-key.pem \
+  --ssl-key=/mysql-certs/server-key.pem
 
 # Remove the init-cloner.sql file to ensure sensitive data is unrecoverable
 # rm -f /docker-entrypoint-initdb.d/init-cloner.sql
