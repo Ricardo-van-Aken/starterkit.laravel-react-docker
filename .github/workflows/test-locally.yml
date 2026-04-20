@@ -54,7 +54,7 @@ jobs:
         id: vars
         uses: ./.github/actions/docker-tag
         with:
-          branch_name: ${{ github.head_ref }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
@@ -100,7 +100,7 @@ jobs:
         id: vars
         uses: ./.github/actions/docker-tag
         with:
-          branch_name: ${{ github.head_ref }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Pull Docker Compose images needed to mock production
