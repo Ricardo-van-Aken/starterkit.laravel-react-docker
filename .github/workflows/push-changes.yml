@@ -36,6 +36,9 @@ jobs:
             *)            echo "::error::Invalid environment: ${{ env.ENVIRONMENT }}. Allowed: dev, staging, production."; exit 1 ;;
           esac
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Generate Docker Tags
         id: vars
         uses: ./.github/actions/docker-tag
