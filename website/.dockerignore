@@ -1,14 +1,14 @@
-# Ignore everything by default
-*
-
-# Allow the application and the docker configuration
-!laravel_root/
-!docker/
-
-# Re-ignore dependencies and local artifacts within those folders
-laravel_root/node_modules/
-laravel_root/vendor/
-laravel_root/public/build/
-laravel_root/.env*
-laravel_root/.git/
-laravel_root/.github/
+.git
+.gitignore
+node_modules
+vendor
+storage
+.env
+.env.*
+laravel_root/node_modules
+laravel_root/vendor
+laravel_root/storage
+laravel_root/.env
+laravel_root/.env.*
+laravel_root/.git
+laravel_root/.github
