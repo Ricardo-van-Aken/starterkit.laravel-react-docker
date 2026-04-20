@@ -6,7 +6,8 @@ ARG SCHEDULER_BASE=volume-prod
 ###   Stage: Runtime Base (Minimal)           ###
 ###                                           ###
 #################################################
-FROM php:${PHP_VERSION}-fpm-alpine AS runtime-base
+# Docker Official Image. php:8.3-fpm-alpine - Apr 16, 2026 at 11:56 am
+FROM php@sha256:9158b5d619387f3aeb903281228edfce08cab963e1591158532cf0271d3e61cc AS runtime-base
 
 # Install runtime system dependencies
 RUN apk add --no-cache \
@@ -112,8 +113,8 @@ RUN composer install --no-scripts
 ###   Frontend: NPM Dependencies              ###
 ###                                           ###
 #################################################
-# Use official minimal node image for dependency download only
-FROM node:20-alpine AS frontend-deps
+# Docker Official Image. node:25-alpine - Apr 16, 2026 at 1:40 am
+FROM node@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS frontend-deps
 WORKDIR /app
 COPY laravel_root/package.json laravel_root/package-lock.json ./
 RUN npm ci
@@ -126,7 +127,8 @@ RUN npm ci
 #################################################
 # Unified builder for Vite assets and Composer optimization
 FROM runtime-base AS builder-base
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Docker Official Image. composer:2.9.7 - Apr 17, 2026 at 8:13 pm
+COPY --from=composer@sha256:dc292c5c0f95f526b051d4c341bf08e7e2b18504c74625e3203d7f123050e318 /usr/bin/composer /usr/bin/composer
 RUN apk add --no-cache nodejs npm
 WORKDIR /var/www
 
