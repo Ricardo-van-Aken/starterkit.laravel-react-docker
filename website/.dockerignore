@@ -17,4 +17,5 @@ laravel_root/storage/framework/views/*
 laravel_root/.env
 laravel_root/.env.*
 laravel_root/.git
+laravel_root/.gitignore
 laravel_root/.github
