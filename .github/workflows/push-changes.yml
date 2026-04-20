@@ -59,7 +59,7 @@ jobs:
         uses: docker/bake-action@v7
         with:
           push: true
-          source: ./website/docker
+          source: ./website
           files: |
             docker-compose.yml
           targets: |

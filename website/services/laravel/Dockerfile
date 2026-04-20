@@ -46,7 +46,7 @@ RUN addgroup -g 1003 shared && \
 WORKDIR /var/www
 
 # --- Scripts for loading in Docker secrets and cloning/testing the laravel database --- #
-ARG DOCKERFILE_DIR=docker/img_laravel
+ARG DOCKERFILE_DIR=.
 
 # Copy scripts
 COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/

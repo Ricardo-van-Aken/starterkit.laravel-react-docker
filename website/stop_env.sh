@@ -16,7 +16,7 @@ readonly RESET="\033[0m"
 
 # Project metadata
 readonly PROJECT_NAME="laravel-starterkit"
-readonly COMPOSE_FILE="docker/docker-compose.yml"
+readonly COMPOSE_FILE="docker-compose.yml"
 
 # Shell safety options
 set -o errexit

@@ -3,8 +3,7 @@ services:
   app:
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
-      context: ../
-      dockerfile: docker/img_laravel/Dockerfile.laravel
+      context: ./services/laravel
       target: ${LARAVEL_VARIANT:-bind-mount}
       args:
         WWW_UID: ${LOCAL_UID:-82}
@@ -67,8 +66,7 @@ services:
   scheduler:
     image: ${IMAGE_REPO}:laravel-scheduler.${TAG_ADDITION}
     build:
-      context: ../
-      dockerfile: docker/img_laravel/Dockerfile.laravel
+      context: ./services/laravel
       target: scheduler
       args:
         WWW_UID: ${LOCAL_UID:-82}
@@ -97,8 +95,7 @@ services:
   nginx:
     image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
     build:
-      context: ./img_nginx
-      dockerfile: Dockerfile.nginx
+      context: ./services/nginx
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -120,8 +117,7 @@ services:
   redis:
     image: ${IMAGE_REPO}:website-redis.${TAG_ADDITION}
     build:
-      context: ./img_redis
-      dockerfile: Dockerfile.redis
+      context: ./services/redis
     container_name: redis
     restart: unless-stopped
     secrets:
@@ -135,8 +131,7 @@ services:
     image: ${IMAGE_REPO}:website-certbot.${TAG_ADDITION}
     container_name: certbot
     build:
-      context: ./img_certbot
-      dockerfile: Dockerfile.certbot
+      context: ./services/certbot
     depends_on:
       - nginx
     environment:
@@ -152,8 +147,7 @@ services:
   mysql_db:
     image: ${IMAGE_REPO}:mysql-db.${TAG_ADDITION}
     build:
-      context: ./img_mysqldb
-      dockerfile: Dockerfile.mysql
+      context: ./services/mysqldb
     container_name: mysql_db
     restart: unless-stopped
     secrets:
@@ -181,8 +175,7 @@ services:
   cert_local:
     image: ${IMAGE_REPO}:cert-local.${TAG_ADDITION}
     build:
-      context: ./img_certlocal
-      dockerfile: Dockerfile.cert-local
+      context: ./services/certlocal
     container_name: cert_local
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
@@ -261,24 +254,24 @@ volumes:
 
 secrets:
   mysql_testing_db_password:
-    file: ./secrets/mysql_testing_db_password
+    file: ./docker/secrets/mysql_testing_db_password
   mysql_testing_db_username:
-    file: ./secrets/mysql_testing_db_username
+    file: ./docker/secrets/mysql_testing_db_username
   mysql_testing_db_database:
-    file: ./secrets/mysql_testing_db_database
+    file: ./docker/secrets/mysql_testing_db_database
   mysql_app_db_password:
-    file: ./secrets/mysql_app_db_password
+    file: ./docker/secrets/mysql_app_db_password
   mysql_app_db_username:
-    file: ./secrets/mysql_app_db_username
+    file: ./docker/secrets/mysql_app_db_username
   mysql_app_db_database:
-    file: ./secrets/mysql_app_db_database
+    file: ./docker/secrets/mysql_app_db_database
   mysql_app_db_ssl:
-    file: ./secrets/mysql_app_db_ssl
+    file: ./docker/secrets/mysql_app_db_ssl
   mysql_app_db_port:
-    file: ./secrets/mysql_app_db_port
+    file: ./docker/secrets/mysql_app_db_port
   mysql_app_db_host:
-    file: ./secrets/mysql_app_db_host
+    file: ./docker/secrets/mysql_app_db_host
   mysql_db_rootpass:
-    file: ./secrets/mysql_db_rootpass
+    file: ./docker/secrets/mysql_db_rootpass
   redis_password:
-    file: ./secrets/redis_password
+    file: ./docker/secrets/redis_password

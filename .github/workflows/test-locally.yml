@@ -19,31 +19,31 @@ jobs:
       matrix:
         image:
           - name: laravel-app
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
+            context: website/services/laravel
+            file: website/services/laravel/Dockerfile
             target: volume-dev
             tag: laravel-app
           - name: laravel-scheduler
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
+            context: website/services/laravel
+            file: website/services/laravel/Dockerfile
             target: scheduler
             tag: laravel-scheduler
             build-args: SCHEDULER_BASE=volume-dev
           - name: nginx
-            context: website/docker/img_nginx
-            file: website/docker/img_nginx/Dockerfile.nginx
+            context: website/services/nginx
+            file: website/services/nginx/Dockerfile
             tag: website-nginx
           - name: redis
-            context: website/docker/img_redis
-            file: website/docker/img_redis/Dockerfile.redis
+            context: website/services/redis
+            file: website/services/redis/Dockerfile
             tag: website-redis
           - name: mysql-db
-            context: website/docker/img_mysqldb
-            file: website/docker/img_mysqldb/Dockerfile.mysql
+            context: website/services/mysqldb
+            file: website/services/mysqldb/Dockerfile
             tag: mysql-db
           - name: cert-local
-            context: website/docker/img_certlocal
-            file: website/docker/img_certlocal/Dockerfile.cert-local
+            context: website/services/certlocal
+            file: website/services/certlocal/Dockerfile
             tag: cert-local
     
     steps:
@@ -109,7 +109,7 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
+          docker compose -f docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
 
       - name: Start Docker services to mock production
         working-directory: website
@@ -117,7 +117,7 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
+          docker compose -f docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
         run: |
@@ -130,7 +130,7 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
+          docker compose -f docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
 
   static-analysis:
     name: Run static analysis
