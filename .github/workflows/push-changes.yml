@@ -68,6 +68,7 @@ jobs:
             scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}
             nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}
             redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
+            certbot.tags=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}
 
             scheduler.args.SCHEDULER_BASE=volume-dev
         env:
