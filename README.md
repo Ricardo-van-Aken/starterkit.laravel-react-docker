@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Test Status](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml/badge.svg)](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml)
+[![Test Status](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml/badge.svg?branch=main)](https://github.com/Ricardo-van-Aken/starterkit.laravel-react-docker/actions/workflows/test-locally.yml)
 [![Laravel 12](https://img.shields.io/badge/laravel-12.x-ff2d20?logo=laravel)](https://packagist.org/packages/laravel/framework)
 [![React 19](https://img.shields.io/badge/react-19-61dafb?logo=react)](https://react.dev)
 [![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com)
