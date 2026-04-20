@@ -63,12 +63,12 @@ RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           
 
 #################################################
 ###                                           ###
-###   Target: bind-mount                      ###
+###   build-tools                             ###
 ###                                           ###
 #################################################
 # Fast tool-rich base for local development with mounting of host system files. Doesnt do any building of
 # assets in the image build.
-FROM runtime-base AS bind-mount
+FROM runtime-base AS build-tools
 
 # Install node/npm, git, unzip, and composer for local development and runtime tasks
 RUN apk add --no-cache \
@@ -77,8 +77,18 @@ RUN apk add --no-cache \
     nodejs \
     npm
 
-# Get Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Docker Official Image. composer:2.9.7 - Apr 17, 2026 at 8:13 pm
+COPY --from=composer@sha256:dc292c5c0f95f526b051d4c341bf08e7e2b18504c74625e3203d7f123050e318 /usr/bin/composer /usr/bin/composer
+
+
+#################################################
+###                                           ###
+###   Target: bind-mount                      ###
+###                                           ###
+#################################################
+# Fast tool-rich base for local development with mounting of host system files. Doesnt do any building of
+# assets in the image build.
+FROM build-tools AS bind-mount
 
 USER www-data
 EXPOSE 9000
@@ -92,9 +102,7 @@ EXPOSE 9000
 # Since composer checks if system dependencies for the packages are met during installation, we use our app
 # image base as the base image. This ensures the final app image has the same installed dependencies that
 # composer checks for.
-FROM runtime-base AS backend-deps-base
-RUN apk add --no-cache git unzip
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+FROM build-tools AS backend-deps-base
 WORKDIR /app
 
 FROM backend-deps-base AS backend-deps-prod
@@ -114,7 +122,7 @@ RUN composer install --no-scripts
 ###                                           ###
 #################################################
 # Docker Official Image. node:25-alpine - Apr 16, 2026 at 1:40 am
-FROM node@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS frontend-deps
+FROM build-tools AS frontend-deps
 WORKDIR /app
 COPY laravel_root/package.json laravel_root/package-lock.json ./
 RUN npm ci
@@ -126,10 +134,7 @@ RUN npm ci
 ###                                           ###
 #################################################
 # Unified builder for Vite assets and Composer optimization
-FROM runtime-base AS builder-base
-# Docker Official Image. composer:2.9.7 - Apr 17, 2026 at 8:13 pm
-COPY --from=composer@sha256:dc292c5c0f95f526b051d4c341bf08e7e2b18504c74625e3203d7f123050e318 /usr/bin/composer /usr/bin/composer
-RUN apk add --no-cache nodejs npm
+FROM build-tools AS builder-base
 WORKDIR /var/www
 
 FROM builder-base AS builder-prod
