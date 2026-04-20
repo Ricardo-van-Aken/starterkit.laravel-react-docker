@@ -50,9 +50,9 @@ jobs:
         uses: docker/bake-action@v7
         with:
           push: true
-          source: ./website
+          source: ./website/docker
           files: |
-            docker/docker-compose.yml
+            docker-compose.yml
           targets: |
             app
             scheduler
