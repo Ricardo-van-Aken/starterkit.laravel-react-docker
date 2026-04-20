@@ -62,17 +62,44 @@ jobs:
           source: ./website/docker
           files: |
             docker-compose.yml
-            docker-bake.hcl
           targets: |
             app
             scheduler
             nginx
             redis
             certbot
+          set: |
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+            app.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.main.cache
+            scheduler.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.main.cache
+            nginx.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.main.cache
+            redis.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            certbot.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            certbot.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.main.cache
+            certbot.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}
+            scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}
+            nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}
+            redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
+            certbot.tags=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}
+
+            app.target=${{ steps.build_target.outputs.target }}
+            scheduler.args.SCHEDULER_BASE=${{ steps.build_target.outputs.target }}
         env:
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
           TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
-          LARAVEL_VARIANT: ${{ steps.build_target.outputs.target }}
 
   deploy-builds:
     runs-on: ubuntu-latest
