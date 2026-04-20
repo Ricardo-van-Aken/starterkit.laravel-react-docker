@@ -53,13 +53,25 @@ jobs:
           workdir: website
           files: |
             docker/docker-compose.yml
-          env-files: |
-            ${{ format('docker/.env.{0}', env.ENVIRONMENT) }}
-          targets: app, scheduler, nginx, redis, certbot
+          targets: |
+            app
+            scheduler
+            nginx
+            redis
+            certbot
           set: |
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache
             *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.main.cache
             *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            laravel-app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}
+            laravel-scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}
+            nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}
+            redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
+            mysql-db.tags=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}
+            cert-local.tags=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}
+
+            laravel-scheduler.args.SCHEDULER_BASE=volume-dev
         env:
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
           TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
