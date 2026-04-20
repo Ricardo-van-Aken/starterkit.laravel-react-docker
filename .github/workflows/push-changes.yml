@@ -25,10 +25,17 @@ jobs:
   build-images:
     name: Build and Push All Images
     runs-on: ubuntu-latest
-    env:
-      APP_TARGET: ${{ fromJSON('{"dev": "volume-dev", "staging": "volume-dev", "production": "volume-prod"}')[env.ENVIRONMENT] }}
-
     steps:
+      - name: Resolve App Image Build Target
+        id: build_target
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            "production") echo "target=volume-prod" >> $GITHUB_OUTPUT ;;
+            "staging")    echo "target=volume-dev" >> $GITHUB_OUTPUT ;;
+            "dev")        echo "target=volume-dev" >> $GITHUB_OUTPUT ;;
+            *)            echo "::error::Invalid environment: ${{ env.ENVIRONMENT }}. Allowed: dev, staging, production."; exit 1 ;;
+          esac
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -88,8 +95,8 @@ jobs:
             redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
             certbot.tags=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}
 
-            app.target=${{ env.APP_TARGET }}
-            scheduler.args.SCHEDULER_BASE=${{ env.APP_TARGET }}
+            app.target=${{ steps.build_target.outputs.target }}
+            scheduler.args.SCHEDULER_BASE=${{ steps.build_target.outputs.target }}
         env:
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
           TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
