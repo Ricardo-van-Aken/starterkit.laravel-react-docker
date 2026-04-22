@@ -104,16 +104,16 @@ jobs:
 
       - name: Run Laravel tests on mock production in parallel
         run: |
-          docker exec -u www-data laravel_app sh -c 'bash /usr/local/bin/test.sh --parallel'
+          docker exec -u www-data app sh -c 'bash /usr/local/bin/test.sh --parallel'
 
       - name: Run PHPStan
         run: |
           docker run --rm \
-            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:app.${{ env.RUN_ID }} \
             php vendor/bin/phpstan analyse --memory-limit=2G
  
       - name: Run Architecture Tests
         run: |
           docker run --rm \
-            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:app.${{ env.RUN_ID }} \
             php vendor/bin/pest tests/Architecture
