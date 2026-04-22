@@ -100,7 +100,7 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
+          docker compose -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local --profile local up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
         run: |
