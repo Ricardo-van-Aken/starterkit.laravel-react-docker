@@ -1,0 +1,5 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      target: dev

@@ -1,84 +1,73 @@
+x-common-infra-dependencies: &common-infra-dependencies
+  redis:
+    condition: service_started
+  mysql_db:
+    condition: service_healthy
+    required: false
+
+x-common-laravel-config: &common-laravel-config
+  restart: unless-stopped
+  secrets:
+    - mysql_app_db_database
+    - mysql_app_db_username
+    - mysql_app_db_password
+    - mysql_app_db_ssl
+    - mysql_app_db_host
+    - mysql_app_db_port
+    - mysql_testing_db_database
+    - mysql_testing_db_username
+    - mysql_testing_db_password
+    - redis_password
+  depends_on: *common-infra-dependencies
+  command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
+
+# Consolidated Volume Configuration for Laravel
+x-common-laravel-volumes: &common-laravel-volumes
+  volumes:
+    - ${ENV_FILE:-.env}:/var/www/.env
+    - app_files:/var/www
+    - mysql-certs:/mysql-certs:ro
+
 services:
   # Laravel Application
   app:
+    <<: [*common-laravel-config, *common-laravel-volumes]
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
       context: ./services/laravel
-      target: ${LARAVEL_VARIANT:-bind-mount}
+      target: production
       args:
-        WWW_UID: ${LOCAL_UID:-82}
-        WWW_GID: ${LOCAL_GID:-82}
-    container_name: laravel_app
-    restart: unless-stopped
-    volumes:
-      - ${ENV_FILE:-.env}:/var/www/.env     # Bind mount: Application environment variables
-      - ${APP_FILES_DIR:-app_files}:/var/www     # Volume or Bind mount: Application files to be served by nginx
-      - mysql-certs:/mysql-certs:ro
-    secrets:
-      - mysql_app_db_database
-      - mysql_app_db_username
-      - mysql_app_db_password
-      - mysql_app_db_ssl
-      - mysql_app_db_host
-      - mysql_app_db_port
-      - mysql_testing_db_database
-      - mysql_testing_db_username
-      - mysql_testing_db_password
-      - redis_password
-    depends_on:
-      redis:
-        condition: service_started
-      mysql_db:
-        condition: service_healthy
-        required: false
-    command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+        - LOCAL_UID=${LOCAL_UID}
+        - LOCAL_GID=${LOCAL_GID}
+    profiles: ["all", "local", "remote"]
 
   # Laravel Queue Worker
   queue_worker:
+    <<: [*common-laravel-config, *common-laravel-volumes]
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
-    container_name: laravel_queue_worker
     restart: unless-stopped
-    volumes:
-      - ${ENV_FILE:-.env}:/var/www/.env     # Bind mount: Application environment variables
-      - ${APP_FILES_DIR:-app_files}:/var/www     # Volume or Bind mount: Application files to be served by nginx
-      - mysql-certs:/mysql-certs:ro
-    secrets:
-      - mysql_app_db_database
-      - mysql_app_db_username
-      - mysql_app_db_password
-      - mysql_app_db_ssl
-      - mysql_app_db_host
-      - mysql_app_db_port
-      - redis_password
     depends_on:
-      redis:
+      <<: *common-infra-dependencies
+      app:
         condition: service_started
-      mysql_db:
-        condition: service_healthy
-        required: false
     command: ["/bin/sh", "-c", ". /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-redis-password.sh; exec php artisan queue:work --tries=3 --timeout=90"]
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+    profiles: ["all", "local", "remote"]
 
   # Laravel Scheduler
   scheduler:
+    <<: *common-laravel-volumes
     image: ${IMAGE_REPO}:laravel-scheduler.${TAG_ADDITION}
     build:
       context: ./services/laravel
       target: scheduler
       args:
-        WWW_UID: ${LOCAL_UID:-82}
-        WWW_GID: ${LOCAL_GID:-82}
-        SCHEDULER_BASE: ${LARAVEL_VARIANT:-volume-prod}
-    container_name: laravel_scheduler
-    restart: unless-stopped
-    volumes:
-      - ${ENV_FILE:-.env}:/var/www/.env
-      - ${APP_FILES_DIR:-app_files}:/var/www
+        # TODO: Investigate if this causes a double build of the production stage.
+        #       We might want to replace it with the name of the image in the app container.
+        SCHEDULER_BASE: ${LARAVEL_VARIANT:-production}
     depends_on:
-      - redis
-      - mysql_db
-      - app
+      <<: *common-infra-dependencies
+      app:
+        condition: service_started
     secrets:
       - mysql_app_db_database
       - mysql_app_db_username
@@ -87,31 +76,28 @@ services:
       - mysql_app_db_host
       - mysql_app_db_port
       - redis_password
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+    profiles: ["all", "local", "remote"]
 
   # Nginx Web Server
   nginx:
     image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
     build:
       context: ./services/nginx
-    container_name: nginx
     restart: unless-stopped
     ports:
       - "80:80"     # HTTP
       - "443:443"   # HTTPS
     volumes:
-      - ${APP_FILES_DIR:-app_files}:/var/www           # Volume or Bind mount: Application files to be served by nginx
-      - certbot_files:/var/www/certbot/:ro  # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - certbot_certs:/etc/letsencrypt/:ro    # Volume: Https certificates from certs container
+      - app_files:/var/www
+      - certbot_files:/var/www/certbot/:ro
+      - certbot_certs:/etc/letsencrypt/:ro
     depends_on:
-      app:
-        condition: service_started
-        required: false
+      app: { condition: service_started, required: false }
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+    profiles: ["all", "local", "remote"]
 
-  # Redis for sessions and caching
+  # Redis
   redis:
     image: ${IMAGE_REPO}:website-redis.${TAG_ADDITION}
     build:
@@ -122,24 +108,24 @@ services:
       - redis_password
     environment:
       REDIS_PASS_FILE: /run/secrets/redis_password
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod", "staging", "production"]
+    profiles: ["all", "local", "remote"]
 
-  # Certbot for generating real SSL certificates
+  # Certbot
   certbot:
     image: ${IMAGE_REPO}:website-certbot.${TAG_ADDITION}
     container_name: certbot
     build:
       context: ./services/certbot
     depends_on:
-      - nginx
+      nginx: { condition: service_started, required: false }
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
       - DOMAIN_EMAIL=${DOMAIN_EMAIL}
     restart: no
     volumes:
-      - certbot_files:/var/www/certbot/:rw # Volume: Certbot files to be served by nginx (for confirming domain ownership)
-      - certbot_certs:/etc/letsencrypt/:rw # Volume: Https certificates from Certbot
-    profiles: ["all", "staging", "production"]
+      - certbot_files:/var/www/certbot/:rw
+      - certbot_certs:/etc/letsencrypt/:rw
+    profiles: ["all", "remote"]
 
   # MySQL Database
   mysql_db:
@@ -167,8 +153,8 @@ services:
       timeout: 5s
       retries: 55
     command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod"]
-  
+    profiles: ["all", "local"]
+
   # Local Certificate Generation Service
   cert_local:
     image: ${IMAGE_REPO}:cert-local.${TAG_ADDITION}
@@ -178,19 +164,18 @@ services:
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
     volumes:
-      - certbot_certs:/etc/letsencrypt/:rw  # Bind-mount: Share the generated SSL certificates with nginx
-    profiles: ["all", "local-bindmount", "local-volume", "mock-prod"]
+      - certbot_certs:/etc/letsencrypt/:rw
+    profiles: ["all", "local"]
 
-  # PHPMyAdmin for inspecting the database, logged in as the admin user used by Laravel
+  # PHPMyAdmin
   phpmyadmin-admin:
-    # Docker Official Image: phpmyadmin:latest. Jan 17, 2026 at 4:41 am
     image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
     container_name: phpmyadmin-admin
     restart: unless-stopped
     volumes:
       - mysql-certs:/mysql-certs:ro
     environment:
-      PMA_HOST: mysql_db  # Must be the same as container_name of the db
+      PMA_HOST: mysql_db
       PMA_USER_FILE: /run/secrets/mysql_app_db_username
       PMA_PASSWORD_FILE: /run/secrets/mysql_app_db_password
       PMA_SSL: 1
@@ -202,17 +187,16 @@ services:
     secrets:
       - mysql_app_db_username
       - mysql_app_db_password
-    profiles: ["all", "local-bindmount", "local-volume"]
-  # PHPMyAdmin for inspecting the database, logged in as the admin-testing user used by Laravel for testing
+    profiles: ["all", "local"]
+
   phpmyadmin-testing:
-    # Docker Official Image: phpmyadmin:fpm-alpine. Jan 17, 2026 at 4:41 am
     image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
     container_name: phpmyadmin-testing
     restart: unless-stopped
     volumes:
       - mysql-certs:/mysql-certs:ro
     environment:
-      PMA_HOST: mysql_db  # Must be the same as container_name of the db
+      PMA_HOST: mysql_db
       PMA_USER_FILE: /run/secrets/mysql_testing_db_username
       PMA_PASSWORD_FILE: /run/secrets/mysql_testing_db_password
       PMA_SSL: 1
@@ -224,11 +208,9 @@ services:
     secrets:
       - mysql_testing_db_username
       - mysql_testing_db_password
-    profiles: ["all", "local-bindmount", "local-volume"]
+    profiles: ["all", "local"]
 
-  # phpRedisAdmin for inspecting Redis data, similar to PHPMyAdmin
   phpredisadmin:
-    # erikdubbelboer/phpredisadmin:latest. Dec 22, 2025 at 3:58 pm
     image: erikdubbelboer/phpredisadmin@sha256:335e832bc713210011a326088f3e5eeefe8794799dbbfa32d2e04cbc180bdb44
     container_name: phpredisadmin
     restart: unless-stopped
@@ -241,7 +223,7 @@ services:
       - 8082:80
     depends_on:
       - redis
-    profiles: ["all", "local-bindmount", "local-volume"]
+    profiles: ["all", "local"]
 
 volumes:
   app_files:

@@ -1,0 +1,20 @@
+services:
+  # Laravel Application
+  app:
+    volumes:
+      - ./services/laravel/laravel_root:/var/www
+
+  # Laravel Queue Worker
+  queue_worker:
+    volumes:
+      - ./services/laravel/laravel_root:/var/www
+
+  # Laravel Scheduler
+  scheduler:
+    volumes:
+      - ./services/laravel/laravel_root:/var/www
+
+  # Nginx Web Server
+  nginx:
+    volumes:
+      - ./services/laravel/laravel_root:/var/www

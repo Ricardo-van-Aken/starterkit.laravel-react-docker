@@ -28,7 +28,7 @@ A production-ready starter kit for building multi-tenant SaaS web applications w
 - Linux, macOS, or Windows with WSL2
 - Bash-compatible shell
 - [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker Compose V2](https://docs.docker.com/compose/install/)
 
 ### Installation & Local Development
 

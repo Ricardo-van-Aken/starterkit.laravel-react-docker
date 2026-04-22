@@ -1,5 +1,5 @@
 ARG PHP_VERSION=8.3
-ARG SCHEDULER_BASE=volume-prod
+ARG SCHEDULER_BASE=production
 
 #################################################
 ###                                           ###
@@ -86,19 +86,6 @@ COPY --from=composer@sha256:dc292c5c0f95f526b051d4c341bf08e7e2b18504c74625e3203d
 
 #################################################
 ###                                           ###
-###   Target: bind-mount                      ###
-###                                           ###
-#################################################
-# Fast tool-rich base for local development with mounting of host system files. Doesnt do any building of
-# assets in the image build.
-FROM build-tools AS bind-mount
-
-USER www-data
-EXPOSE 9000
-
-
-#################################################
-###                                           ###
 ###   Backend: Composer Dependencies          ###
 ###                                           ###
 #################################################
@@ -166,12 +153,13 @@ RUN composer dump-autoload --optimize
 
 #################################################
 ###                                           ###
-###   Target: volume-dev                      ###
+###   Target: dev                             ###
 ###                                           ###
 #################################################
-# Clean runtime identical to production
-FROM runtime-base AS volume-dev
-# Copy runtime-essential application files from dev builder (includes tests, NO node_modules)
+# Clean, tool-rich runtime for development
+FROM build-tools AS dev
+
+# Copy runtime-essential application files from dev builder (includes tests)
 COPY --chown=www-data:www-data --from=builder-dev /var/www/app ./app
 COPY --chown=www-data:www-data --from=builder-dev /var/www/bootstrap ./bootstrap
 COPY --chown=www-data:www-data --from=builder-dev /var/www/config ./config
@@ -195,12 +183,12 @@ EXPOSE 9000
 
 #################################################
 ###                                           ###
-###   Target: volume-prod                     ###
+###   Target: production                      ###
 ###                                           ###
 #################################################
 # Minimal production-ready runtime
-FROM runtime-base AS volume-prod
-# Copy runtime-essential application files from prod builder (NO tests, NO node_modules)
+FROM runtime-base AS production
+# Copy runtime-essential application files from prod builder (NO tests)
 COPY --chown=www-data:www-data --from=builder-prod /var/www/app ./app
 COPY --chown=www-data:www-data --from=builder-prod /var/www/bootstrap ./bootstrap
 COPY --chown=www-data:www-data --from=builder-prod /var/www/config ./config
