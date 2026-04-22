@@ -32,6 +32,7 @@ services:
   # Laravel Application
   app:
     <<: [*common-laravel-config, *common-laravel-volumes]
+    container_name: laravel_app
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     build:
       context: ./services/laravel
@@ -44,6 +45,7 @@ services:
   # Laravel Queue Worker
   queue_worker:
     <<: [*common-laravel-config, *common-laravel-volumes]
+    container_name: queue_worker
     image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
     restart: unless-stopped
     depends_on:
@@ -56,6 +58,7 @@ services:
   # Laravel Scheduler
   scheduler:
     <<: *common-laravel-volumes
+    container_name: scheduler
     image: ${IMAGE_REPO}:laravel-scheduler.${TAG_ADDITION}
     build:
       context: ./services/laravel
@@ -80,6 +83,7 @@ services:
 
   # Nginx Web Server
   nginx:
+    container_name: nginx
     image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
     build:
       context: ./services/nginx

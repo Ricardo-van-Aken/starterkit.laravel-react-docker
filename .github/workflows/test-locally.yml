@@ -39,9 +39,7 @@ jobs:
 
       - name: Load environment variables
         run: |
-          set -o allexport
-          source website/docker/.env.local
-          set +o allexport
+          grep -v '^#' website/docker/.env.local | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
 
       - name: Build and Load with Docker Bake
         uses: docker/bake-action@v7
@@ -100,20 +98,20 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local --profile local up -d --no-build
+          docker compose -p laravel-starterkit -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local --profile local up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
         run: |
-          docker exec -u www-data app sh -c 'bash /usr/local/bin/test.sh --parallel'
+          docker exec -u www-data laravel_app sh -c 'bash /usr/local/bin/test.sh --parallel'
 
       - name: Run PHPStan
         run: |
           docker run --rm \
-            ${{ steps.vars.outputs.image_repo }}:app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             php vendor/bin/phpstan analyse --memory-limit=2G
  
       - name: Run Architecture Tests
         run: |
           docker run --rm \
-            ${{ steps.vars.outputs.image_repo }}:app.${{ env.RUN_ID }} \
+            ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             php vendor/bin/pest tests/Architecture
