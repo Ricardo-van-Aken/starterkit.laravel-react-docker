@@ -50,7 +50,7 @@ jobs:
           load: true
           source: ./website
           files: |
-            compose.yml
+            compose.yaml
             compose.dev.yaml
           targets: |
             app
