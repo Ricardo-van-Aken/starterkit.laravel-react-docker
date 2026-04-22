@@ -40,7 +40,7 @@ jobs:
       - name: Load environment variables
         run: |
           set -o allexport
-          source docker/.env.local
+          source website/docker/.env.local
           set +o allexport
 
       - name: Build and Load with Docker Bake

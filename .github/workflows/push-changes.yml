@@ -58,7 +58,7 @@ jobs:
       - name: Load environment variables
         run: |
           set -o allexport
-          source docker/.env.${{ env.ENVIRONMENT }}
+          source website/docker/.env.${{ env.ENVIRONMENT }}
           set +o allexport
 
       - name: Build and Push with Docker Bake
