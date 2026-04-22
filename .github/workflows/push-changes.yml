@@ -30,9 +30,9 @@ jobs:
         id: build_target
         run: |
           case "${{ env.ENVIRONMENT }}" in
-            "production") echo "target=volume-prod" >> $GITHUB_OUTPUT ;;
-            "staging")    echo "target=volume-dev" >> $GITHUB_OUTPUT ;;
-            "dev")        echo "target=volume-dev" >> $GITHUB_OUTPUT ;;
+            "production") echo "target=production" >> $GITHUB_OUTPUT ;;
+            "staging")    echo "target=production" >> $GITHUB_OUTPUT ;;
+            "dev")        echo "target=dev" >> $GITHUB_OUTPUT ;;
             *)            echo "::error::Invalid environment: ${{ env.ENVIRONMENT }}. Allowed: dev, staging, production."; exit 1 ;;
           esac
 
@@ -55,13 +55,20 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Load environment variables
+        run: |
+          set -o allexport
+          source docker/.env.${{ env.ENVIRONMENT }}
+          set +o allexport
+
       - name: Build and Push with Docker Bake
         uses: docker/bake-action@v7
         with:
           push: true
           source: ./website
           files: |
-            docker-compose.yml
+            compose.yaml
+            ${{ env.ENVIRONMENT == 'dev' && 'compose.dev.yaml' || '' }}
           targets: |
             app
             scheduler
@@ -97,9 +104,6 @@ jobs:
 
             app.target=${{ steps.build_target.outputs.target }}
             scheduler.args.SCHEDULER_BASE=${{ steps.build_target.outputs.target }}
-        env:
-          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
-          TAG_ADDITION: ${{ steps.vars.outputs.safe_tag }}
 
   deploy-builds:
     runs-on: ubuntu-latest

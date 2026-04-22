@@ -113,13 +113,13 @@ select_mode_config() {
   case "${mode}" in
     local-volume)
       # Local development with named volume
-      _env_file="docker/.env.local-volume"
+      _env_file="docker/.env.local"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml")
       ;;
     local-bindmount)
       # Local development with host bindmount
-      _env_file="docker/.env.local-bindmount"
+      _env_file="docker/.env.local"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml" "-f" "compose.bindmount.yaml")
       ;;
