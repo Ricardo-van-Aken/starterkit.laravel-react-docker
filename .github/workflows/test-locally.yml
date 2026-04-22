@@ -50,7 +50,8 @@ jobs:
           load: true
           source: ./website
           files: |
-            docker-compose.yml
+            compose.yml
+            compose.dev.yaml
           targets: |
             app
             scheduler
