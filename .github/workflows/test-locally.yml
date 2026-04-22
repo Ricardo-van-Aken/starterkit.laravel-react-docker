@@ -60,8 +60,8 @@ jobs:
             mysql_db
             cert_local
           set: |
-            app.target=volume-dev
-            scheduler.args.SCHEDULER_BASE=volume-dev
+            app.target=dev
+            scheduler.args.SCHEDULER_BASE=dev
 
             app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
             scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ env.RUN_ID }}
