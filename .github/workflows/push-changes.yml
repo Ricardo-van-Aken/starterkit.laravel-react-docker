@@ -124,10 +124,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
         with:
-          output_keys: "droplet_ipv4"
+          output_keys: "droplet_ipv4,db_host,db_port,db_name,db_user,db_password"
           working_dir: deployment/terraform/environments/common
           workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
           environment: ${{ env.ENVIRONMENT }} # Use current environment as workspace for terraform
+
+      - name: Generate Redis Password
+        id: redis_secret
+        run: echo "REDIS_PASSWORD=$(openssl rand -hex 16)" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/ansible/deploy-builds
         env:
@@ -136,5 +140,22 @@ jobs:
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME }}
           WORKSPACE: ${{ github.workspace }} # Required in ansible step for finding files in repo
+          
+          # Secrets mapped for Ansible deploy.yml
+          SECRET_REDIS_PASSWORD: ${{ steps.redis_secret.outputs.REDIS_PASSWORD }}
+          SECRET_MYSQL_DB_ROOTPASS: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
+          SECRET_MYSQL_APP_DB_HOST: ${{ fromJSON(steps.outputs.outputs.json).db_host }}
+          SECRET_MYSQL_APP_DB_PORT: ${{ fromJSON(steps.outputs.outputs.json).db_port }}
+          SECRET_MYSQL_APP_DB_DATABASE: ${{ fromJSON(steps.outputs.outputs.json).db_name }}
+          SECRET_MYSQL_APP_DB_USERNAME: ${{ fromJSON(steps.outputs.outputs.json).db_user }}
+          SECRET_MYSQL_APP_DB_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
+          SECRET_MYSQL_APP_DB_SSL: "1"
+          
+          # The Laravel app uses a separate testing database connection; here we map it to the same DB to allow queue/workers to spin up correctly 
+          # without breaking depending on testing credentials (if testing requires an isolated DB, a separate terraform resource is needed).
+          # For now, map to the same credentials as app DB for deployment success.
+          SECRET_MYSQL_TESTING_DB_DATABASE: ${{ fromJSON(steps.outputs.outputs.json).db_name }}
+          SECRET_MYSQL_TESTING_DB_USERNAME: ${{ fromJSON(steps.outputs.outputs.json).db_user }}
+          SECRET_MYSQL_TESTING_DB_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
         with:
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

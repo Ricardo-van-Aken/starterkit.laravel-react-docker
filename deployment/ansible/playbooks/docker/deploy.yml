@@ -44,6 +44,25 @@
           - compose.yaml
           - compose.dev.yaml
 
+      - name: Write Docker secret files from environment variables
+        no_log: true
+        copy:
+          content: "{{ lookup('env', item.env) }}"
+          dest: "/home/{{ docker_user }}/docker/secrets/{{ item.file }}"
+          mode: "0600"
+        loop:
+          - { env: SECRET_REDIS_PASSWORD,            file: redis_password }
+          - { env: SECRET_MYSQL_DB_ROOTPASS,         file: mysql_db_rootpass }
+          - { env: SECRET_MYSQL_APP_DB_DATABASE,     file: mysql_app_db_database }
+          - { env: SECRET_MYSQL_APP_DB_USERNAME,     file: mysql_app_db_username }
+          - { env: SECRET_MYSQL_APP_DB_PASSWORD,     file: mysql_app_db_password }
+          - { env: SECRET_MYSQL_APP_DB_HOST,         file: mysql_app_db_host }
+          - { env: SECRET_MYSQL_APP_DB_PORT,         file: mysql_app_db_port }
+          - { env: SECRET_MYSQL_APP_DB_SSL,          file: mysql_app_db_ssl }
+          - { env: SECRET_MYSQL_TESTING_DB_DATABASE, file: mysql_testing_db_database }
+          - { env: SECRET_MYSQL_TESTING_DB_USERNAME, file: mysql_testing_db_username }
+          - { env: SECRET_MYSQL_TESTING_DB_PASSWORD, file: mysql_testing_db_password }
+
     - name: Take down existing containers
       become_user: "{{ docker_user }}"
       environment:
