@@ -36,6 +36,17 @@
           src: "{{ root }}/website/docker/.env.{{ env_name }}"
           dest: "/home/{{ docker_user }}/docker/.env.{{ env_name }}"
 
+      - name: Ensure laravel services directory exists
+        ansible.builtin.file:
+          path: "/home/{{ docker_user }}/services/laravel"
+          state: directory
+          mode: '0755'
+
+      - name: Copy laravel app .env.prod file
+        copy:
+          src: "{{ root }}/website/services/laravel/.env.prod"
+          dest: "/home/{{ docker_user }}/services/laravel/.env.prod"
+
       - name: Copy compose files
         copy:
           src: "{{ root }}/website/{{ item }}"
