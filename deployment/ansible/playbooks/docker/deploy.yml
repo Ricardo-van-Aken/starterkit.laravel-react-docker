@@ -36,10 +36,13 @@
           src: "{{ root }}/website/docker/.env.{{ env_name }}"
           dest: "/home/{{ docker_user }}/docker/.env.{{ env_name }}"
 
-      - name: Copy compose file
+      - name: Copy compose files
         copy:
-          src: "{{ root }}/website/compose.yaml"
-          dest: "/home/{{ docker_user }}/compose.yaml"
+          src: "{{ root }}/website/{{ item }}"
+          dest: "/home/{{ docker_user }}/{{ item }}"
+        loop:
+          - compose.yaml
+          - compose.dev.yaml
 
     - name: Take down existing containers
       become_user: "{{ docker_user }}"
