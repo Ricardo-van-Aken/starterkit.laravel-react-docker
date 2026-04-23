@@ -32,3 +32,8 @@ output "app_key" {
   value     = "base64:${random_bytes.app_key.base64}"
   sensitive = true
 }
+
+output "db_ca_cert" {
+  value     = module.database.ca_cert
+  sensitive = true
+}

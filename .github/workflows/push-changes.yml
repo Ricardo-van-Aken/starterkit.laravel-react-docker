@@ -124,7 +124,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
         with:
-          output_keys: "droplet_ipv4,db_host,db_port,db_name,db_user,db_password,redis_password,app_key"
+          output_keys: "droplet_ipv4,db_host,db_port,db_name,db_user,db_password,redis_password,app_key,db_ca_cert"
           working_dir: deployment/terraform/environments/common
           workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
           environment: ${{ env.ENVIRONMENT }} # Use current environment as workspace for terraform
@@ -146,7 +146,7 @@ jobs:
           SECRET_MYSQL_APP_DB_DATABASE: ${{ fromJSON(steps.outputs.outputs.json).db_name }}
           SECRET_MYSQL_APP_DB_USERNAME: ${{ fromJSON(steps.outputs.outputs.json).db_user }}
           SECRET_MYSQL_APP_DB_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
-          SECRET_MYSQL_APP_DB_SSL: "1"
+          SECRET_MYSQL_APP_DB_SSL: ${{ fromJSON(steps.outputs.outputs.json).db_ca_cert }}
           
           # The Laravel app uses a separate testing database connection; here we map it to the same DB to allow queue/workers to spin up correctly 
           # without breaking depending on testing credentials (if testing requires an isolated DB, a separate terraform resource is needed).
