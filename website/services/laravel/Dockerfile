@@ -56,6 +56,7 @@ COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/
 # Set permissions
 RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh && \
     chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
+    chown root:shared           /usr/local/bin/read-app-key.sh                  && chmod 550 /usr/local/bin/read-app-key.sh && \
     chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh && \
     chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh && \
     chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh && \
@@ -218,7 +219,7 @@ FROM ${SCHEDULER_BASE} AS scheduler
 USER root
 
 # Define crontab for the www-data user
-RUN echo "* * * * * . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php /var/www/artisan schedule:run >> /dev/null 2>&1" > /etc/crontabs/www-data
+RUN echo "* * * * * . /usr/local/bin/read-app-key.sh && . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php /var/www/artisan schedule:run >> /dev/null 2>&1" > /etc/crontabs/www-data
 RUN chmod 0600 /etc/crontabs/www-data
 
 # Run crond in foreground

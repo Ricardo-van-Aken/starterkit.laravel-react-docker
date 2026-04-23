@@ -17,15 +17,26 @@ module "record_root" {
   name      = var.record_name
 }
 
-module "record_www" {
+module "record_cname" {
+  count     = terraform.workspace == "production" ? 1 : 0
   source    = "../../modules/record"
   domain_id = var.domain_id
-  value     = module.droplet.ipv4
-  type      = "A"
-  name      = var.record_name == "@" ? "www" : "www.${var.record_name}"
+  value     = "@"
+  type      = "CNAME"
+  name      = "www"
 }
 
 module "database" {
   source     = "../../modules/database"
   project_id = var.project_id
+}
+
+resource "random_password" "redis_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "random_bytes" "app_key" {
+  length = 32
 }

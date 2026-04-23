@@ -51,6 +51,7 @@
           dest: "/home/{{ docker_user }}/docker/secrets/{{ item.file }}"
           mode: "0600"
         loop:
+          - { env: SECRET_APP_KEY,                   file: app_key }
           - { env: SECRET_REDIS_PASSWORD,            file: redis_password }
           - { env: SECRET_MYSQL_DB_ROOTPASS,         file: mysql_db_rootpass }
           - { env: SECRET_MYSQL_APP_DB_DATABASE,     file: mysql_app_db_database }

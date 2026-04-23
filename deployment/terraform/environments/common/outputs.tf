@@ -22,3 +22,13 @@ output "db_password" {
   value     = module.database.password
   sensitive = true
 }
+
+output "redis_password" {
+  value     = random_password.redis_password.result
+  sensitive = true
+}
+
+output "app_key" {
+  value     = "base64:${random_bytes.app_key.base64}"
+  sensitive = true
+}
