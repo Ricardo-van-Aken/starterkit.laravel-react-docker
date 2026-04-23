@@ -42,6 +42,11 @@
           state: directory
           mode: '0755'
 
+      - name: Clean up corrupted .env.prod directory (created by docker if missing)
+        ansible.builtin.file:
+          path: "/home/{{ docker_user }}/services/laravel/.env.prod"
+          state: absent
+
       - name: Copy laravel app .env.prod file
         copy:
           src: "{{ root }}/website/services/laravel/.env.prod"
