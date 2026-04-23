@@ -17,13 +17,12 @@ module "record_root" {
   name      = var.record_name
 }
 
-module "record_cname" {
-  count     = terraform.workspace == "production" ? 1 : 0
+module "record_www" {
   source    = "../../modules/record"
   domain_id = var.domain_id
-  value     = "@"
-  type      = "CNAME"
-  name      = "www"
+  value     = module.droplet.ipv4
+  type      = "A"
+  name      = var.record_name == "@" ? "www" : "www.${var.record_name}"
 }
 
 module "database" {
