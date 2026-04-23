@@ -88,7 +88,7 @@
       - name: Take down any containers using updated docker-compose.yml
         shell:
           chdir: /home/{{ docker_user }}
-          cmd: ./stop_env.sh {{ env_name  }}
+          cmd: ./stop_env.sh
         changed_when: false
         when: stop_env.stat.exists
 

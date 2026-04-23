@@ -67,12 +67,24 @@ main() {
 
   validate_environment
 
-  # We use a default .env file and profile to satisfy the Compose parser and ensure full cleanup
-  local -r env_file="docker/.env.local-bindmount"
   local -r profile="all"
 
+  # Auto-detect the first available env file to suppress Docker Compose variable warnings.
+  # Checked in priority order; falls back to no --env-file on a fresh server.
+  local env_file=""
+  local -r env_candidates=("docker/.env.production" "docker/.env.staging" "docker/.env.dev" "docker/.env.local")
+  for candidate in "${env_candidates[@]}"; do
+    if [[ -f "${candidate}" ]]; then
+      env_file="${candidate}"
+      break
+    fi
+  done
+
+  local -a compose_down_args=(-p "${PROJECT_NAME}" "${COMPOSE_FILES[@]}" --profile "${profile}")
+  [[ -n "${env_file}" ]] && compose_down_args+=(--env-file "${env_file}")
+
   printf "%b\n" "${BLUE}Removing existing containers and networks...${RESET}"
-  docker compose -p "${PROJECT_NAME}" "${COMPOSE_FILES[@]}" --env-file "${env_file}" --profile "${profile}" down
+  docker compose "${compose_down_args[@]}" down
 
   printf "%b\n" "${BLUE}Cleaning up application files volume...${RESET}"
   # (|| true to avoid error if volume doesn't exist)
