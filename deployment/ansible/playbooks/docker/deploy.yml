@@ -45,18 +45,15 @@
           - run_env.sh
           - stop_env.sh
 
-      - name: Copy docker files
+      - name: Copy docker env file
         copy:
-          src: "{{ root  }}/website/docker/{{ item }}"
-          dest: "/home/{{ docker_user  }}/docker/{{ item }}"
-        loop:
-          - ".env.{{ env_name  }}"
-          - docker-compose.yml
+          src: "{{ root }}/website/docker/.env.{{ env_name }}"
+          dest: "/home/{{ docker_user }}/docker/.env.{{ env_name }}"
 
-      - name: Copy laravel environment file
+      - name: Copy compose file
         copy:
-          src: "{{ root  }}/website/docker/img_laravel/.env"
-          dest: "/home/{{ docker_user  }}/docker/.env"
+          src: "{{ root }}/website/compose.yaml"
+          dest: "/home/{{ docker_user }}/compose.yaml"
 
     - name: Find all `secrets` files
       ansible.builtin.find:
