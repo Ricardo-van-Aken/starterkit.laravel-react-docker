@@ -1,4 +1,3 @@
-ARG PHP_VERSION=8.3
 ARG SCHEDULER_BASE=production
 
 #################################################
@@ -159,23 +158,25 @@ RUN composer dump-autoload --optimize
 # Clean, tool-rich runtime for development
 FROM build-tools AS dev
 
-# Copy runtime-essential application files from dev builder (includes tests)
+# Copy runtime-essential application files from dev builder
 COPY --chown=www-data:www-data --from=builder-dev /var/www/app ./app
 COPY --chown=www-data:www-data --from=builder-dev /var/www/bootstrap ./bootstrap
 COPY --chown=www-data:www-data --from=builder-dev /var/www/config ./config
 COPY --chown=www-data:www-data --from=builder-dev /var/www/database ./database
 COPY --chown=www-data:www-data --from=builder-dev /var/www/lang ./lang
 COPY --chown=www-data:www-data --from=builder-dev /var/www/public ./public
-COPY --chown=www-data:www-data --from=builder-dev /var/www/resources ./resources
+COPY --chown=www-data:www-data --from=builder-dev /var/www/resources/views ./resources/views
 COPY --chown=www-data:www-data --from=builder-dev /var/www/routes ./routes
 COPY --chown=www-data:www-data --from=builder-dev /var/www/storage ./storage
-COPY --chown=www-data:www-data --from=builder-dev /var/www/tests ./tests
 COPY --chown=www-data:www-data --from=builder-dev /var/www/vendor ./vendor
 COPY --chown=www-data:www-data --from=builder-dev /var/www/artisan .
 COPY --chown=www-data:www-data --from=builder-dev /var/www/composer.json .
 COPY --chown=www-data:www-data --from=builder-dev /var/www/composer.lock .
-COPY --chown=www-data:www-data --from=builder-dev /var/www/phpstan.neon .
+
+# Copy testing-related files from dev builder
+COPY --chown=www-data:www-data --from=builder-dev /var/www/tests ./tests
 COPY --chown=www-data:www-data --from=builder-dev /var/www/phpunit*.xml .
+COPY --chown=www-data:www-data --from=builder-dev /var/www/phpstan.neon .
 
 USER www-data
 EXPOSE 9000
@@ -188,14 +189,15 @@ EXPOSE 9000
 #################################################
 # Minimal production-ready runtime
 FROM runtime-base AS production
-# Copy runtime-essential application files from prod builder (NO tests)
+
+# Copy runtime-essential application files from prod builder
 COPY --chown=www-data:www-data --from=builder-prod /var/www/app ./app
 COPY --chown=www-data:www-data --from=builder-prod /var/www/bootstrap ./bootstrap
 COPY --chown=www-data:www-data --from=builder-prod /var/www/config ./config
 COPY --chown=www-data:www-data --from=builder-prod /var/www/database ./database
 COPY --chown=www-data:www-data --from=builder-prod /var/www/lang ./lang
 COPY --chown=www-data:www-data --from=builder-prod /var/www/public ./public
-COPY --chown=www-data:www-data --from=builder-prod /var/www/resources ./resources
+COPY --chown=www-data:www-data --from=builder-prod /var/www/resources/views ./resources/views
 COPY --chown=www-data:www-data --from=builder-prod /var/www/routes ./routes
 COPY --chown=www-data:www-data --from=builder-prod /var/www/storage ./storage
 COPY --chown=www-data:www-data --from=builder-prod /var/www/vendor ./vendor

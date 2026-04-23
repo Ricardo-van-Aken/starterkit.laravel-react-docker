@@ -66,7 +66,7 @@ services:
       args:
         # TODO: Investigate if this causes a double build of the production stage.
         #       We might want to replace it with the name of the image in the app container.
-        SCHEDULER_BASE: ${LARAVEL_VARIANT:-production}
+        SCHEDULER_BASE: production
     depends_on:
       <<: *common-infra-dependencies
       app:

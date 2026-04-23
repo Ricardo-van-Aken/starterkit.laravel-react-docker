@@ -37,7 +37,7 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Load environment variables
+      - name: Load Environment Variables for Docker Compose
         run: |
           grep -v '^#' website/docker/.env.local | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
 

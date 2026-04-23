@@ -50,7 +50,7 @@ parse_args() {
       --log)
         _log=true
         ;;
-      local-volume|local-bindmount|dev|staging|production)
+      local-volume|local-bindmount|local-production|dev|staging|production)
         if [[ -n "${_mode}" ]]; then
           err "Mode already set to '${_mode}', cannot set to '${1}'"
           usage
@@ -77,19 +77,29 @@ parse_args() {
 # Arguments:
 #   None.
 validate_environment() {
-  local -r required_cmds=("docker" "grep" "tput" "id")
-  local cmd
+  local -r required_cmds=("docker" "awk" "date" "grep" "mkdir" "rm" "dirname" "cat" "tput" "id")
+  local validation_failed=false
 
   for cmd in "${required_cmds[@]}"; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
-      err "Required command '${YELLOW}${cmd}${RESET}' not found. Please install it to continue."
-      exit 1
+      err "Required command '${YELLOW}${cmd}${RESET}' not found."
+      validation_failed=true
     fi
   done
 
   # Verify Docker Compose V2 specifically.
   if ! docker compose version >/dev/null 2>&1; then
-    err "'${YELLOW}docker compose${RESET}' (V2) is not available. Please install it."
+    err "Required Docker plugin '${YELLOW}docker-compose${RESET}' (V2) not found."
+    validation_failed=true
+  fi
+
+  # Verify Docker Buildx plugin.
+  if ! docker buildx version >/dev/null 2>&1; then
+    err "Required Docker plugin '${YELLOW}docker-buildx${RESET}' not found."
+    validation_failed=true
+  fi
+
+  if [[ "${validation_failed}" == true ]]; then
     exit 1
   fi
 }
@@ -112,30 +122,35 @@ select_mode_config() {
 
   case "${mode}" in
     local-volume)
-      # Local development with named volume
+      # Local development, dev image, named volume
       _env_file="docker/.env.local"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml")
       ;;
     local-bindmount)
-      # Local development with host bindmount
+      # Local development, dev image, host bindmount
       _env_file="docker/.env.local"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml" "-f" "compose.bindmount.yaml")
       ;;
+    local-production)
+      # Local development, production image, named volume
+      _env_file="docker/.env.local"
+      _profile="local"
+      ;;
     dev)
-      # Simulates production locally, using production build but named volume
+      # Remote environment, dev image, named volume. Domain: dev.<domainname>
       _env_file="docker/.env.dev"
       _profile="remote"
       _compose_files+=("-f" "compose.dev.yaml")
       ;;
     staging)
-      # Staging, usually defaults to production image and named volume
+      # Remote environment, production image, named volume. Domain: staging.<domainname>
       _env_file="docker/.env.staging"
       _profile="remote"
       ;;
     production)
-      # Production, definitely uses production image and named volume
+      # Remote environment, production image, named volume. Domain: <domainname>
       _env_file="docker/.env.production"
       _profile="remote"
       ;;
