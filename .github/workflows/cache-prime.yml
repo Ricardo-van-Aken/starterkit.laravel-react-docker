@@ -19,32 +19,36 @@ jobs:
       matrix:
         image:
           - name: laravel-app
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
-            target: volume-dev
+            context: website/services/laravel
+            file: website/services/laravel/Dockerfile
+            target: dev
             tag: laravel-app
           - name: laravel-scheduler
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
+            context: website/services/laravel
+            file: website/services/laravel/Dockerfile
             target: scheduler
             tag: laravel-scheduler
-            build-args: SCHEDULER_BASE=volume-dev
+            build-args: SCHEDULER_BASE=dev
           - name: nginx
-            context: website/docker/img_nginx
-            file: website/docker/img_nginx/Dockerfile.nginx
+            context: website/services/nginx
+            file: website/services/nginx/Dockerfile
             tag: website-nginx
           - name: redis
-            context: website/docker/img_redis
-            file: website/docker/img_redis/Dockerfile.redis
+            context: website/services/redis
+            file: website/services/redis/Dockerfile
             tag: website-redis
           - name: mysql-db
-            context: website/docker/img_mysqldb
-            file: website/docker/img_mysqldb/Dockerfile.mysql
+            context: website/services/mysqldb
+            file: website/services/mysqldb/Dockerfile
             tag: mysql-db
           - name: cert-local
-            context: website/docker/img_certlocal
-            file: website/docker/img_certlocal/Dockerfile.cert-local
+            context: website/services/certlocal
+            file: website/services/certlocal/Dockerfile
             tag: cert-local
+          - name: certbot
+            context: website/services/certbot
+            file: website/services/certbot/Dockerfile
+            tag: website-certbot
 
     steps:
       - name: Checkout code (full history for parent detection)
