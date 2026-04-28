@@ -1,6 +1,6 @@
 variable "name" {
   type    = string
-  default = "project-name"
+  default = "laravel-starterkit"
 }
 
 variable "description" {
