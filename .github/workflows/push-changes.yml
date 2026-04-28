@@ -3,7 +3,7 @@ name: Push changes
 on:
   push:
     branches:
-      - dev
+      - main
       - staging
       - production
 
@@ -19,7 +19,7 @@ on:
           - production
 
 env:
-  ENVIRONMENT: ${{ github.event.inputs.environment || github.ref_name }}
+  ENVIRONMENT: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'dev' || github.ref_name) }}
 
 jobs:
   build-images:
