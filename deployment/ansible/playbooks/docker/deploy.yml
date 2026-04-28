@@ -129,9 +129,22 @@
         changed_when: false
 
       - name: Run database migrations
-        shell: docker exec laravel_app /bin/sh -c ". /usr/local/bin/read-app-key.sh && . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php artisan migrate --force"
+        shell: |
+          docker exec laravel_app /bin/sh -c "
+            . /usr/local/bin/read-app-key.sh &&
+            . /usr/local/bin/read-db-credentials.sh &&
+            . /usr/local/bin/read-redis-password.sh &&
+            php artisan migrate --force ||
+            (php artisan migrate:rollback --force && exit 1)
+          "
         changed_when: false
 
       - name: Seed required data
-        shell: docker exec laravel_app /bin/sh -c ". /usr/local/bin/read-app-key.sh && . /usr/local/bin/read-db-credentials.sh && . /usr/local/bin/read-redis-password.sh && php artisan db:seed --class=RequiredDataSeeder --force"
+        shell: |
+          docker exec laravel_app /bin/sh -c "
+            . /usr/local/bin/read-app-key.sh &&
+            . /usr/local/bin/read-db-credentials.sh &&
+            . /usr/local/bin/read-redis-password.sh &&
+            php artisan db:seed --class=RequiredDataSeeder --force
+          "
         changed_when: false
