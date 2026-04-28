@@ -134,8 +134,7 @@
             . /usr/local/bin/read-app-key.sh &&
             . /usr/local/bin/read-db-credentials.sh &&
             . /usr/local/bin/read-redis-password.sh &&
-            php artisan migrate --force ||
-            (php artisan migrate:rollback --force && exit 1)
+            php artisan migrate --force
           "
         changed_when: false
 
