@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['organisation_unit_id', 'user_id']);
+            $table->primary(['organisation_unit_id', 'user_id']);
         });
     }
 
