@@ -1,0 +1,11 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      target: dev
+
+  # Laravel Scheduler
+  scheduler:
+    build:
+      args:
+        SCHEDULER_BASE: dev

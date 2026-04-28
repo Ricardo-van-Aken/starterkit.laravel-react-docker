@@ -1,0 +1,265 @@
+x-common-infra-dependencies: &common-infra-dependencies
+  redis:
+    condition: service_started
+  mysql_db:
+    condition: service_healthy
+    required: false
+
+x-common-laravel-config: &common-laravel-config
+  restart: unless-stopped
+  secrets:
+    - app_key
+    - mysql_app_db_database
+    - mysql_app_db_username
+    - mysql_app_db_password
+    - mysql_app_db_ssl
+    - mysql_app_db_host
+    - mysql_app_db_port
+    - mysql_testing_db_database
+    - mysql_testing_db_username
+    - mysql_testing_db_password
+    - redis_password
+  depends_on: *common-infra-dependencies
+  command: ["/bin/sh", "-c", ". /usr/local/bin/read-app-key.sh; . /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-db-credentials-testing.sh; . /usr/local/bin/read-redis-password.sh; exec php-fpm"]
+
+# Consolidated Volume Configuration for Laravel
+x-common-laravel-volumes: &common-laravel-volumes
+  volumes:
+    - ${ENV_FILE:-.env}:/var/www/.env
+    - app_files:/var/www
+    - mysql-certs:/mysql-certs:ro
+
+services:
+  # Laravel Application
+  app:
+    <<: [*common-laravel-config, *common-laravel-volumes]
+    container_name: laravel_app
+    image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
+    build:
+      context: ./services/laravel
+      target: production
+      args:
+        - LOCAL_UID=${LOCAL_UID}
+        - LOCAL_GID=${LOCAL_GID}
+    profiles: ["all", "local", "remote"]
+
+  # Laravel Queue Worker
+  queue_worker:
+    <<: [*common-laravel-config, *common-laravel-volumes]
+    container_name: queue_worker
+    image: ${IMAGE_REPO}:laravel-app.${TAG_ADDITION}
+    restart: unless-stopped
+    depends_on:
+      <<: *common-infra-dependencies
+      app:
+        condition: service_started
+    command: ["/bin/sh", "-c", ". /usr/local/bin/read-app-key.sh; . /usr/local/bin/read-db-credentials.sh; . /usr/local/bin/read-redis-password.sh; exec php artisan queue:work --tries=3 --timeout=90"]
+    profiles: ["all", "local", "remote"]
+
+  # Laravel Scheduler
+  scheduler:
+    <<: *common-laravel-volumes
+    container_name: scheduler
+    image: ${IMAGE_REPO}:laravel-scheduler.${TAG_ADDITION}
+    build:
+      context: ./services/laravel
+      target: scheduler
+      args:
+        # TODO: Investigate if this causes a double build of the production stage.
+        #       We might want to replace it with the name of the image in the app container.
+        SCHEDULER_BASE: production
+    depends_on:
+      <<: *common-infra-dependencies
+      app:
+        condition: service_started
+    secrets:
+      - app_key
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_app_db_ssl
+      - mysql_app_db_host
+      - mysql_app_db_port
+      - redis_password
+    profiles: ["all", "local", "remote"]
+
+  # Nginx Web Server
+  nginx:
+    container_name: nginx
+    image: ${IMAGE_REPO}:website-nginx.${TAG_ADDITION}
+    build:
+      context: ./services/nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+    volumes:
+      - app_files:/var/www
+      - certbot_files:/var/www/certbot/:ro
+      - certbot_certs:/etc/letsencrypt/:ro
+    depends_on:
+      app: { condition: service_started, required: false }
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+    profiles: ["all", "local", "remote"]
+
+  # Redis
+  redis:
+    image: ${IMAGE_REPO}:website-redis.${TAG_ADDITION}
+    build:
+      context: ./services/redis
+    container_name: redis
+    restart: unless-stopped
+    secrets:
+      - redis_password
+    environment:
+      REDIS_PASS_FILE: /run/secrets/redis_password
+    profiles: ["all", "local", "remote"]
+
+  # Certbot
+  certbot:
+    image: ${IMAGE_REPO}:website-certbot.${TAG_ADDITION}
+    container_name: certbot
+    build:
+      context: ./services/certbot
+    depends_on:
+      nginx: { condition: service_started, required: false }
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+      - DOMAIN_EMAIL=${DOMAIN_EMAIL}
+    restart: no
+    volumes:
+      - certbot_files:/var/www/certbot/:rw
+      - certbot_certs:/etc/letsencrypt/:rw
+    profiles: ["all", "remote"]
+
+  # MySQL Database
+  mysql_db:
+    image: ${IMAGE_REPO}:mysql-db.${TAG_ADDITION}
+    build:
+      context: ./services/mysqldb
+    container_name: mysql_db
+    restart: unless-stopped
+    secrets:
+      - mysql_db_rootpass
+      - mysql_app_db_database
+      - mysql_app_db_username
+      - mysql_app_db_password
+      - mysql_app_db_ssl
+      - mysql_testing_db_database
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - mysql-certs:/mysql-certs
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+    command: ["/bin/sh", "-c", ". /custom-entrypoint.sh"]
+    profiles: ["all", "local"]
+
+  # Local Certificate Generation Service
+  cert_local:
+    image: ${IMAGE_REPO}:cert-local.${TAG_ADDITION}
+    build:
+      context: ./services/certlocal
+    container_name: cert_local
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+    volumes:
+      - certbot_certs:/etc/letsencrypt/:rw
+    profiles: ["all", "local"]
+
+  # PHPMyAdmin
+  phpmyadmin-admin:
+    image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
+    container_name: phpmyadmin-admin
+    restart: unless-stopped
+    volumes:
+      - mysql-certs:/mysql-certs:ro
+    environment:
+      PMA_HOST: mysql_db
+      PMA_USER_FILE: /run/secrets/mysql_app_db_username
+      PMA_PASSWORD_FILE: /run/secrets/mysql_app_db_password
+      PMA_SSL: 1
+      PMA_SSL_CA: /mysql-certs/ca.pem
+    ports:
+      - 8080:80
+    depends_on:
+      - mysql_db
+    secrets:
+      - mysql_app_db_username
+      - mysql_app_db_password
+    profiles: ["all", "local"]
+
+  phpmyadmin-testing:
+    image: phpmyadmin@sha256:43af279a6670e205650d33361b2ff1ad75a6796852b4937af12f8324a381ed97
+    container_name: phpmyadmin-testing
+    restart: unless-stopped
+    volumes:
+      - mysql-certs:/mysql-certs:ro
+    environment:
+      PMA_HOST: mysql_db
+      PMA_USER_FILE: /run/secrets/mysql_testing_db_username
+      PMA_PASSWORD_FILE: /run/secrets/mysql_testing_db_password
+      PMA_SSL: 1
+      PMA_SSL_CA: /mysql-certs/ca.pem
+    ports:
+      - 8081:80
+    depends_on:
+      - mysql_db
+    secrets:
+      - mysql_testing_db_username
+      - mysql_testing_db_password
+    profiles: ["all", "local"]
+
+  phpredisadmin:
+    image: erikdubbelboer/phpredisadmin@sha256:335e832bc713210011a326088f3e5eeefe8794799dbbfa32d2e04cbc180bdb44
+    container_name: phpredisadmin
+    restart: unless-stopped
+    environment:
+      REDIS_1_HOST: redis
+      REDIS_1_PORT: 6379
+      REDIS_1_AUTH: redis_password
+      REDIS_1_NAME: "Redis Cache"
+    ports:
+      - 8082:80
+    depends_on:
+      - redis
+    profiles: ["all", "local"]
+
+volumes:
+  app_files:
+  certbot_files:
+  certbot_certs:
+  mysql-data:
+  mysql-certs:
+
+secrets:
+  app_key:
+    file: ./docker/secrets/app_key
+  mysql_testing_db_password:
+    file: ./docker/secrets/mysql_testing_db_password
+  mysql_testing_db_username:
+    file: ./docker/secrets/mysql_testing_db_username
+  mysql_testing_db_database:
+    file: ./docker/secrets/mysql_testing_db_database
+  mysql_app_db_password:
+    file: ./docker/secrets/mysql_app_db_password
+  mysql_app_db_username:
+    file: ./docker/secrets/mysql_app_db_username
+  mysql_app_db_database:
+    file: ./docker/secrets/mysql_app_db_database
+  mysql_app_db_ssl:
+    file: ./docker/secrets/mysql_app_db_ssl
+  mysql_app_db_port:
+    file: ./docker/secrets/mysql_app_db_port
+  mysql_app_db_host:
+    file: ./docker/secrets/mysql_app_db_host
+  mysql_db_rootpass:
+    file: ./docker/secrets/mysql_db_rootpass
+  redis_password:
+    file: ./docker/secrets/redis_password

@@ -3,7 +3,7 @@ name: Push changes
 on:
   push:
     branches:
-      - dev
+      - main
       - staging
       - production
 
@@ -19,16 +19,25 @@ on:
           - production
 
 env:
-  ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment || github.ref_name) || github.ref_name }}
+  ENVIRONMENT: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'dev' || github.ref_name) }}
 
 jobs:
   build-images:
     name: Build and Push All Images
     runs-on: ubuntu-latest
-
     steps:
+      - name: Resolve App Image Build Target
+        id: build_target
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            "production") echo "target=production" >> $GITHUB_OUTPUT ;;
+            "staging")    echo "target=production" >> $GITHUB_OUTPUT ;;
+            "dev")        echo "target=dev" >> $GITHUB_OUTPUT ;;
+            *)            echo "::error::Invalid environment: ${{ env.ENVIRONMENT }}. Allowed: dev, staging, production."; exit 1 ;;
+          esac
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Docker Tags
         id: vars
@@ -38,26 +47,61 @@ jobs:
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Load environment variables for Docker Compose
+        run: |
+          grep -v '^#' website/docker/.env.${{ env.ENVIRONMENT }} | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
+
       - name: Build and Push with Docker Bake
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         with:
           push: true
+          source: ./website
           files: |
-            website/docker/docker-compose.yml
-          env-files: |
-            ${{ format('website/docker/.env.{0}', env.ENVIRONMENT) }}
-          targets: app, scheduler, nginx, redis, certbot
+            compose.yaml
+            ${{ env.ENVIRONMENT == 'dev' && 'compose.dev.yaml' || '' }}
+          targets: |
+            app
+            scheduler
+            nginx
+            redis
+            certbot
           set: |
-            *.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache
-            *.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:*.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+            app.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.main.cache
+            scheduler.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.main.cache
+            nginx.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.main.cache
+            redis.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            certbot.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}.deploy-cache
+            certbot.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.main.cache
+            certbot.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}.deploy-cache,mode=max
+
+            app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}
+            scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}
+            nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}
+            redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}
+            certbot.tags=${{ steps.vars.outputs.image_repo }}:website-certbot.${{ steps.vars.outputs.safe_tag }}
+
+            app.target=${{ steps.build_target.outputs.target }}
+            scheduler.args.SCHEDULER_BASE=${{ steps.build_target.outputs.target }}
 
   deploy-builds:
     runs-on: ubuntu-latest
@@ -80,7 +124,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ vars.DO_STATE_BUCKET_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_STATE_BUCKET_SECRET_KEY }}
         with:
-          output_keys: "droplet_ipv4"
+          output_keys: "droplet_ipv4,db_host,db_port,db_name,db_user,db_password,redis_password,app_key,db_ca_cert"
           working_dir: deployment/terraform/environments/common
           workspace_key_prefix: "projects/${{ github.event.repository.name }}/infra-environments"
           environment: ${{ env.ENVIRONMENT }} # Use current environment as workspace for terraform
@@ -92,5 +136,23 @@ jobs:
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME }}
           WORKSPACE: ${{ github.workspace }} # Required in ansible step for finding files in repo
+          
+          # Secrets mapped for Ansible deploy.yml
+          SECRET_APP_KEY: ${{ fromJSON(steps.outputs.outputs.json).app_key }}
+          SECRET_REDIS_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).redis_password }}
+          SECRET_MYSQL_DB_ROOTPASS: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
+          SECRET_MYSQL_APP_DB_HOST: ${{ fromJSON(steps.outputs.outputs.json).db_host }}
+          SECRET_MYSQL_APP_DB_PORT: ${{ fromJSON(steps.outputs.outputs.json).db_port }}
+          SECRET_MYSQL_APP_DB_DATABASE: ${{ fromJSON(steps.outputs.outputs.json).db_name }}
+          SECRET_MYSQL_APP_DB_USERNAME: ${{ fromJSON(steps.outputs.outputs.json).db_user }}
+          SECRET_MYSQL_APP_DB_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
+          SECRET_MYSQL_APP_DB_SSL: ${{ fromJSON(steps.outputs.outputs.json).db_ca_cert }}
+          
+          # The Laravel app uses a separate testing database connection; here we map it to the same DB to allow queue/workers to spin up correctly 
+          # without breaking depending on testing credentials (if testing requires an isolated DB, a separate terraform resource is needed).
+          # For now, map to the same credentials as app DB for deployment success.
+          SECRET_MYSQL_TESTING_DB_DATABASE: ${{ fromJSON(steps.outputs.outputs.json).db_name }}
+          SECRET_MYSQL_TESTING_DB_USERNAME: ${{ fromJSON(steps.outputs.outputs.json).db_user }}
+          SECRET_MYSQL_TESTING_DB_PASSWORD: ${{ fromJSON(steps.outputs.outputs.json).db_password }}
         with:
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

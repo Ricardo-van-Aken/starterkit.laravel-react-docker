@@ -1,6 +1,9 @@
 name: Run tests locally
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -11,105 +14,83 @@ env:
   RUN_ID: ${{ github.run_id }}
 
 jobs:
-  build-images:
-    name: Build docker images
+  test:
+    name: Build and Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - name: laravel-app
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
-            target: volume-dev
-            tag: laravel-app
-          - name: laravel-scheduler
-            context: website
-            file: website/docker/img_laravel/Dockerfile.laravel
-            target: scheduler
-            tag: laravel-scheduler
-            build-args: SCHEDULER_BASE=volume-dev
-          - name: nginx
-            context: website/docker/img_nginx
-            file: website/docker/img_nginx/Dockerfile.nginx
-            tag: website-nginx
-          - name: redis
-            context: website/docker/img_redis
-            file: website/docker/img_redis/Dockerfile.redis
-            tag: website-redis
-          - name: mysql-db
-            context: website/docker/img_mysqldb
-            file: website/docker/img_mysqldb/Dockerfile.mysql
-            tag: mysql-db
-          - name: cert-local
-            context: website/docker/img_certlocal
-            file: website/docker/img_certlocal/Dockerfile.cert-local
-            tag: cert-local
-    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Docker Tags
         id: vars
         uses: ./.github/actions/docker-tag
         with:
-          branch_name: ${{ github.head_ref }}
+          branch_name: ${{ github.head_ref || github.ref_name }}
           docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and Push ${{ matrix.image.tag }} image
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.image.context }}
-          file: ${{ matrix.image.file }}
-          target: ${{ matrix.image.target }}
-          build-args: ${{ matrix.image.build-args }}
-          tags: ${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ env.RUN_ID }}
-          push: true
-          load: false
-          cache-from: |
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache
-            type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.main.cache
-          cache-to: type=registry,ref=${{ steps.vars.outputs.image_repo }}:${{ matrix.image.tag }}.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
-
-  test:
-    name: Run Laravel tests
-    runs-on: ubuntu-latest
-    needs: [build-images]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Generate Docker Tags
-        id: vars
-        uses: ./.github/actions/docker-tag
-        with:
-          branch_name: ${{ github.head_ref }}
-          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
-
-      - name: Pull Docker Compose images needed to mock production
-        working-directory: website
-        env:
-          TAG_ADDITION: ${{ env.RUN_ID }}
-          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
+      - name: Load Environment Variables for Docker Compose
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod pull
+          grep -v '^#' website/docker/.env.local | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
+
+      - name: Build and Load with Docker Bake
+        uses: docker/bake-action@v7
+        with:
+          push: false
+          load: true
+          source: ./website
+          files: |
+            compose.yaml
+            compose.dev.yaml
+          targets: |
+            app
+            scheduler
+            nginx
+            redis
+            mysql_db
+            cert_local
+          set: |
+            app.target=dev
+            scheduler.args.SCHEDULER_BASE=dev
+
+            app.tags=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
+            scheduler.tags=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ env.RUN_ID }}
+            nginx.tags=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ env.RUN_ID }}
+            redis.tags=${{ steps.vars.outputs.image_repo }}:website-redis.${{ env.RUN_ID }}
+            mysql_db.tags=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ env.RUN_ID }}
+            cert_local.tags=${{ steps.vars.outputs.image_repo }}:cert-local.${{ env.RUN_ID }}
+
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache
+            app.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.main.cache
+            app.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-app.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache
+            scheduler.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.main.cache
+            scheduler.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:laravel-scheduler.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache
+            nginx.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.main.cache
+            nginx.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-nginx.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache
+            redis.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.main.cache
+            redis.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:website-redis.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache
+            mysql_db.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.main.cache
+            mysql_db.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:mysql-db.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
+
+            cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache
+            cert_local.cache-from=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.main.cache
+            cert_local.cache-to=type=registry,ref=${{ steps.vars.outputs.image_repo }}:cert-local.${{ steps.vars.outputs.safe_tag }}.cache,mode=max
 
       - name: Start Docker services to mock production
         working-directory: website
@@ -117,46 +98,11 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod up -d --no-build
+          docker compose -p laravel-starterkit -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local --profile local up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
         run: |
           docker exec -u www-data laravel_app sh -c 'bash /usr/local/bin/test.sh --parallel'
-
-      - name: Cleanup
-        if: always()
-        working-directory: website
-        env:
-          TAG_ADDITION: ${{ env.RUN_ID }}
-          IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
-        run: |
-          docker compose -f docker/docker-compose.yml --env-file docker/.env.mock-prod --profile mock-prod down -v
-
-  static-analysis:
-    name: Run static analysis
-    runs-on: ubuntu-latest
-    needs: [build-images]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Generate Docker Tags
-        id: vars
-        uses: ./.github/actions/docker-tag
-        with:
-          branch_name: ${{ github.head_ref }}
-          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
-
-      - name: Pull Laravel app image
-        run: |
-          docker pull ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }}
 
       - name: Run PHPStan
         run: |
@@ -169,71 +115,3 @@ jobs:
           docker run --rm \
             ${{ steps.vars.outputs.image_repo }}:laravel-app.${{ env.RUN_ID }} \
             php vendor/bin/pest tests/Architecture
-
-  cleanup-dockerhub:
-    name: Cleanup temporary Docker Hub images
-    runs-on: ubuntu-latest
-    needs:
-      - test
-      - static-analysis
-    if: always()
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Generate Docker Tags
-        id: vars
-        uses: ./.github/actions/docker-tag
-        with:
-          branch_name: ${{ github.head_ref }}
-          docker_username: ${{ vars.DOCKER_HUB_USERNAME }}
-
-      - name: Delete temporary Docker Hub tags
-        env:
-          DOCKERHUB_REPO: ${{ steps.vars.outputs.image_repo }}
-          RUN_ID: ${{ github.run_id }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
-          DOCKERHUB_USER: ${{ vars.DOCKER_HUB_USERNAME }}
-        run: |
-          set -euo pipefail
-
-          echo "Fetching Docker Hub JWT…"
-          TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
-            -H "Content-Type: application/json" \
-            -d "{\"username\": \"${DOCKERHUB_USER}\", \"password\": \"${DOCKERHUB_TOKEN}\"}" \
-            | jq -r .token)
-
-          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "Failed to authenticate to Docker Hub"
-            exit 1
-          fi
-
-          echo "Listing tags for ${DOCKERHUB_REPO}…"
-          TAGS=$(curl -s \
-            -H "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/repositories/${DOCKERHUB_REPO}/tags/?page_size=1000" \
-            | jq -r ".results[].name | select(endswith(\".${RUN_ID}\"))")
-
-          if [ -z "$TAGS" ]; then
-            echo "No temporary tags found"
-            exit 0
-          fi
-
-          EXIT_CODE=0
-          for tag in $TAGS; do
-            echo "Deleting ${DOCKERHUB_REPO}:$tag"
-            if ! curl -sf -X DELETE \
-              -H "Authorization: JWT $TOKEN" \
-              "https://hub.docker.com/v2/repositories/${DOCKERHUB_REPO}/tags/$tag/"; then
-              echo "Failed to delete ${DOCKERHUB_REPO}:$tag"
-              EXIT_CODE=1
-            fi
-          done
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "Cleanup completed with errors"
-            exit 1
-          fi
-
-          echo "Cleanup completed"

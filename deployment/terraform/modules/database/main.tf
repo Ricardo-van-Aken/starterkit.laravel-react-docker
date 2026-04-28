@@ -19,6 +19,10 @@ resource "digitalocean_database_user" "my_user" {
   name       = local.user_name
 }
 
+data "digitalocean_database_ca" "ca" {
+  cluster_id = digitalocean_database_cluster.my_cluster.id
+}
+
 resource "digitalocean_project_resources" "assign_resources" {
   project   = var.project_id
   resources = [digitalocean_database_cluster.my_cluster.urn]

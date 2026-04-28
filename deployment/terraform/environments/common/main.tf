@@ -30,3 +30,13 @@ module "database" {
   source     = "../../modules/database"
   project_id = var.project_id
 }
+
+resource "random_password" "redis_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "random_bytes" "app_key" {
+  length = 32
+}

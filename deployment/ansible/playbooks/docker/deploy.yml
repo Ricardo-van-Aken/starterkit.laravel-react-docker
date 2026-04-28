@@ -14,49 +14,83 @@
       register: docker_uid
       changed_when: false
 
-    - name: Take down existing docker environment
-      ignore_errors: yes
-      block:
-      - name: Check if stop_env.sh exists (first ever deploy)
-        stat:
-          path: "/home/{{ docker_user  }}/stop_env.sh"
-        register: stop_env
-      
-      - name: Take down any containers using existing docker-compose.yml
-        shell:
-          chdir: /home/{{ docker_user }}
-          cmd: ./stop_env.sh
-        become_user: "{{ docker_user }}"
-        environment:
-          XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
-          DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
-        changed_when: false
-        when: stop_env.stat.exists
+    - name: Check if stop_env.sh exists (first ever deploy)
+      stat:
+        path: "/home/{{ docker_user }}/stop_env.sh"
+      register: stop_env
 
     - name: Copy all required files for running containers
-      become_user: "{{ docker_user  }}"
+      become_user: "{{ docker_user }}"
       block:
       - name: Copy *.sh files and add execution permissions
         copy:
-          src: "{{ root  }}/website/{{ item }}"
-          dest: "/home/{{ docker_user  }}/{{ item }}"
+          src: "{{ root }}/website/{{ item }}"
+          dest: "/home/{{ docker_user }}/{{ item }}"
           mode: a+x
         loop:
           - run_env.sh
           - stop_env.sh
 
-      - name: Copy docker files
+      - name: Copy docker env file
         copy:
-          src: "{{ root  }}/website/docker/{{ item }}"
-          dest: "/home/{{ docker_user  }}/docker/{{ item }}"
-        loop:
-          - ".env.{{ env_name  }}"
-          - docker-compose.yml
+          src: "{{ root }}/website/docker/.env.{{ env_name }}"
+          dest: "/home/{{ docker_user }}/docker/.env.{{ env_name }}"
 
-      - name: Copy laravel environment file
+      - name: Ensure laravel services directory exists
+        ansible.builtin.file:
+          path: "/home/{{ docker_user }}/services/laravel"
+          state: directory
+          mode: '0755'
+
+      - name: Clean up corrupted .env.prod directory (created by docker if missing)
+        ansible.builtin.file:
+          path: "/home/{{ docker_user }}/services/laravel/.env.prod"
+          state: absent
+
+      - name: Copy laravel app .env.prod file
         copy:
-          src: "{{ root  }}/website/docker/img_laravel/.env"
-          dest: "/home/{{ docker_user  }}/docker/.env"
+          src: "{{ root }}/website/services/laravel/.env.prod"
+          dest: "/home/{{ docker_user }}/services/laravel/.env.prod"
+
+      - name: Copy compose files
+        copy:
+          src: "{{ root }}/website/{{ item }}"
+          dest: "/home/{{ docker_user }}/{{ item }}"
+        loop:
+          - compose.yaml
+          - compose.dev.yaml
+
+      - name: Write Docker secret files from environment variables
+        no_log: true
+        copy:
+          content: "{{ lookup('env', item.env) }}"
+          dest: "/home/{{ docker_user }}/docker/secrets/{{ item.file }}"
+          mode: "0600"
+        loop:
+          - { env: SECRET_APP_KEY,                   file: app_key }
+          - { env: SECRET_REDIS_PASSWORD,            file: redis_password }
+          - { env: SECRET_MYSQL_DB_ROOTPASS,         file: mysql_db_rootpass }
+          - { env: SECRET_MYSQL_APP_DB_DATABASE,     file: mysql_app_db_database }
+          - { env: SECRET_MYSQL_APP_DB_USERNAME,     file: mysql_app_db_username }
+          - { env: SECRET_MYSQL_APP_DB_PASSWORD,     file: mysql_app_db_password }
+          - { env: SECRET_MYSQL_APP_DB_HOST,         file: mysql_app_db_host }
+          - { env: SECRET_MYSQL_APP_DB_PORT,         file: mysql_app_db_port }
+          - { env: SECRET_MYSQL_APP_DB_SSL,          file: mysql_app_db_ssl }
+          - { env: SECRET_MYSQL_TESTING_DB_DATABASE, file: mysql_testing_db_database }
+          - { env: SECRET_MYSQL_TESTING_DB_USERNAME, file: mysql_testing_db_username }
+          - { env: SECRET_MYSQL_TESTING_DB_PASSWORD, file: mysql_testing_db_password }
+
+    - name: Take down existing containers
+      become_user: "{{ docker_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ docker_uid.stdout }}"
+        DOCKER_HOST: "unix:///run/user/{{ docker_uid.stdout }}/docker.sock"
+      shell:
+        chdir: /home/{{ docker_user }}
+        cmd: ./stop_env.sh
+      changed_when: false
+      ignore_errors: yes
+      when: stop_env.stat.exists
 
     - name: Find all `secrets` files
       ansible.builtin.find:
@@ -88,15 +122,28 @@
         shell: |
           echo "{{ lookup('env','DOCKER_HUB_TOKEN') }}" | docker login --username "{{ lookup('env','DOCKER_HUB_USERNAME') }}" --password-stdin
 
-      - name: Take down any containers using updated docker-compose.yml
-        shell:
-          chdir: /home/{{ docker_user }}
-          cmd: ./stop_env.sh {{ env_name  }}
-        changed_when: false
-        when: stop_env.stat.exists
-
       - name: Deploy images
         shell:
           chdir: /home/{{ docker_user }}
-          cmd: ./run_env.sh {{ env_name  }}
+          cmd: ./run_env.sh {{ env_name }}
+        changed_when: false
+
+      - name: Run database migrations
+        shell: |
+          docker exec laravel_app /bin/sh -c "
+            . /usr/local/bin/read-app-key.sh &&
+            . /usr/local/bin/read-db-credentials.sh &&
+            . /usr/local/bin/read-redis-password.sh &&
+            php artisan migrate --force
+          "
+        changed_when: false
+
+      - name: Seed required data
+        shell: |
+          docker exec laravel_app /bin/sh -c "
+            . /usr/local/bin/read-app-key.sh &&
+            . /usr/local/bin/read-db-credentials.sh &&
+            . /usr/local/bin/read-redis-password.sh &&
+            php artisan db:seed --class=RequiredDataSeeder --force
+          "
         changed_when: false
