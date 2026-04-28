@@ -24,7 +24,8 @@ if [ -n "$FILTER_ARG" ]; then
   TEST_ARGS="$TEST_ARGS $FILTER_ARG"
 fi
 
-/bin/sh -c ". /usr/local/bin/read-db-credentials.sh && \
+/bin/sh -c ". /usr/local/bin/read-app-key.sh && \
+            . /usr/local/bin/read-db-credentials.sh && \
             . /usr/local/bin/read-redis-password.sh && \
             cd /var/www && \
             php artisan test $TEST_ARGS"
