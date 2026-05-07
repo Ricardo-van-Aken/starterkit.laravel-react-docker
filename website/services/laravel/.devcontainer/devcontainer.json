@@ -1,0 +1,19 @@
+{
+    "name": "Laravel",
+    "dockerComposeFile": ["../../../compose.devcontainer.local.yaml"],
+    "service": "app",
+    "runServices": ["app", "queue_worker", "scheduler", "nginx", "redis", "mysql_db", "cert_local", "phpmyadmin-admin", "phpmyadmin-testing", "phpredisadmin"],
+    "workspaceFolder": "/var/www",
+    "remoteUser": "developer",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "google.geminicodeassist",
+                "bmewburn.vscode-intelephense-client",
+                "laravel.vscode-laravel",
+                "naumovs.color-highlight"
+            ]
+        }
+    }
+}
