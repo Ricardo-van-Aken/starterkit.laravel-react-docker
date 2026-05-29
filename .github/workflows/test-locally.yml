@@ -39,7 +39,7 @@ jobs:
 
       - name: Load Environment Variables for Docker Compose
         run: |
-          grep -v '^#' website/docker/.env.local | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
+          grep -v '^#' website/docker/.env.local-dev | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
 
       - name: Build and Load with Docker Bake
         uses: docker/bake-action@v7
@@ -98,7 +98,7 @@ jobs:
           TAG_ADDITION: ${{ env.RUN_ID }}
           IMAGE_REPO: ${{ steps.vars.outputs.image_repo }}
         run: |
-          docker compose -p laravel-starterkit -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local --profile local up -d --no-build
+          docker compose -p laravel-starterkit -f compose.yaml -f compose.dev.yaml --env-file docker/.env.local-dev --profile local up -d --no-build
 
       - name: Run Laravel tests on mock production in parallel
         run: |
