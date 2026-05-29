@@ -57,7 +57,7 @@ jobs:
 
       - name: Load environment variables for Docker Compose
         run: |
-          grep -v '^#' website/docker/.env.${{ env.ENVIRONMENT }} | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
+          grep -v '^#' website/docker/.env.remote-${{ env.ENVIRONMENT }} | grep -v '^[[:space:]]*$' >> $GITHUB_ENV
 
       - name: Build and Push with Docker Bake
         uses: docker/bake-action@v7
