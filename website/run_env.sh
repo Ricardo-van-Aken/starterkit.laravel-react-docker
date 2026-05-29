@@ -123,35 +123,35 @@ select_mode_config() {
   case "${mode}" in
     local-volume)
       # Local development, dev image, named volume
-      _env_file="docker/.env.local"
+      _env_file="docker/.env.local-dev"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml")
       ;;
     local-bindmount)
       # Local development, dev image, host bindmount
-      _env_file="docker/.env.local"
+      _env_file="docker/.env.local-dev"
       _profile="local"
       _compose_files+=("-f" "compose.dev.yaml" "-f" "compose.bindmount.yaml")
       ;;
     local-production)
       # Local development, production image, named volume
-      _env_file="docker/.env.local"
+      _env_file="docker/.env.local-dev"
       _profile="local"
       ;;
     dev)
       # Remote environment, dev image, named volume. Domain: dev.<domainname>
-      _env_file="docker/.env.dev"
+      _env_file="docker/.env.remote-dev"
       _profile="remote"
       _compose_files+=("-f" "compose.dev.yaml")
       ;;
     staging)
       # Remote environment, production image, named volume. Domain: staging.<domainname>
-      _env_file="docker/.env.staging"
+      _env_file="docker/.env.remote-staging"
       _profile="remote"
       ;;
     production)
       # Remote environment, production image, named volume. Domain: <domainname>
-      _env_file="docker/.env.production"
+      _env_file="docker/.env.remote-prod"
       _profile="remote"
       ;;
     *)

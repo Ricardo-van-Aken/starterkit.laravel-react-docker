@@ -159,6 +159,12 @@ RUN composer dump-autoload --optimize
 # Clean, tool-rich runtime for development
 FROM build-tools AS dev
 
+# Add a developer user for IDE attachment. Member of www-data and shared to access app files.
+RUN addgroup -g 1000 developer && \
+    adduser -u 1000 -D -G developer -s /bin/bash -h /home/developer developer && \
+    addgroup developer www-data && \
+    addgroup developer shared
+
 # Copy runtime-essential application files from dev builder
 COPY --chown=www-data:www-data --from=builder-dev /var/www/app ./app
 COPY --chown=www-data:www-data --from=builder-dev /var/www/bootstrap ./bootstrap

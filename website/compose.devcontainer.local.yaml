@@ -1,0 +1,9 @@
+# Devcontainer local-dev wrapper. Uses 'include' with env_file to pass docker/.env.local-dev
+# for variable substitution in the included files — replacing run_env.sh's --env-file flag,
+# which devcontainer.json has no equivalent for.
+include:
+  - path:
+      - compose.yaml
+      - compose.dev.yaml
+      - compose.bindmount.yaml
+    env_file: docker/.env.local-dev
