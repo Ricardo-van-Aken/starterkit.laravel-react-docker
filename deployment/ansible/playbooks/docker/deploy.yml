@@ -7,6 +7,7 @@
     docker_user: "{{ lookup('env', 'DOCKER_USER')  }}"
     root: "{{ lookup('env', 'WORKSPACE') }}"
     env_name: "{{ lookup('env', 'ENVIRONMENT') }}"
+    laravel_env_name: "{{ 'remote-dev' if env_name == 'dev' else 'remote-prod' }}"
 
   tasks:
     - name: Get docker user UID
@@ -33,8 +34,8 @@
 
       - name: Copy docker env file
         copy:
-          src: "{{ root }}/website/docker/.env.{{ env_name }}"
-          dest: "/home/{{ docker_user }}/docker/.env.{{ env_name }}"
+          src: "{{ root }}/website/docker/.env.remote-{{ env_name }}"
+          dest: "/home/{{ docker_user }}/docker/.env.remote-{{ env_name }}"
 
       - name: Ensure laravel services directory exists
         ansible.builtin.file:
@@ -42,15 +43,15 @@
           state: directory
           mode: '0755'
 
-      - name: Clean up corrupted .env.prod directory (created by docker if missing)
+      - name: Clean up corrupted laravel env directory (created by docker if missing)
         ansible.builtin.file:
-          path: "/home/{{ docker_user }}/services/laravel/.env.prod"
+          path: "/home/{{ docker_user }}/services/laravel/.env.{{ laravel_env_name }}"
           state: absent
 
-      - name: Copy laravel app .env.prod file
+      - name: Copy laravel app env file
         copy:
-          src: "{{ root }}/website/services/laravel/.env.prod"
-          dest: "/home/{{ docker_user }}/services/laravel/.env.prod"
+          src: "{{ root }}/website/services/laravel/.env.{{ laravel_env_name }}"
+          dest: "/home/{{ docker_user }}/services/laravel/.env.{{ laravel_env_name }}"
 
       - name: Copy compose files
         copy:
