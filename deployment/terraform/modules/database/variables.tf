@@ -10,7 +10,7 @@ variable "cluster_engine" {
 
 variable "cluster_version" {
   type    = string
-  default = "8"
+  default = "8.4"
 }
 
 variable "cluster_size" {
