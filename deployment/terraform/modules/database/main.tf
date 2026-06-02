@@ -5,6 +5,7 @@ resource "digitalocean_database_cluster" "my_cluster" {
   size       = var.cluster_size   # node size
   region     = var.cluster_region # region slug
   node_count = var.cluster_node_count
+  project_id = var.project_id
 }
 
 # Create a database inside the cluster (in addition to the default)
@@ -21,9 +22,4 @@ resource "digitalocean_database_user" "my_user" {
 
 data "digitalocean_database_ca" "ca" {
   cluster_id = digitalocean_database_cluster.my_cluster.id
-}
-
-resource "digitalocean_project_resources" "assign_resources" {
-  project   = var.project_id
-  resources = [digitalocean_database_cluster.my_cluster.urn]
 }

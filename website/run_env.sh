@@ -151,7 +151,7 @@ select_mode_config() {
       ;;
     production)
       # Remote environment, production image, named volume. Domain: <domainname>
-      _env_file="docker/.env.remote-prod"
+      _env_file="docker/.env.remote-production"
       _profile="remote"
       ;;
     *)
