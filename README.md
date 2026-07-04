@@ -26,7 +26,7 @@ A production-ready starter kit for building multi-tenant SaaS web applications w
 ### Prerequisites
 
 - Linux, macOS, or Windows with WSL2
-- Bash-compatible shell
+- Bash 4.3 or newer (the scripts use namerefs, which older Bash — notably the 3.2 shipped by default on some systems — does not support)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose V2](https://docs.docker.com/compose/install/)
 
