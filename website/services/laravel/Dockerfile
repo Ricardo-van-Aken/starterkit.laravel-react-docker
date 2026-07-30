@@ -55,11 +55,10 @@ COPY ${DOCKERFILE_DIR}/scripts/*.sh /usr/local/bin/
 
 # Set permissions
 RUN chown root:www-data         /usr/local/bin/read-db-credentials.sh           && chmod 550 /usr/local/bin/read-db-credentials.sh && \
-    chown root:www-data         /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
     chown root:shared           /usr/local/bin/read-app-key.sh                  && chmod 550 /usr/local/bin/read-app-key.sh && \
     chown root:shared           /usr/local/bin/read-redis-password.sh           && chmod 550 /usr/local/bin/read-redis-password.sh && \
-    chown root:shared           /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh && \
-    chown root:testrunner       /usr/local/bin/test_cloned_db.sh                && chmod 550 /usr/local/bin/test_cloned_db.sh && \
+    chown root:testrunner       /usr/local/bin/test.sh                          && chmod 550 /usr/local/bin/test.sh && \
+    chown root:testrunner       /usr/local/bin/read-db-credentials-testing.sh   && chmod 550 /usr/local/bin/read-db-credentials-testing.sh && \
     chown root:testrunner       /usr/local/bin/clone_db_for_testing.sh          && chmod 550 /usr/local/bin/clone_db_for_testing.sh
 
 

@@ -83,7 +83,8 @@ return [
             ]) : [],
         ],
 
-        // Used by phpunit.docker.xml — credentials are injected via Docker secrets scripts
+        // Used by phpunit.isolated.xml — the testing user's credentials are injected via Docker
+        // secrets scripts. This user can create the per-worker databases used by parallel testing.
         'mysql_testing' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
@@ -99,6 +100,7 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT', true),
             ]) : [],
         ],
 

@@ -1,0 +1,35 @@
+{
+    "name": "laravel-starterkit_rootfolder",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    // docker-outside-of-docker shares the host's Docker daemon, so bind-mount source paths in
+    // compose.yaml are resolved by the daemon against the HOST filesystem. Mounting the workspace at
+    // its real host path (instead of /workspaces/...) keeps the container path identical to the host
+    // path, so relative binds (docker/secrets/*, .env, mysql-certs) resolve correctly on both sides.
+    "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+    "workspaceFolder": "${localWorkspaceFolder}",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "timonwong.shellcheck",
+                "redhat.vscode-yaml",
+                "mikestead.dotenv",
+                "github.vscode-github-actions",
+                "hashicorp.terraform",
+                "redhat.ansible"
+            ]
+        },
+        "jetbrains": {
+            "backend": "PhpStorm",
+            "plugins": [
+                "org.intellij.plugins.hcl"
+            ]
+        }
+    },
+    "remoteUser": "developer"
+}

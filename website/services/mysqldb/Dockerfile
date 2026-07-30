@@ -1,15 +1,11 @@
-# Docker Official Image: mysql:8.0-debian. Jan 13, 2026 at 5:03 am
-FROM mysql@sha256:707f5c087531fde2fe4cd0fa3a125c7467e99b7f6282a3e6ed338604aedb8c25
+# Docker Official Image: mysql:9.7 (LTS, Oracle Linux 9). Multi-arch (amd64 + arm64).
+FROM mysql@sha256:ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3
 
-# Remove MySQL repository immediately to avoid GPG signature errors on apt-get update.
-# (The built-in keys often expire in official images, but we only need standard Debian packages here anyway).
-RUN rm -f /etc/apt/sources.list.d/mysql.list
-
-RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt \
-    --mount=type=cache,id=apt-lib,target=/var/lib/apt \
-    apt-get update && \
-    apt-get install -y openssl libssl-dev gettext-base && \
-    rm -rf /var/lib/apt/lists/*
+# The 9.x images are Oracle Linux based, so install packages with microdnf.
+# openssl: the CLI used by generate-certs.sh. gettext: provides envsubst for the SQL template.
+RUN --mount=type=cache,id=dnf-cache,target=/var/cache/dnf \
+    microdnf install -y openssl gettext && \
+    microdnf clean all
 
 # Sql entrypoint
 COPY scripts/entry.sql.template /tmp/entry.sql.template

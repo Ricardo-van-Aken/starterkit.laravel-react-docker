@@ -23,7 +23,6 @@ chown -R mysql:mysql /mysql-certs
 /usr/local/bin/docker-entrypoint.sh \
   mysqld \
   --require-secure-transport=ON \
-  --ssl=1 \
   --ssl-ca=/mysql-certs/ca.pem \
   --ssl-cert=/mysql-certs/server-cert.pem \
   --ssl-key=/mysql-certs/server-key.pem

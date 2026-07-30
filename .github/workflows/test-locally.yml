@@ -102,7 +102,7 @@ jobs:
 
       - name: Run Laravel tests on mock production in parallel
         run: |
-          docker exec -u www-data laravel_app sh -c 'bash /usr/local/bin/test.sh -c phpunit.none.xml --parallel'
+          docker exec -u testrunner laravel_app sh -c 'bash /usr/local/bin/test.sh --parallel'
 
       - name: Run PHPStan
         run: |

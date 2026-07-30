@@ -1,14 +1,19 @@
 -- Create Database that will contain data from testing
 CREATE DATABASE IF NOT EXISTS `${MYSQL_DATABASE_TESTING}`;
 
--- Create admin for the testing database, with read access to the main database. Using this user for tests will prevent
--- accidental changes to real application data.
+-- Testing user: owns the testing database and is the ONLY user allowed to create the
+-- per-worker databases that Laravel parallel testing spins up (named
+-- `${MYSQL_DATABASE_TESTING}_test_<token>`). The pattern grant below both authorises
+-- creating those databases and gives full control over them. It also gets read-only access
+-- to the main application database so it can clone it into the testing database, but it can
+-- never modify real application data.
 CREATE USER IF NOT EXISTS '${MYSQL_USER_TESTING}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD_TESTING}';
 GRANT ALL PRIVILEGES ON `${MYSQL_DATABASE_TESTING}`.* TO '${MYSQL_USER_TESTING}'@'%';
+GRANT ALL PRIVILEGES ON `${MYSQL_DATABASE_TESTING}\_test\_%`.* TO '${MYSQL_USER_TESTING}'@'%';
 GRANT SELECT, LOCK TABLES, SHOW VIEW, TRIGGER ON `${MYSQL_DATABASE}`.* TO '${MYSQL_USER_TESTING}'@'%';
 
--- Give all privileges to the admin user to the application database. These permissions are required to run laravels
--- parallel tests, since these tests create multiple new databases.
-GRANT ALL PRIVILEGES ON *.* TO '${MYSQL_USER}'@'%';
+-- Application user: full control over the main application database only. It intentionally
+-- CANNOT create databases, so parallel-test database creation is reserved for the testing user.
+GRANT ALL PRIVILEGES ON `${MYSQL_DATABASE}`.* TO '${MYSQL_USER}'@'%';
 
 FLUSH PRIVILEGES;

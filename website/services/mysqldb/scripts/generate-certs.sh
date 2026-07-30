@@ -20,7 +20,10 @@ if [ ! -f "$CERT_DIR/ca.pem" ]; then
   # Server key
   openssl genrsa 4096 > "$CERT_DIR/server-key.pem"
 
-  # Server cert
+  # Server cert with a SubjectAltName for the "mysql_db" hostname, required for strict TLS
+  # verification (MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=true) to succeed.
+  printf 'subjectAltName=DNS:%s\n' "$CONTAINER_NAME" > "$CERT_DIR/server-ext.cnf"
+
   openssl req -new \
     -key "$CERT_DIR/server-key.pem" \
     -out "$CERT_DIR/server-req.pem" \
@@ -31,7 +34,10 @@ if [ ! -f "$CERT_DIR/ca.pem" ]; then
     -CA "$CERT_DIR/ca.pem" \
     -CAkey "$CERT_DIR/ca-key.pem" \
     -set_serial 01 \
+    -extfile "$CERT_DIR/server-ext.cnf" \
     -out "$CERT_DIR/server-cert.pem"
+
+  rm -f "$CERT_DIR/server-ext.cnf"
 
   chmod 600 "$CERT_DIR"/*-key.pem
 fi
